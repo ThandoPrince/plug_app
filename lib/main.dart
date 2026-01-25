@@ -21,6 +21,8 @@ import 'package:flutter_application_1/global_util/services/controler/home_refres
 import 'package:flutter_application_1/global_util/services/controler/location_permission_ctrl.dart';
 import 'package:flutter_application_1/global_util/services/controler/negotiation_by_OrderID_Ctrl.dart';
 import 'package:flutter_application_1/global_util/services/controler/negotiation_by_negoID_ctrl.dart';
+import 'package:flutter_application_1/global_util/services/controler/session_by_shipment_ctrl.dart';
+import 'package:flutter_application_1/global_util/services/controler/session_location_ping_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/shipment_confirm_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/sp_add_by_id_ctrl.dart';
 import 'package:flutter_application_1/global_util/services/controler/sp_by_addesses_controller.dart';
@@ -112,6 +114,8 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => ShipmentController()),
         ChangeNotifierProvider(create: (_) => ShipmentConfirmController()),
         ChangeNotifierProvider(create: (_) => ClientCheckinController(),),
+        ChangeNotifierProvider(create: (_) => SessionByShipmentController(),),
+        ChangeNotifierProvider(create: (_) => ClientSessionLocationPingController(),),
 
         
          

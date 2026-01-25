@@ -1,21 +1,58 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
 import 'package:flutter_application_1/global_util/services/controler/confirm_session_controller.dart';
+import 'package:flutter_application_1/global_util/services/controler/session_by_shipment_ctrl.dart';
+import 'package:flutter_application_1/screens/sessions/views/session_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
-class ClientQrCheckinScreen extends StatelessWidget {
+class ClientQrCheckinScreen extends StatefulWidget {
   final int shipmentId;
 
-  const ClientQrCheckinScreen({
-    super.key,
-    required this.shipmentId,
-  });
+  const ClientQrCheckinScreen({super.key, required this.shipmentId});
+
+  @override
+  State<ClientQrCheckinScreen> createState() => _ClientQrCheckinScreenState();
+}
+
+class _ClientQrCheckinScreenState extends State<ClientQrCheckinScreen> {
+  late SessionByShipmentController _sessionController;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _sessionController = SessionByShipmentController();
+
+    // Start polling for session after the screen loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _sessionController.startSessionPolling(widget.shipmentId.toString());
+
+      // Listen for session changes
+      _sessionController.addListener(() {
+        if (_sessionController.session != null) {
+          // Navigate to session screen once session exists
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => SessionScreen(session: _sessionController.session!),
+            ),
+          );
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _sessionController.stopPolling();
+    _sessionController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (_) => ClientCheckinController()..loadCheckinToken(shipmentId),
+      create: (_) => ClientCheckinController()..loadCheckinToken(widget.shipmentId),
       child: Scaffold(
         extendBodyBehindAppBar: true,
         appBar: AppBar(
@@ -40,9 +77,7 @@ class ClientQrCheckinScreen extends StatelessWidget {
                   end: Alignment.bottomLeft,
                 ),
               ),
-              child: SafeArea(
-                child: _buildContent(context, controller),
-              ),
+              child: SafeArea(child: _buildContent(context, controller)),
             );
           },
         ),
@@ -65,12 +100,12 @@ class ClientQrCheckinScreen extends StatelessWidget {
 
     final price = controller.token!.shipment?.serviceOrdered?.proposalPrice ?? '0.00';
 
+    // QR code displayed immediately
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
       child: Column(
         children: [
           const SizedBox(height: 20),
-          // --- Ticket Design ---
           Container(
             decoration: BoxDecoration(
               color: Colors.white,
@@ -86,7 +121,6 @@ class ClientQrCheckinScreen extends StatelessWidget {
             child: Column(
               children: [
                 const SizedBox(height: 30),
-                // QR Code Section
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -119,24 +153,18 @@ class ClientQrCheckinScreen extends StatelessWidget {
                 ),
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 20),
-                  child: _TicketDivider(), // Custom dashed divider
+                  child: _TicketDivider(),
                 ),
-                // Details Section
                 Padding(
                   padding: const EdgeInsets.fromLTRB(24, 0, 24, 30),
                   child: Column(
                     children: [
                       _buildDetailRow("Amount Due", "R $price", Icons.payments_outlined),
                       const SizedBox(height: 16),
-                      _buildDetailRow(
-  "Expires In",
-  controller.formattedRemaining,
-  Icons.timer_outlined,
-),
-
+                      _buildDetailRow("Expires In", controller.formattedRemaining, Icons.timer_outlined),
                       const SizedBox(height: 24),
                       Text(
-                        "Ask the Service Provider to scan this code to begin the session.",
+                        "Ask the Service Provider to scan this code to begin the session. \nIf they accept, the session will start automatically.",
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 13,
@@ -151,7 +179,6 @@ class ClientQrCheckinScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 60),
-          // Security Note
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -198,10 +225,8 @@ class ClientQrCheckinScreen extends StatelessWidget {
   }
 }
 
-// Custom widget for the dashed line in the ticket
 class _TicketDivider extends StatelessWidget {
   const _TicketDivider();
-
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -211,7 +236,7 @@ class _TicketDivider extends StatelessWidget {
           height: 20,
           child: DecoratedBox(
             decoration: BoxDecoration(
-              color: Kolors.kPrimary, // Matches background
+              color: Kolors.kPrimary,
               borderRadius: BorderRadius.only(topRight: Radius.circular(20), bottomRight: Radius.circular(20)),
             ),
           ),
@@ -238,7 +263,7 @@ class _TicketDivider extends StatelessWidget {
           height: 20,
           child: DecoratedBox(
             decoration: BoxDecoration(
-              color: Kolors.kSecondaryLight, // Matches background
+              color: Kolors.kSecondaryLight,
               borderRadius: BorderRadius.only(topLeft: Radius.circular(20), bottomLeft: Radius.circular(20)),
             ),
           ),
