@@ -6,7 +6,7 @@ class ClientPendingOrdersController with ChangeNotifier {
   final ClientPendingOrdersApi api;
 
   ClientPendingOrdersController({ClientPendingOrdersApi? api})
-      : api = api ?? ClientPendingOrdersApi(baseUrl: 'http://192.168.18.64:8000/api');
+      : api = api ?? ClientPendingOrdersApi();
 
   List<OrderServiceModel> _pendingOrders = [];
   List<OrderServiceModel> get pendingOrders => _pendingOrders;

@@ -116,6 +116,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => ClientCheckinController(),),
         ChangeNotifierProvider(create: (_) => SessionByShipmentController(),),
         ChangeNotifierProvider(create: (_) => ClientSessionLocationPingController(),),
+       
 
         
          

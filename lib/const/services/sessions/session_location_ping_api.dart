@@ -8,7 +8,7 @@ class ClientSessionLocationPingApi {
 
   /// Fetch **only the latest location ping** for a session
   static Future<ClientSessionLocationPingModel?> fetchLatestPing(int sessionId) async {
-    final url = Uri.parse('$baseUrl/sessions/$sessionId/location-pings/latest/');
+    final url = Uri.parse('$baseUrl/bookings/sessions/$sessionId/latest-ping/');
     final response = await http.get(url, headers: {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer ${dotenv.env['API_TOKEN'] ?? ''}',
