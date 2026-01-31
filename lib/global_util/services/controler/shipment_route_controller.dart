@@ -18,7 +18,9 @@ class ShipmentRouteController extends ChangeNotifier {
   Timer? _pollingTimer;
 bool _isPolling = false;
 bool _followProvider = true; 
-final bool _isFollowing = true;
+Timer? _followResumeTimer;
+static const Duration _followResumeDelay = Duration(seconds: 6);
+
 bool get isFollowing => _followProvider;
 GeoCoordinates? _currentProviderPosition;
 
@@ -69,6 +71,23 @@ GeoCoordinates? _currentProviderPosition;
 void disableFollow() {
   _followProvider = false;
 }
+
+void onUserMapInteraction() {
+  // Disable follow immediately
+  _followProvider = false;
+
+  // Restart resume timer
+  _followResumeTimer?.cancel();
+  _followResumeTimer = Timer(_followResumeDelay, () {
+    _followProvider = true;
+
+    // If we already know provider position, re-center
+    if (_currentProviderPosition != null) {
+      followProvider(position: _currentProviderPosition!);
+    }
+  });
+}
+
 
 
 void startPolling({Duration interval = const Duration(seconds: 6)}) {
@@ -173,22 +192,31 @@ double _calculateBearing(List<GeoCoordinates> points) {
   }
 
   void recenterOnProvider() {
-  if (_currentProviderPosition != null) {
-    followProvider(position: _currentProviderPosition!);
-    _followProvider = true;
-  }
+  if (_currentProviderPosition == null || _mapController == null) return;
+
+  _followProvider = true;
+
+  followProvider(
+    position: _currentProviderPosition!,
+  );
 }
 
-  void followProvider({required GeoCoordinates position, double bearing = 0}) {
-    _currentProviderPosition = position;
-    if (_mapController == null || !_isFollowing) return;
 
-    _mapController!.camera.lookAtPointWithGeoOrientationAndMeasure(
-      position,
-      GeoOrientationUpdate(50, bearing),
-      MapMeasure(MapMeasureKind.distanceInMeters, 1200),
-    );
-  }
+  void followProvider({
+  required GeoCoordinates position,
+  double bearing = 0,
+}) {
+  _currentProviderPosition = position;
+
+  if (_mapController == null || !_followProvider) return;
+
+  _mapController!.camera.lookAtPointWithGeoOrientationAndMeasure(
+    position,
+    GeoOrientationUpdate(50, bearing),
+    MapMeasure(MapMeasureKind.distanceInMeters, 1200),
+  );
+}
+
 
 
   // -----------------------------
@@ -401,6 +429,7 @@ double _calculateBearing(List<GeoCoordinates> points) {
   @override
   void dispose() {
     stopPolling();
+    _followResumeTimer?.cancel();
     clear();
     super.dispose();
   }

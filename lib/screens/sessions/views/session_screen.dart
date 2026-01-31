@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
-import 'package:flutter_application_1/const/services/sessions/check_session_status_api.dart';
+import 'package:flutter_application_1/global_util/services/controler/rating_navigation_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/session_location_ping_controller.dart';
 import 'package:flutter_application_1/global_util/services/models/order_service_models/session_model.dart';
 import 'package:flutter_application_1/screens/ratings/views/ratings_screen.dart';
@@ -26,41 +26,47 @@ class _SessionScreenState extends State<SessionScreen> {
   void initState() {
     super.initState();
 
+    /// Reset static controller for safety (new session lifecycle)
+    RatingNavigationController.reset();
+
+    /// Session tracking controller
     controller = ClientSessionLocationPingController(
       sessionId: widget.session.sessionId,
     );
 
-    // Initialize controller
     controller.initSession(widget.session.sessionId!);
 
-    // Set up navigation callback
-    controller.onSessionCompleted = () {
+    /// Rating navigation callback
+    RatingNavigationController.onRatingAvailable = () {
       if (!mounted) return;
+
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (_) => RatingScreen(sessionId: widget.session.sessionId!),
+          builder: (_) => RatingScreen(
+            sessionId: widget.session.sessionId!,
+            clientEmail: widget.session.shipment!.serviceOrdered!.client!,
+          ),
         ),
       );
     };
 
-    // Instant check in case session is already completed
-    _checkIfCompletedInitially();
-  }
-
-  Future<void> _checkIfCompletedInitially() async {
-    final completed = await CheckSessionStatusApi.isSessionCompleted(
-      widget.session.sessionId!,
+   
+    RatingNavigationController.checkImmediately(
+      clientEmail: widget.session.shipment!.serviceOrdered!.client.toString(),
+      sessionId: widget.session.sessionId!,
     );
 
-    if (completed && !controller.hasNavigated) {
-      controller.markNavigated();
-      controller.onSessionCompleted?.call();
-    }
+    
+    RatingNavigationController.startPolling(
+      clientEmail: widget.session.shipment!.serviceOrdered!.client.toString(),
+      sessionId: widget.session.sessionId!,
+    );
   }
 
   @override
   void dispose() {
     controller.dispose();
+    RatingNavigationController.dispose();
     super.dispose();
   }
 
@@ -102,28 +108,46 @@ class _SessionScreenState extends State<SessionScreen> {
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                         ),
-                        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+                        borderRadius:
+                            BorderRadius.vertical(top: Radius.circular(32)),
                       ),
                       child: SingleChildScrollView(
                         controller: scrollController,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 24,
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Container(
                               width: 40,
                               height: 4,
-                              margin: const EdgeInsets.only(bottom: 24),
+                              margin:
+                                  const EdgeInsets.only(bottom: 24),
                               decoration: BoxDecoration(
                                 color: Colors.grey.shade300,
-                                borderRadius: BorderRadius.circular(2),
+                                borderRadius:
+                                    BorderRadius.circular(2),
                               ),
                             ),
-                            SessionEtaCard(controller: controller, session: widget.session),
+                            SessionEtaCard(
+                              controller: controller,
+                              session: widget.session,
+                            ),
                             const SizedBox(height: 16),
-                            if (widget.session.shipment?.serviceOrdered?.providerForService?.provider != null) ...[
+                            if (widget.session.shipment
+                                    ?.serviceOrdered
+                                    ?.providerForService
+                                    ?.provider !=
+                                null) ...[
                               SessionProviderCard(
-                                provider: widget.session.shipment!.serviceOrdered!.providerForService!.provider,
+                                provider: widget
+                                    .session
+                                    .shipment!
+                                    .serviceOrdered!
+                                    .providerForService!
+                                    .provider,
                               ),
                               const SizedBox(height: 16),
                             ],
@@ -145,9 +169,11 @@ class _SessionScreenState extends State<SessionScreen> {
     );
   }
 
-  Widget _buildGeofenceStatus(ClientSessionLocationPingController controller) {
+  Widget _buildGeofenceStatus(
+      ClientSessionLocationPingController controller) {
     final inside = controller.isInsideGeofence;
-    final distance = controller.distanceMeters?.toStringAsFixed(2) ?? "-";
+    final distance =
+        controller.distanceMeters?.toStringAsFixed(2) ?? "-";
 
     return Container(
       width: double.infinity,
@@ -172,8 +198,13 @@ class _SessionScreenState extends State<SessionScreen> {
           ),
           const SizedBox(width: 12),
           Text(
-            inside ? "Inside Geofence ($distance m)" : "Outside Geofence ($distance m)",
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            inside
+                ? "Inside Geofence ($distance m)"
+                : "Outside Geofence ($distance m)",
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
           ),
         ],
       ),

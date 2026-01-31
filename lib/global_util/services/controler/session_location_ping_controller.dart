@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_application_1/const/services/sessions/check_session_status_api.dart';
+
 import 'package:flutter_application_1/const/services/sessions/session_location_ping_api.dart';
 import 'package:flutter_application_1/global_util/services/models/order_service_models/session_location_ping_model.dart';
 
@@ -13,7 +13,7 @@ class ClientSessionLocationPingController extends ChangeNotifier {
 
   Timer? _timer;
   Timer? _fetchPingTimer;
-  Timer? _statusTimer;
+
 
   bool _hasNavigated = false;
   bool get hasNavigated => _hasNavigated;
@@ -35,7 +35,7 @@ class ClientSessionLocationPingController extends ChangeNotifier {
 
     _startElapsedTimer();
     _startFetchingPing();
-    _startStatusPolling();
+   
   }
 
   void _startElapsedTimer() {
@@ -75,29 +75,12 @@ class ClientSessionLocationPingController extends ChangeNotifier {
     }
   }
 
-  void _startStatusPolling() {
-    if (sessionId == null) return;
-
-    _statusTimer?.cancel();
-    _statusTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
-      if (_hasNavigated) return;
-
-      final completed = await CheckSessionStatusApi.isSessionCompleted(sessionId!);
-      if (completed) {
-        _hasNavigated = true;
-        _timer?.cancel();
-        _fetchPingTimer?.cancel();
-        _statusTimer?.cancel();
-
-        onSessionCompleted?.call();
-      }
-    });
-  }
+  
 
   Future<void> endSession() async {
     _timer?.cancel();
     _fetchPingTimer?.cancel();
-    _statusTimer?.cancel();
+   
   }
 
   String _formatDuration(Duration d) {
@@ -111,7 +94,7 @@ class ClientSessionLocationPingController extends ChangeNotifier {
   void dispose() {
     _timer?.cancel();
     _fetchPingTimer?.cancel();
-    _statusTimer?.cancel();
+   
     super.dispose();
   }
 }

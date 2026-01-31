@@ -82,7 +82,7 @@ class ServicesListWidget extends StatelessWidget {
               ),
             ),
             subtitle: Text(
-              'Available: ${service.providerCount ?? 0}',
+              'Active: ${service.activeProviderCount ?? 0}',
               style: const TextStyle(
                 fontStyle: FontStyle.italic,
                 color: Kolors.kDark,

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
+import 'package:flutter_application_1/global_util/services/controler/session_by_shipment_ctrl.dart';
 import 'package:flutter_application_1/global_util/services/controler/shipment_route_controller.dart';
 import 'package:flutter_application_1/global_util/services/models/order_service_models/shipment_model.dart';
+import 'package:flutter_application_1/screens/session_confirmation/views/session_confirmation_screen.dart';
+import 'package:flutter_application_1/screens/sessions/views/session_screen.dart';
 import 'package:flutter_application_1/screens/track_shipment/views/track_service_screen.dart';
 import 'package:provider/provider.dart';
 
@@ -102,17 +105,43 @@ class ShipmentScheduleCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(18),
                   ),
                 ),
-                onPressed: () {
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (_) => ChangeNotifierProvider(
-        create: (_) => ShipmentRouteController(shipment: shipment),
-        child: TrackServiceScreen(shipment: shipment),
+                onPressed: () async {
+  
+  if (shipment.shipmentStatus.toLowerCase() != 'delivered') {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ChangeNotifierProvider(
+          create: (_) => ShipmentRouteController(shipment: shipment),
+          child: TrackServiceScreen(shipment: shipment),
+        ),
       ),
-    ),
-  );
+    );
+  } else {
+    // Shipment is delivered — check if session exists
+    final sessionController = SessionByShipmentController();
+    await sessionController.fetchSession(shipment.shipmentId.toString());
+
+    if (sessionController.session != null) {
+      // Session exists → go to SessionScreen
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => SessionScreen(session: sessionController.session!),
+        ),
+      );
+    } else {
+      // No session → go to ClientQrCheckinScreen
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ClientQrCheckinScreen(shipmentId: shipment.shipmentId),
+        ),
+      );
+    }
+  }
 },
+
                 child: const Text(
                   'TRACK SERVICE',
                   style: TextStyle(

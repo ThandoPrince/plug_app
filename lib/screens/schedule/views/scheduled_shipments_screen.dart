@@ -1,12 +1,9 @@
-
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
-import 'package:flutter_application_1/screens/schedule/widgets/shipment_card.dart';
 import 'package:provider/provider.dart';
+
 import 'package:flutter_application_1/common/utils/kcolors.dart';
 import 'package:flutter_application_1/global_util/services/controler/get_client_shipment_ctrl.dart';
-import 'package:flutter_application_1/screens/track_shipment/views/track_service_screen.dart';
-
+import 'package:flutter_application_1/screens/schedule/widgets/shipment_card.dart';
 
 class ScheduledShipmentsScreen extends StatefulWidget {
   const ScheduledShipmentsScreen({super.key});
@@ -17,14 +14,20 @@ class ScheduledShipmentsScreen extends StatefulWidget {
 }
 
 class _ScheduledShipmentsScreenState extends State<ScheduledShipmentsScreen> {
+  static const String _clientEmail = 't.p.tshabalala98@gmail.com';
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ShipmentController>().fetchShipmentsByClientEmail(
-            't.p.tshabalala98@gmail.com',
-          );
+      context
+          .read<ShipmentController>()
+          .fetchShipmentsByClientEmail(_clientEmail);
     });
+  }
+
+  Future<void> _onRefresh() async {
+    await context.read<ShipmentController>().refresh();
   }
 
   @override
@@ -49,23 +52,26 @@ class _ScheduledShipmentsScreenState extends State<ScheduledShipmentsScreen> {
       ),
       body: Stack(
         children: [
-          // Background Gradient
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Kolors.kPrimary,
-                  Kolors.kSecondaryLight,
-                ],
-              ),
-            ),
-          ),
-
-          // Content
+          _buildBackground(),
           SafeArea(child: _buildBody(controller)),
         ],
+      ),
+    );
+  }
+
+  // ───────────────────────────── UI PARTS ─────────────────────────────
+
+  Widget _buildBackground() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Kolors.kPrimary,
+            Kolors.kSecondaryLight,
+          ],
+        ),
       ),
     );
   }
@@ -73,57 +79,100 @@ class _ScheduledShipmentsScreenState extends State<ScheduledShipmentsScreen> {
   Widget _buildBody(ShipmentController controller) {
     if (controller.isLoading) {
       return const Center(
-          child: CircularProgressIndicator(color: Colors.white));
+        child: CircularProgressIndicator(color: Colors.white),
+      );
     }
 
     if (controller.error != null) {
-      return Center(
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          margin: const EdgeInsets.symmetric(horizontal: 30),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.9),
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Text(
-            controller.error!,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.red,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-      );
+      return _buildErrorState(controller.error!);
     }
 
     if (controller.shipments.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.calendar_month_rounded,
-                size: 100, color: Colors.white.withOpacity(0.6)),
-            const SizedBox(height: 20),
-            const Text(
-              'No Orders Scheduled!',
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-      );
+      return _buildEmptyState();
     }
 
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 30),
-      itemCount: controller.shipments.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 18),
-      itemBuilder: (_, index) {
-        return ShipmentScheduleCard(shipment: controller.shipments[index]);
-      },
+    return _buildShipmentList(controller);
+  }
+
+  // ───────────────────────────── STATES ─────────────────────────────
+
+  Widget _buildShipmentList(ShipmentController controller) {
+    return RefreshIndicator(
+      color: Kolors.kPrimary,
+      backgroundColor: Colors.white,
+      onRefresh: _onRefresh,
+      child: ListView.separated(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 30),
+        itemCount: controller.shipments.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 18),
+        itemBuilder: (_, index) {
+          return ShipmentScheduleCard(
+            shipment: controller.shipments[index],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return RefreshIndicator(
+      onRefresh: _onRefresh,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          const SizedBox(height: 120),
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.calendar_month_rounded,
+                size: 100,
+                color: Colors.white.withOpacity(0.6),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'No Orders Scheduled!',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState(String error) {
+    return RefreshIndicator(
+      onRefresh: _onRefresh,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          const SizedBox(height: 120),
+          Center(
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              margin: const EdgeInsets.symmetric(horizontal: 30),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.9),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Text(
+                error,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

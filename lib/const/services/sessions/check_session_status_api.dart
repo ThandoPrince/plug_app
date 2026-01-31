@@ -24,3 +24,4 @@ class CheckSessionStatusApi {
     return false;
   }
 }
+  

@@ -38,24 +38,32 @@ class _MapSectionState extends State<MapSection> {
   }
 
   void _registerGestureListeners(HereMapController controller) {
-    final gestures = controller.gestures;
+  final gestures = controller.gestures;
 
-    gestures.panListener = PanListener((state, _, __, ___) {
-      if (state == GestureState.begin) widget.routeController.disableFollow();
-    });
+  gestures.panListener = PanListener((state, _, __, ___) {
+    if (state == GestureState.begin) {
+      widget.routeController.onUserMapInteraction();
+    }
+  });
 
-    gestures.twoFingerPanListener = TwoFingerPanListener((state, _, __, ___) {
-      if (state == GestureState.begin) widget.routeController.disableFollow();
-    });
+  gestures.twoFingerPanListener = TwoFingerPanListener((state, _, __, ___) {
+    if (state == GestureState.begin) {
+      widget.routeController.onUserMapInteraction();
+    }
+  });
 
-    gestures.tapListener = TapListener((_) {
-      widget.routeController.disableFollow();
-    });
+  gestures.tapListener = TapListener((_) {
+    widget.routeController.onUserMapInteraction();
+  });
 
-    gestures.longPressListener = LongPressListener((state, _) {
-      if (state == GestureState.begin) widget.routeController.disableFollow();
-    });
-  }
+  gestures.longPressListener = LongPressListener((state, _) {
+    if (state == GestureState.begin) {
+      widget.routeController.onUserMapInteraction();
+    }
+  });
+}
+
+  
 
   @override
   Widget build(BuildContext context) {

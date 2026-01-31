@@ -23,6 +23,8 @@ class ShipmentController extends ChangeNotifier {
     await _fetch();
   }
 
+  
+
   Future<void> _fetch() async {
     _isLoading = true;
     _error = null;
