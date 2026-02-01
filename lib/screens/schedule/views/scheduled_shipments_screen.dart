@@ -16,6 +16,8 @@ class ScheduledShipmentsScreen extends StatefulWidget {
 class _ScheduledShipmentsScreenState extends State<ScheduledShipmentsScreen> {
   static const String _clientEmail = 't.p.tshabalala98@gmail.com';
 
+  bool _showHeader = true;
+
   @override
   void initState() {
     super.initState();
@@ -30,51 +32,77 @@ class _ScheduledShipmentsScreenState extends State<ScheduledShipmentsScreen> {
     await context.read<ShipmentController>().refresh();
   }
 
+  void _onScroll(ScrollNotification notification) {
+    if (notification is ScrollUpdateNotification) {
+      if (notification.scrollDelta! > 0 && _showHeader) {
+        setState(() => _showHeader = false);
+      } else if (notification.scrollDelta! < 0 && !_showHeader) {
+        setState(() => _showHeader = true);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<ShipmentController>();
 
     return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        title: const Text(
-          'My Schedule',
-          style: TextStyle(
-            fontWeight: FontWeight.w900,
-            color: Colors.white,
-            letterSpacing: 1.2,
+      backgroundColor: Kolors.kPrimary,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Kolors.kPrimary,
+              Kolors.kSecondaryLight,
+            ],
           ),
         ),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: Stack(
-        children: [
-          _buildBackground(),
-          SafeArea(child: _buildBody(controller)),
-        ],
+        child: NotificationListener<ScrollNotification>(
+          onNotification: (notification) {
+            _onScroll(notification);
+            return false;
+          },
+          child: Column(
+            children: [
+              // ✅ SAFE COLLAPSING HEADER
+              SafeArea(
+                bottom: false,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOut,
+                  height: _showHeader ? 56 : 0,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    child: const Center(
+                      child: Text(
+                        'My Schedule',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                          fontSize: 20,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              // ✅ BODY
+              Expanded(
+                child: _buildBody(controller),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
   // ───────────────────────────── UI PARTS ─────────────────────────────
-
-  Widget _buildBackground() {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Kolors.kPrimary,
-            Kolors.kSecondaryLight,
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _buildBody(ShipmentController controller) {
     if (controller.isLoading) {

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/global_util/services/controler/client_pending_orders_ctrl.dart';
 import 'package:flutter_application_1/global_util/services/models/order_service_models/order_service_model.dart';
-import 'package:flutter_application_1/screens/client_pending_orders/client_pending_orders_orders/views/client_pending_orders_orders_screen.dart';
+import 'package:flutter_application_1/screens/client_pending_orders_orders/views/client_pending_orders_orders_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 
