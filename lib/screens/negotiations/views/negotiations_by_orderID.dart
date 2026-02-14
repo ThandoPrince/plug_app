@@ -1,3 +1,4 @@
+import 'package:another_flushbar/flushbar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
 import 'package:flutter_application_1/global_util/services/controler/negotiation_by_OrderID_Ctrl.dart';
@@ -37,16 +38,26 @@ class _NegotiationsByOrderidScreenState
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => FractionallySizedBox(
-        heightFactor: 0.85,
-        child: NegotiationDetailSheet(
-          negotiationId: negotiationId,
-          parentContext: context, 
-          
+      builder: (_) => Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Kolors.kPrimary, Kolors.kSecondaryLight],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: FractionallySizedBox(
+          heightFactor: 0.85,
+          child: NegotiationDetailSheet(
+            negotiationId: negotiationId,
+            parentContext: context, 
+          ),
+        ),
       ),
     );
   }
@@ -115,12 +126,12 @@ class _NegotiationsByOrderidScreenState
                         if (negotiation.negotiationId != null) {
                           _showNegotiationDetail(negotiation.negotiationId!);
                         } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text("Negotiation ID not found"),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
+                         Flushbar(
+                            title: "Error",
+                            message: "Negotiation ID is missing.",
+                            backgroundColor: Colors.redAccent,
+                            duration: const Duration(seconds: 3),
+                          ).show(context);
                         }
                       },
                       child: NegotiationCard(negotiation: negotiation),

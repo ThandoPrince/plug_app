@@ -21,47 +21,18 @@ class SessionEtaCard extends StatefulWidget {
 }
 
 class _SessionEtaCardState extends State<SessionEtaCard> {
-  Timer? _timer;
-  Duration _elapsed = Duration.zero;
-
   @override
   void initState() {
     super.initState();
-
-    // Initialize with backend duration if available
-    _setElapsedFromBackend();
-
-    // Start a timer that ticks every second
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      setState(() {
-        _elapsed += const Duration(seconds: 1);
-      });
-    });
-
-    // Listen to controller changes
     widget.controller.addListener(_onControllerUpdate);
   }
 
-  void _setElapsedFromBackend() {
-    final backendSeconds = widget.controller.latestPing?.session?.durationSeconds ?? 0;
-    setState(() {
-      _elapsed = Duration(seconds: backendSeconds.toInt());
-    });
-  }
-
   void _onControllerUpdate() {
-    // If backend sends a new duration, reset _elapsed
-    final backendSeconds = widget.controller.latestPing?.session?.durationSeconds;
-    if (backendSeconds != null) {
-      setState(() {
-        _elapsed = Duration(seconds: backendSeconds.toInt());
-      });
-    }
+    setState(() {}); // rebuild to reflect elapsed time and geofence updates
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
     widget.controller.removeListener(_onControllerUpdate);
     super.dispose();
   }
@@ -81,7 +52,7 @@ class _SessionEtaCardState extends State<SessionEtaCard> {
         children: [
           _buildMetric(
             Icons.access_time_rounded,
-            _formatDuration(_elapsed),
+            widget.controller.elapsedTimeFormatted,
             'Duration',
             Kolors.kPrimary,
           ),
@@ -95,13 +66,6 @@ class _SessionEtaCardState extends State<SessionEtaCard> {
         ],
       ),
     );
-  }
-
-  String _formatDuration(Duration d) {
-    final h = d.inHours.toString().padLeft(2, '0');
-    final m = (d.inMinutes % 60).toString().padLeft(2, '0');
-    final s = (d.inSeconds % 60).toString().padLeft(2, '0');
-    return "$h:$m:$s";
   }
 
   Widget _buildMetric(

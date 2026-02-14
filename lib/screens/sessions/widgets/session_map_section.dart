@@ -14,7 +14,7 @@ class GeofenceMapSection extends StatefulWidget {
     super.key,
     required this.controller,
     required this.session,
-    this.geofenceRadiusMeters = 30,
+    this.geofenceRadiusMeters = 45,
   });
 
   @override
@@ -22,42 +22,57 @@ class GeofenceMapSection extends StatefulWidget {
 }
 
 class _GeofenceMapSectionState extends State<GeofenceMapSection> {
-  late HereMapController _mapController;
+  HereMapController? _mapController;
+
   MapPolygon? _geofencePolygon;
   MapMarker? _providerMarker;
+
+  bool _cameraInitialized = false;
+  bool _polygonInitialized = false;
 
   @override
   void initState() {
     super.initState();
-    widget.controller.addListener(_updateProviderMarker);
+    widget.controller.addListener(_onControllerUpdate);
   }
 
   @override
   void dispose() {
-    widget.controller.removeListener(_updateProviderMarker);
+    widget.controller.removeListener(_onControllerUpdate);
     super.dispose();
   }
 
+  // ===============================
+  // MAP CREATED
+  // ===============================
   void onMapCreated(HereMapController mapController) {
     _mapController = mapController;
 
-    _mapController.mapScene.loadSceneForMapScheme(
+    _mapController!.mapScene.loadSceneForMapScheme(
       MapScheme.normalDay,
       (MapError? error) {
         if (error != null) {
-          debugPrint("❌ Map scene load error: ${error.toString()}");
+          debugPrint("❌ Map scene load error: $error");
           return;
         }
 
-        _drawGeofenceCircle();
+        _initCameraOnce();
+        _drawGeofenceOnce();
         _updateProviderMarker();
       },
     );
   }
 
+  // ===============================
+  // CAMERA (ONLY ONCE)
+  // ===============================
+  void _initCameraOnce() {
+    if (_cameraInitialized || _mapController == null) return;
 
-  void _drawGeofenceCircle() {
-    final delivery = widget.session.shipment?.serviceOrdered?.deliveryAddress;
+    final delivery = widget.session.shipment
+        ?.serviceOrdered
+        ?.deliveryAddress;
+
     if (delivery == null) return;
 
     final center = GeoCoordinates(
@@ -65,67 +80,131 @@ class _GeofenceMapSectionState extends State<GeofenceMapSection> {
       double.tryParse(delivery.longitude.toString()) ?? 0.0,
     );
 
-    // Generate points around a circle
+    _mapController!.camera.lookAtPointWithMeasure(
+      center,
+      MapMeasure(
+        MapMeasureKind.distanceInMeters,
+        widget.geofenceRadiusMeters * 5,
+      ),
+    );
+
+    _cameraInitialized = true;
+  }
+
+  // ===============================
+  // DRAW GEOFENCE ONLY ONCE
+  // ===============================
+  void _drawGeofenceOnce() {
+    if (_polygonInitialized || _mapController == null) return;
+
+    final delivery = widget.session.shipment
+        ?.serviceOrdered
+        ?.deliveryAddress;
+
+    if (delivery == null) return;
+
+    final center = GeoCoordinates(
+      double.tryParse(delivery.latitude.toString()) ?? 0.0,
+      double.tryParse(delivery.longitude.toString()) ?? 0.0,
+    );
+
     final points = <GeoCoordinates>[];
-    final segments = 64;
+    const segments = 64;
+
     for (int i = 0; i < segments; i++) {
       final angle = (i * 360 / segments) * (pi / 180);
-      final latOffset = widget.geofenceRadiusMeters * cos(angle) / 111320;
-      final lngOffset = widget.geofenceRadiusMeters * sin(angle) / (111320 * cos(center.latitude * pi / 180));
-      points.add(GeoCoordinates(center.latitude + latOffset, center.longitude + lngOffset));
+
+      final latOffset =
+          widget.geofenceRadiusMeters * cos(angle) / 111320;
+
+      final lngOffset =
+          widget.geofenceRadiusMeters *
+          sin(angle) /
+          (111320 * cos(center.latitude * pi / 180));
+
+      points.add(
+        GeoCoordinates(
+          center.latitude + latOffset,
+          center.longitude + lngOffset,
+        ),
+      );
     }
 
-    // Remove previous polygon
-    if (_geofencePolygon != null) {
-      _mapController.mapScene.removeMapPolygon(_geofencePolygon!);
-      _geofencePolygon = null;
-    }
+    final outlineColor =
+        widget.controller.isInsideGeofence ? Colors.green : Colors.red;
 
-    final outlineColor = widget.controller.isInsideGeofence ? Colors.green : Colors.red;
     final fillColor = widget.controller.isInsideGeofence
         ? const Color.fromARGB(64, 0, 255, 0)
         : const Color.fromARGB(64, 255, 0, 0);
 
-    _geofencePolygon = MapPolygon.withOutlineColorAndOutlineWidthInPixels(
+    _geofencePolygon =
+        MapPolygon.withOutlineColorAndOutlineWidthInPixels(
       GeoPolygon(points),
       fillColor,
       outlineColor,
       3,
     );
 
-    _mapController.mapScene.addMapPolygon(_geofencePolygon!);
+    _mapController!.mapScene.addMapPolygon(_geofencePolygon!);
 
-    // Center camera on geofence
-    _mapController.camera.lookAtPointWithMeasure(
-      center,
-      MapMeasure(MapMeasureKind.distanceInMeters, widget.geofenceRadiusMeters * 5),
-    );
+    _polygonInitialized = true;
   }
 
+  // ===============================
+  // CONTROLLER UPDATE LISTENER
+  // ===============================
+  void _onControllerUpdate() {
+    _updateProviderMarker();
+    _updateGeofenceColorOnly();
+  }
 
+  // ===============================
+  // UPDATE MARKER (NO RECREATE)
+  // ===============================
   void _updateProviderMarker() {
+    if (_mapController == null) return;
+
     final ping = widget.controller.latestPing;
     if (ping == null) return;
 
-    final geoCoords = GeoCoordinates(ping.latitude ?? 0.0, ping.longitude ?? 0.0);
-
-    // Remove previous marker
-    if (_providerMarker != null) {
-      _mapController.mapScene.removeMapMarker(_providerMarker!);
-      _providerMarker = null;
-    }
-
-    _providerMarker = MapMarker(
-      geoCoords,
-      MapImage.withFilePathAndWidthAndHeight("assets/provider_marker.png", 64, 64),
+    final geoCoords = GeoCoordinates(
+      ping.latitude ?? 0.0,
+      ping.longitude ?? 0.0,
     );
 
-    _mapController.mapScene.addMapMarker(_providerMarker!);
+    // Create marker first time
+    if (_providerMarker == null) {
+      _providerMarker = MapMarker(
+        geoCoords,
+        MapImage.withFilePathAndWidthAndHeight(
+          "assets/icons/sp_marker.png",
+          64,
+          64,
+        ),
+      );
 
-    // Update geofence color dynamically
-    _drawGeofenceCircle();
+      _mapController!.mapScene.addMapMarker(_providerMarker!);
+    } else {
+      // 🔥 MOVE marker instead of recreating
+      _providerMarker!.coordinates = geoCoords;
+    }
   }
 
+  // ===============================
+  // UPDATE ONLY COLOR (NO CAMERA)
+  // ===============================
+  void _updateGeofenceColorOnly() {
+    if (_mapController == null || _geofencePolygon == null) return;
+
+    _mapController!.mapScene.removeMapPolygon(_geofencePolygon!);
+    _polygonInitialized = false;
+
+    _drawGeofenceOnce();
+  }
+
+  // ===============================
+  // BUILD
+  // ===============================
   @override
   Widget build(BuildContext context) {
     return HereMap(onMapCreated: onMapCreated);

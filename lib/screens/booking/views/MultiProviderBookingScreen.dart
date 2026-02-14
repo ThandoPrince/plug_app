@@ -127,6 +127,7 @@ class _MultiProviderBookingScreenState extends State<MultiProviderBookingScreen>
           "Service Booking",
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
+        centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),

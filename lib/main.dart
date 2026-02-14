@@ -5,12 +5,15 @@ import 'package:flutter_application_1/common/utils/kstrings.dart';
 import 'package:flutter_application_1/const/services/booking_services/create_booking_api.dart';
 import 'package:flutter_application_1/const/services/sessions/confirm_checkin_api.dart';
 import 'package:flutter_application_1/global_util/services/controler/address_client_ctrl.dart';
+import 'package:flutter_application_1/global_util/services/controler/address_creation_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/client_address_controller.dart';
+import 'package:flutter_application_1/global_util/services/controler/client_auth_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/client_location_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/client_negotiation_round_start_ctrl.dart';
 import 'package:flutter_application_1/global_util/services/controler/client_pending_orders_ctrl.dart';
 import 'package:flutter_application_1/global_util/services/controler/client_pending_orders_detail_ctrl.dart';
 import 'package:flutter_application_1/global_util/services/controler/client_profile_by_email_ctrl.dart';
+import 'package:flutter_application_1/global_util/services/controler/client_profile_creation_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/confirm_session_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/cost_of_service_byemail_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/create_booking_controller.dart';
@@ -56,7 +59,7 @@ Future<void> main() async {
   
 
 
-  // 3️⃣ Pick env file depending on build mode
+
  
 
 
@@ -119,6 +122,9 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => SessionByShipmentController(),),
         ChangeNotifierProvider(create: (_) => ClientSessionLocationPingController(),),
         ChangeNotifierProvider(create: (_) => RatingController(),),
+        ChangeNotifierProvider(create: (_) => ClientAuthProvider(),),
+        ChangeNotifierProvider(create: (_) => ClientDetailsController(),),
+        ChangeNotifierProvider(create: (_) => AddressCreationController(),),
         
        
 

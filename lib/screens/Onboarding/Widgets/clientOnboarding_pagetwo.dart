@@ -8,66 +8,95 @@ class OnboardingScreenTwo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const Color primaryColor = Kolors.kPrimary;
+    const Color backgroundColor1 = Kolors.kPrimary;
+    const Color backgroundColor2 = Kolors.kWhite;
+
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.lightBlueAccent,
-        elevation: 0,
-        centerTitle: true,
-        title: const Text(
-          'Welcome to Plug 🔌!',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            fontStyle: FontStyle.italic,
-          ),
-        ),
-      ),
       body: Container(
         width: double.infinity,
         height: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Kolors.kPrimary, Kolors.kWhite],
-                        begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+            colors: [backgroundColor1, backgroundColor1, backgroundColor2],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
           ),
         ),
-        child: SingleChildScrollView(
+        child: SafeArea(
+          bottom: false,
           child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+            padding: EdgeInsets.symmetric(horizontal: 40.w),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-               
-                 Onboardingslidertwo(),
+                SizedBox(height: 50.h),
 
-                SizedBox(height: 30.h),
-
-                
+                // --- Headline focused on Action & Visibility ---
                 Text(
-                  'Find trusted service providers like cleaners, beauty experts, and repair specialists, all at your fingertips.',
+                  'Book, Relax, and\nTrack in Real-Time.',
                   style: TextStyle(
-                    fontSize: 20.sp,
-                    fontStyle: FontStyle.italic,
+                    fontSize: 34.sp,
+                    fontWeight: FontWeight.w900,
+                    height: 1.1,
+                    letterSpacing: -1,
+                    color: Colors.white,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+
+                SizedBox(height: 40.h),
+
+                // --- Visual Hero Section ---
+                Expanded(
+                  flex: 3,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 25,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(30),
+                      child: const Onboardingslidertwo(), 
+                    ),
+                  ),
+                ),
+
+                SizedBox(height: 40.h),
+
+                // --- Updated Trust Tag ---
+                const Text(
+                  'TRANSPARENT & TRUSTED',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 2,
+                    color: Kolors.kDark,
+                  ),
+                ),
+
+                SizedBox(height: 12.h),
+
+                // --- Body Text including Tracking ---
+                Text(
+                  'Browse vetted specialists and track your provider’s arrival to your doorstep in real-time. Reliability you can see.',
+                  style: TextStyle(
+                    fontSize: 17.sp,
                     fontWeight: FontWeight.w500,
-                    color: Colors.black87,
+                    color: Colors.black54,
+                    height: 1.5,
                   ),
                   textAlign: TextAlign.center,
                 ),
 
-                SizedBox(height: 10.h),
-
-                Text(
-                  'Your personal service assistant – Plug 🔌',
-                  style: TextStyle(
-                    fontSize: 22.sp,
-                    fontWeight: FontWeight.bold,
-                    fontStyle: FontStyle.italic,
-                    color: Colors.black,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
+                const Spacer(),
+                
+                SizedBox(height: 120.h), 
               ],
             ),
           ),

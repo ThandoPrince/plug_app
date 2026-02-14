@@ -65,11 +65,12 @@ class _ClientPendingOrdersScreenState
                   duration: const Duration(milliseconds: 220),
                   curve: Curves.easeOut,
                   height: _showHeader ? 56 : 0,
-                  child: const Center(
+                  child: Center(
                     child: Text(
                       'My Pending Orders',
                       style: TextStyle(
                         color: Colors.white,
+                        
                         fontSize: 20,
                         fontWeight: FontWeight.w900,
                         letterSpacing: 0.5,

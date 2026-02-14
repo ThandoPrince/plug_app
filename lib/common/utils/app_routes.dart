@@ -5,6 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/widgets/global/navigation_observer_flushbar.dart';
 import 'package:flutter_application_1/screens/Onboarding/Views/clientOnboarding_screen.dart';
 import 'package:flutter_application_1/screens/View_SP_Profile_Request/views/viewSP_Profile_requestScreen.dart';
+import 'package:flutter_application_1/screens/address/views/address_creation_screen.dart';
+import 'package:flutter_application_1/screens/auth/views/auth_creation_screen.dart';
+import 'package:flutter_application_1/screens/auth/views/client_details_patch_screen.dart';
 import 'package:flutter_application_1/screens/auth/views/login_page.dart';
 import 'package:flutter_application_1/screens/client_login.dart';
 import 'package:flutter_application_1/screens/entryPoint/views/entry_point.dart';
@@ -58,6 +61,16 @@ final GoRouter _router = GoRouter(
       builder: (context, state) => const ViewAllServices(),
     ),
 
+    GoRoute(
+      path: '/authCreation',
+      builder: (context, state) => const AuthCreationScreen(),
+    ),
+
+    GoRoute(
+      path: '/clientDetailsPatch',
+      builder: (context, state) => const ClientDetailsPatchScreen(),
+    ),
+
 GoRoute(
   path: '/viewspByService',
   name: 'viewSPByService',
@@ -103,6 +116,11 @@ GoRoute(
         GoRoute(
       path: '/notifications',
       builder: (context, state) => const NotificationsScreen(),
+    ),
+
+    GoRoute(
+      path: '/addaddress',
+      builder: (context, state) => const AddAddressScreen(),
     ),
     // GoRoute(
     //   path: '/resetPassword',

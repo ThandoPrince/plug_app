@@ -4,6 +4,7 @@ import 'package:flutter_application_1/global_util/services/controler/rating_navi
 import 'package:flutter_application_1/global_util/services/controler/session_location_ping_controller.dart';
 import 'package:flutter_application_1/global_util/services/models/order_service_models/session_model.dart';
 import 'package:flutter_application_1/screens/ratings/views/ratings_screen.dart';
+import 'package:flutter_application_1/screens/schedule/widgets/go_to_schedule_helper.dart';
 import 'package:flutter_application_1/screens/sessions/widgets/session_details_card.dart';
 import 'package:flutter_application_1/screens/sessions/widgets/session_eta_card.dart';
 import 'package:flutter_application_1/screens/sessions/widgets/session_map_section.dart';
@@ -23,49 +24,48 @@ class _SessionScreenState extends State<SessionScreen> {
   late ClientSessionLocationPingController controller;
 
   @override
-  void initState() {
-    super.initState();
+ @override
+void initState() {
+  super.initState();
 
-    /// Reset static controller for safety (new session lifecycle)
-    RatingNavigationController.reset();
+  RatingNavigationController.reset();
 
-    /// Session tracking controller
-    controller = ClientSessionLocationPingController(
-      sessionId: widget.session.sessionId,
-    );
+  
+  controller = Provider.of<ClientSessionLocationPingController>(context, listen: false);
+  controller.initSession(
+  id: widget.session.sessionId!,
+  backendCheckinTime: widget.session.checkinTime,
+);
 
-    controller.initSession(widget.session.sessionId!);
 
-    /// Rating navigation callback
-    RatingNavigationController.onRatingAvailable = () {
-      if (!mounted) return;
-
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => RatingScreen(
-            sessionId: widget.session.sessionId!,
-            clientEmail: widget.session.shipment!.serviceOrdered!.client!,
-          ),
+  // Rating callback
+  RatingNavigationController.onRatingAvailable = () {
+    if (!mounted) return;
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => RatingScreen(
+          sessionId: widget.session.sessionId!,
+          clientEmail: widget.session.shipment!.serviceOrdered!.client!,
         ),
-      );
-    };
-
-   
-    RatingNavigationController.checkImmediately(
-      clientEmail: widget.session.shipment!.serviceOrdered!.client.toString(),
-      sessionId: widget.session.sessionId!,
+      ),
     );
+  };
 
-    
-    RatingNavigationController.startPolling(
-      clientEmail: widget.session.shipment!.serviceOrdered!.client.toString(),
-      sessionId: widget.session.sessionId!,
-    );
-  }
+  RatingNavigationController.checkImmediately(
+    clientEmail: widget.session.shipment!.serviceOrdered!.client.toString(),
+    sessionId: widget.session.sessionId!,
+  );
+
+  RatingNavigationController.startPolling(
+    clientEmail: widget.session.shipment!.serviceOrdered!.client.toString(),
+    sessionId: widget.session.sessionId!,
+  );
+}
+
 
   @override
   void dispose() {
-    controller.dispose();
+   
     RatingNavigationController.dispose();
     super.dispose();
   }
@@ -76,92 +76,102 @@ class _SessionScreenState extends State<SessionScreen> {
       value: controller,
       child: Consumer<ClientSessionLocationPingController>(
         builder: (context, controller, child) {
-          return Scaffold(
-            backgroundColor: const Color(0xFFF8F9FA),
-            appBar: AppBar(
-              title: const Text(
-                "Active Session",
-                style: TextStyle(fontWeight: FontWeight.w900),
-              ),
-              centerTitle: true,
-              backgroundColor: Kolors.kPrimary,
-              foregroundColor: Colors.white,
-              elevation: 0,
-            ),
-            body: Stack(
-              children: [
-                Positioned.fill(
-                  child: GeofenceMapSection(
-                    controller: controller,
-                    session: widget.session,
-                  ),
+          return WillPopScope(
+            onWillPop: () async {
+    goToSchedule(context);
+    return false; // stop default pop
+  },
+            child: Scaffold(
+              backgroundColor: const Color(0xFFF8F9FA),
+              appBar: AppBar(
+                leading: IconButton(
+    icon: const Icon(Icons.arrow_back),
+    onPressed: () => goToSchedule(context),
+  ),
+                title: const Text(
+                  "Active Session",
+                  style: TextStyle(fontWeight: FontWeight.w900),
                 ),
-                DraggableScrollableSheet(
-                  initialChildSize: 0.45,
-                  minChildSize: 0.45,
-                  maxChildSize: 0.75,
-                  builder: (context, scrollController) {
-                    return Container(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Kolors.kPrimary, Colors.white],
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
+                centerTitle: true,
+                backgroundColor: Kolors.kPrimary,
+                foregroundColor: Colors.white,
+                elevation: 0,
+              ),
+              body: Stack(
+                children: [
+                  Positioned.fill(
+                    child: GeofenceMapSection(
+                      controller: controller,
+                      session: widget.session,
+                    ),
+                  ),
+                  DraggableScrollableSheet(
+                    initialChildSize: 0.45,
+                    minChildSize: 0.45,
+                    maxChildSize: 0.75,
+                    builder: (context, scrollController) {
+                      return Container(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Kolors.kPrimary, Colors.white],
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                          ),
+                          borderRadius:
+                              BorderRadius.vertical(top: Radius.circular(32)),
                         ),
-                        borderRadius:
-                            BorderRadius.vertical(top: Radius.circular(32)),
-                      ),
-                      child: SingleChildScrollView(
-                        controller: scrollController,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 24,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              width: 40,
-                              height: 4,
-                              margin:
-                                  const EdgeInsets.only(bottom: 24),
-                              decoration: BoxDecoration(
-                                color: Colors.grey.shade300,
-                                borderRadius:
-                                    BorderRadius.circular(2),
+                        child: SingleChildScrollView(
+                          controller: scrollController,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 24,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                width: 40,
+                                height: 4,
+                                margin:
+                                    const EdgeInsets.only(bottom: 24),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade300,
+                                  borderRadius:
+                                      BorderRadius.circular(2),
+                                ),
                               ),
-                            ),
-                            SessionEtaCard(
-                              controller: controller,
-                              session: widget.session,
-                            ),
-                            const SizedBox(height: 16),
-                            if (widget.session.shipment
-                                    ?.serviceOrdered
-                                    ?.providerForService
-                                    ?.provider !=
-                                null) ...[
-                              SessionProviderCard(
-                                provider: widget
-                                    .session
-                                    .shipment!
-                                    .serviceOrdered!
-                                    .providerForService!
-                                    .provider,
+                              SessionEtaCard(
+                                controller: controller,
+                                session: widget.session,
                               ),
                               const SizedBox(height: 16),
+                              if (widget.session.shipment
+                                      ?.serviceOrdered
+                                      ?.providerForService
+                                      ?.provider !=
+                                  null) ...[
+                                SessionProviderCard(
+                                  provider: widget
+                                      .session
+                                      .shipment!
+                                      .serviceOrdered!
+                                      .providerForService!
+                                      .provider,
+                                ),
+                                const SizedBox(height: 16),
+                              ],
+                              SessionDetailsCard(session: widget.session),
+                              const SizedBox(height: 24),
+                              _buildGeofenceStatus(controller),
+                              const SizedBox(height: 30),
                             ],
-                            SessionDetailsCard(session: widget.session),
-                            const SizedBox(height: 24),
-                            _buildGeofenceStatus(controller),
-                            const SizedBox(height: 30),
-                          ],
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                ),
-              ],
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
           );
         },

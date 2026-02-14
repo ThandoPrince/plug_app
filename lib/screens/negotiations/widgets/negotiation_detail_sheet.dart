@@ -62,17 +62,6 @@ class _NegotiationDetailSheetState extends State<NegotiationDetailSheet> {
     }
   }
 
-  Color _getStatusColor(String? status) {
-    switch (status?.toLowerCase()) {
-      case "accepted":
-        return Colors.green;
-      case "rejected":
-        return Colors.red;
-      default:
-        return Colors.orange;
-    }
-  }
-
   // 🔹 Top notification helper
   void _showTopNotification(String message, {bool isError = false}) {
     Flushbar(
@@ -86,8 +75,8 @@ class _NegotiationDetailSheetState extends State<NegotiationDetailSheet> {
     ).show(widget.parentContext);
   }
 
-  Future<void> _sendRound(
-      ClientStartRoundController clientCtrl, NegotiationByIdController negoCtrl) async {
+  Future<void> _sendRound(ClientStartRoundController clientCtrl,
+      NegotiationByIdController negoCtrl) async {
     final msg = _messageController.text.trim();
     final priceText = _priceController.text.trim();
     final price = double.tryParse(priceText);
@@ -125,7 +114,8 @@ class _NegotiationDetailSheetState extends State<NegotiationDetailSheet> {
 
       _showTopNotification("Round sent successfully");
     } else {
-      _showTopNotification(clientCtrl.errorMessage ?? "Failed to send round", isError: true);
+      _showTopNotification(clientCtrl.errorMessage ?? "Failed to send round",
+          isError: true);
     }
   }
 
@@ -175,14 +165,11 @@ class _NegotiationDetailSheetState extends State<NegotiationDetailSheet> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text("Negotiation #${negotiation.negotiationId}",
+                    Text(
+                        negotiation.providerForNegotiation?.fullName ??
+                            "Unknown Provider",
                         style: const TextStyle(
                             fontSize: 18, fontWeight: FontWeight.bold)),
-                    Chip(
-                      label: Text(negotiation.status?.toUpperCase() ?? "PENDING",
-                          style: const TextStyle(color: Colors.white)),
-                      backgroundColor: _getStatusColor(negotiation.status),
-                    ),
                   ],
                 ),
               ),
@@ -190,62 +177,60 @@ class _NegotiationDetailSheetState extends State<NegotiationDetailSheet> {
 
               // Rounds list
               Expanded(
-                child: AnimatedList(
-                  key: _listKey,
-                  controller: _scrollController,
-                  initialItemCount: _displayedRounds.length,
-                  itemBuilder: (context, index, animation) {
-                    if (index >= _displayedRounds.length) return const SizedBox();
-                    final round = _displayedRounds[index];
-                    final isProvider = round.senderType == "provider";
+  child: AnimatedList(
+    key: _listKey,
+    controller: _scrollController,
+    initialItemCount: _displayedRounds.length,
+    itemBuilder: (context, index, animation) {
+      if (index >= _displayedRounds.length) return const SizedBox();
+      final round = _displayedRounds[index];
+      final isClient = round.senderType == "client"; // true if client sent
 
-                    return SizeTransition(
-                      sizeFactor: animation,
-                      child: Align(
-                        alignment:
-                            isProvider ? Alignment.centerRight : Alignment.centerLeft,
-                        child: Container(
-                          padding: const EdgeInsets.all(12),
-                          margin: const EdgeInsets.symmetric(
-                              vertical: 4, horizontal: 16),
-                          constraints: const BoxConstraints(maxWidth: 250),
-                          decoration: BoxDecoration(
-                            color: isProvider
-                                ? Colors.blue.shade100
-                                : Colors.grey.shade200,
-                            borderRadius: BorderRadius.only(
-                              topLeft: const Radius.circular(12),
-                              topRight: const Radius.circular(12),
-                              bottomLeft: Radius.circular(isProvider ? 12 : 0),
-                              bottomRight: Radius.circular(isProvider ? 0 : 12),
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (round.message != null)
-                                Text(round.message!,
-                                    style: const TextStyle(fontSize: 14)),
-                              const SizedBox(height: 4),
-                              Text(
-                                "R${round.offeredPrice?.toStringAsFixed(2) ?? 'N/A'} • ${round.createdAt != null ? DateFormat('HH:mm, dd MMM').format(round.createdAt!) : 'N/A'}",
-                                style: const TextStyle(
-                                    fontSize: 12, color: Colors.grey),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
+      return SizeTransition(
+        sizeFactor: animation,
+        child: Align(
+          alignment: isClient ? Alignment.centerRight : Alignment.centerLeft,
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+            constraints: const BoxConstraints(maxWidth: 250),
+            decoration: BoxDecoration(
+              color: isClient ? Colors.blue.shade100 : Colors.grey.shade200,
+              borderRadius: BorderRadius.only(
+                topLeft: const Radius.circular(12),
+                topRight: const Radius.circular(12),
+                bottomLeft: Radius.circular(isClient ? 12 : 0),
+                bottomRight: Radius.circular(isClient ? 0 : 12),
               ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (round.message != null)
+                  Text(round.message!,
+                      style: const TextStyle(
+                          fontSize: 14, color: Colors.black87)),
+                const SizedBox(height: 4),
+                Text(
+                  "R${round.offeredPrice?.toStringAsFixed(2) ?? 'N/A'} • ${round.createdAt != null ? DateFormat('HH:mm, dd MMM').format(round.createdAt!) : 'N/A'}",
+                  style: const TextStyle(fontSize: 12, color: Colors.black87),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    },
+  ),
+),
+
 
               // Message & Price input
               if (lastRoundIsProvider)
                 Consumer<ClientStartRoundController>(
                   builder: (context, clientCtrl, _) {
-                    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+                    final bottomInset =
+                        MediaQuery.of(context).viewInsets.bottom;
                     return Padding(
                       padding: EdgeInsets.only(
                           left: 16, right: 16, bottom: bottomInset + 8, top: 8),
@@ -261,8 +246,8 @@ class _NegotiationDetailSheetState extends State<NegotiationDetailSheet> {
                                   borderRadius:
                                       BorderRadius.all(Radius.circular(12)),
                                 ),
-                                contentPadding:
-                                    EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 8),
                               ),
                             ),
                           ),
@@ -272,15 +257,16 @@ class _NegotiationDetailSheetState extends State<NegotiationDetailSheet> {
                             child: TextField(
                               controller: _priceController,
                               keyboardType:
-                                  const TextInputType.numberWithOptions(decimal: true),
+                                  const TextInputType.numberWithOptions(
+                                      decimal: true),
                               decoration: const InputDecoration(
                                 hintText: 'Price',
                                 border: OutlineInputBorder(
                                   borderRadius:
                                       BorderRadius.all(Radius.circular(12)),
                                 ),
-                                contentPadding:
-                                    EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 8),
                               ),
                             ),
                           ),
@@ -293,9 +279,40 @@ class _NegotiationDetailSheetState extends State<NegotiationDetailSheet> {
                                 ? const SizedBox(
                                     height: 18,
                                     width: 18,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2),
                                   )
                                 : const Text("Send"),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                )
+              else
+                Consumer<ClientStartRoundController>(
+                  builder: (context, clientCtrl, _) {
+                    final bottomInset =
+                        MediaQuery.of(context).viewInsets.bottom;
+                    return Container(
+                      padding: EdgeInsets.only(
+                        left: 16,
+                        right: 16,
+                        bottom: bottomInset + 8,
+                        top: 8,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.access_time,
+                              color: Colors.grey.shade600, size: 20),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Waiting for Service Provider to reply...',
+                            style: TextStyle(
+                              color: Colors.grey.shade700,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ],
                       ),

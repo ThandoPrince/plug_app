@@ -49,6 +49,7 @@ dependencies:
   http: ^1.5.0
   intl: ^0.20.2
   qr_flutter: ^4.1.0
+  flutter_google_places_hoc081098: ^2.0.0
   
 
 
@@ -81,6 +82,7 @@ flutter:
     - assets/icons/plug_icon.png
     
     - assets/images/Welcome_slider_1.jpeg
+    - assets/images/welcome_1_image.gif
     - assets/images/welcome_slider_2.jpeg
     - assets/images/welcome_slider_3.jpeg
     - assets/icons/default_marker.png

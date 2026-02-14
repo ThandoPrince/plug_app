@@ -106,8 +106,11 @@ class ShipmentScheduleCard extends StatelessWidget {
                   ),
                 ),
                 onPressed: () async {
-  
-  if (shipment.shipmentStatus.toLowerCase() != 'delivered') {
+  final orderStatus = shipment.serviceOrdered?.status ?? '';
+  final shipmentStatus = shipment.shipmentStatus.toLowerCase();
+
+  /// 🚀 1. IN TRANSIT or ARRIVED → TRACK ROUTE
+  if (shipmentStatus == 'in_transit' || shipmentStatus == 'arrived') {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -117,30 +120,50 @@ class ShipmentScheduleCard extends StatelessWidget {
         ),
       ),
     );
-  } else {
-    // Shipment is delivered — check if session exists
-    final sessionController = SessionByShipmentController();
-    await sessionController.fetchSession(shipment.shipmentId.toString());
-
-    if (sessionController.session != null) {
-      // Session exists → go to SessionScreen
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => SessionScreen(session: sessionController.session!),
-        ),
-      );
-    } else {
-      // No session → go to ClientQrCheckinScreen
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ClientQrCheckinScreen(shipmentId: shipment.shipmentId),
-        ),
-      );
-    }
+    return;
   }
+
+  /// 🚀 2. AWAITING CONFIRMATION → QR CHECKIN
+  if (orderStatus == 'awaiting_confirmation') {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            ClientQrCheckinScreen(shipmentId: shipment.shipmentId),
+      ),
+    );
+    return;
+  }
+
+  /// 🚀 3. CHECK SESSION ONLY IF NEEDED
+  final sessionController = context.read<SessionByShipmentController>();
+  await sessionController.fetchSession(shipment.shipmentId.toString());
+  if (!context.mounted) return;
+
+  final session = sessionController.session;
+  if (session != null && session.sessionStatus == 'in_session') {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SessionScreen(session: session),
+      ),
+    );
+    return;
+  }
+
+  /// 🚀 4. DEFAULT → TRACK SCREEN
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => ChangeNotifierProvider(
+        create: (_) => ShipmentRouteController(shipment: shipment),
+        child: TrackServiceScreen(shipment: shipment),
+      ),
+    ),
+  );
 },
+
+
 
                 child: const Text(
                   'TRACK SERVICE',

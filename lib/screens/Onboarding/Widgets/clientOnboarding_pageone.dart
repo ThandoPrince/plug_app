@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-// Assuming Kolors.kPrimary and Kolors.kSecondaryLight are available
-// You might want to define a specific secondary/accent color for contrast here.
-// I'll use Kolors.kPrimary for main elements and Kolors.kWhite for contrast.
+// Standardizing colors for a clean look
 const Color primaryColor = Kolors.kPrimary;
 const Color backgroundColor1 = Kolors.kPrimary;
-const Color backgroundColor2 = Kolors.kWhite; // To create the gradient effect
+const Color backgroundColor2 = Kolors.kWhite;
 
 class OnboardingScreenOne extends StatefulWidget {
   const OnboardingScreenOne({super.key});
@@ -18,173 +16,125 @@ class OnboardingScreenOne extends StatefulWidget {
 }
 
 class _OnboardingScreenOneState extends State<OnboardingScreenOne> {
-  // You can safely remove the loading logic if you are not using it right now.
-  // bool _loading = true; 
-
-  @override
-  void initState() {
-    super.initState();
-    // Re-enable this line when you want to use the first-time logic:
-    // _checkFirstTime(); 
-  }
-
-  Future<void> _checkFirstTime() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    bool? isFirstTime = prefs.getBool('isFirstTime');
-
-    if (isFirstTime == null || isFirstTime == true) {
-      // setState(() {
-      //   _loading = false;
-      // });
-    } else {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          // Navigating away if not the first time
-          context.go('/login'); // Change '/login' to your actual login route
-        }
-      });
-    }
-  }
-
-  Future<void> _completeOnboarding() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('isFirstTime', false);
-    if (!mounted) return;
-    context.go('/login'); // Navigate with GoRouter
-  }
-
   @override
   Widget build(BuildContext context) {
-    // If you enable the loading state, the logic below can be re-enabled:
-    // if (_loading) {
-    //   return const Scaffold(
-    //     body: Center(child: CircularProgressIndicator()),
-    //   );
-    // }
-
     return Scaffold(
       body: Container(
         width: double.infinity,
-        // The padding is now inside the column for better control over the text
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            // Use your defined colors for a smooth transition
-            colors: [backgroundColor1, backgroundColor2],
-            begin: Alignment.topCenter, // Start from the top
-            end: Alignment.bottomCenter, // End at the bottom
+            // Adjusted stops to make the top primary color pop more before fading to white
+            colors: [backgroundColor1, backgroundColor1, backgroundColor2],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
           ),
         ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 30.0),
-          child: Column(
-            children: [
-              const SizedBox(height: 80),
-              // --- Welcome Text ---
-              Text(
-                'Welcome to Plug 🔌!',
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w900, // Make it very bold
-                  fontStyle: FontStyle.italic,
-                  // Use your primary color for the main title
-                  color: primaryColor, 
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 40.0),
+            child: Column(
+              children: [
+                const SizedBox(height: 50),
+
+                // --- Catchy Headline ---
+                const Text(
+                  'Your Daily Needs,\nSimplified.',
+                  style: TextStyle(
+                    fontSize: 34,
+                    fontWeight: FontWeight.w900,
+                    height: 1.1,
+                    letterSpacing: -1,
+                    color: Colors.white, // White text looks better against the primary top
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                textAlign: TextAlign.center,
-              ),
 
-              const SizedBox(height: 40),
+                const SizedBox(height: 40),
 
-              // --- GIF/Image Placeholder ---
-              _buildAnimatedPlaceholder(),
-
-              const SizedBox(height: 40),
-              
-              // --- Main Hook Text ---
-              Text(
-                'Need help around the house or a beauty boost?\n\nWe make it easy to find trusted pros near you.',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontStyle: FontStyle.italic,
-                  fontWeight: FontWeight.w600,
-                  // Contrast with the background
-                  color: Colors.black87, 
-                  height: 1.4,
+                // --- Hero Section (GIF) ---
+                Expanded(
+                  flex: 3,
+                  child: _buildHeroImage(),
                 ),
-                textAlign: TextAlign.center,
-              ),
 
-              const SizedBox(height: 25),
-              
-              // --- Second Hook Text (Bolded for Urgency) ---
-              Text(
-                'Urgently in need of services? We got you!',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: primaryColor, // Highlight the urgent message
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 5),
-              const Text(
-                'Instantly connect with local service providers for all your needs.',
-                style: TextStyle(
-                  fontSize: 18,
-                  color: Colors.black54,
-                ),
-                textAlign: TextAlign.center,
-              ),
+                const SizedBox(height: 40),
 
-              const Spacer(),
-              
-              // --- Call to Action Button ---
              
-              
-              const SizedBox(height: 40),
+                const Text(
+                  'The Ultimate Plug',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 2,
+                    color: Kolors.kDark
+                  ),
+                ),
+                
+                const SizedBox(height: 12),
+
+                const Text(
+                  'Connect with trusted local providers for home, beauty, and urgent repairs—instantly.',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black54,
+                    height: 1.5,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+
+                
+                const Spacer(),
+                const SizedBox(height: 120), 
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeroImage() {
+  return LayoutBuilder(
+    builder: (context, constraints) {
+      const double imageWidth = 570;
+      const double imageHeight = 1198;
+      final double aspectRatio = imageWidth / imageHeight;
+
+      // Make the image take up ~55-60% of the screen height
+      final double targetHeight = MediaQuery.of(context).size.height * 0.58;
+
+      return Center(
+        child: Container(
+          height: targetHeight,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(30),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 25,
+                offset: const Offset(0, 10),
+              ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  // Helper widget for the animated image
-  Widget _buildAnimatedPlaceholder() {
-    // ⚠️ Replace this with your actual GIF or Lottie asset!
-    // Example for a network GIF:
-    // return Image.network(
-    //   'https://yourdomain.com/path/to/animation.gif',
-    //   height: 200,
-    // );
-    
-    return Container(
-      width: 250,
-      height: 200,
-      decoration: BoxDecoration(
-        color: primaryColor.withOpacity(0.1), // Light version of primary color
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: primaryColor, width: 2),
-      ),
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.thumb_up_alt_outlined, // Placeholder icon
-              size: 80,
-              color: primaryColor,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(30),
+            child: FittedBox(
+              fit: BoxFit.contain,
+              child: SizedBox(
+                width: imageWidth,
+                height: imageHeight,
+                child: Image.asset(
+                  'assets/images/welcome_1_image.gif',
+                  fit: BoxFit.contain,
+                ),
+              ),
             ),
-            const SizedBox(height: 8),
-            const Text(
-              "Placeholder for GIF/Animation",
-              style: TextStyle(color: Colors.black54),
-            ),
-          ],
+          ),
         ),
-      ),
-    );
-  }
-
-  // Helper widget for the main action button
+      );
+    },
+  );
+}
 
 }

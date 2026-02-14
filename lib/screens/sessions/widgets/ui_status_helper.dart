@@ -31,16 +31,16 @@ SessionStatusUI getSessionStatusUI({
         color: Colors.orange,
         icon: Icons.hourglass_empty,
       );
-    case 'in_progress':
+    case 'in_session':
       return const SessionStatusUI(
-        label: 'In Progress',
-        color: Colors.blue,
+        label: 'In Session',
+        color: Colors.green,
         icon: Icons.play_circle_fill,
       );
     case 'completed':
       return const SessionStatusUI(
         label: 'Completed',
-        color: Colors.green,
+        color: Colors.purple  ,
         icon: Icons.check_circle,
       );
     default:
