@@ -11,7 +11,7 @@ class AddressClientModel {
   final bool isSuperUser;
   final String addressType;
   bool isDefault;
-  final bool isVerified;
+  
 
   AddressClientModel({
     required this.id,
@@ -22,7 +22,7 @@ class AddressClientModel {
     required this.isSuperUser,
     required this.addressType,
     required this.isDefault,
-    required this.isVerified,
+   
   });
 
   factory AddressClientModel.fromJson(Map<String, dynamic> json) {
@@ -50,6 +50,6 @@ class AddressClientModel {
     isSuperUser: json['is_super_user'] as bool? ?? false,
     addressType: json['address_type'] as String? ?? '',
     isDefault: json['is_default'] as bool? ?? false,
-    isVerified: json['is_verified'] as bool? ?? false,
+    
   );
 }}

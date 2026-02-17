@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/global_util/services/controler/auth_session_controller.dart';
 import 'package:provider/provider.dart';
 
 import 'package:flutter_application_1/common/utils/kcolors.dart';
@@ -14,7 +15,8 @@ class ScheduledShipmentsScreen extends StatefulWidget {
 }
 
 class _ScheduledShipmentsScreenState extends State<ScheduledShipmentsScreen> {
-  static const String _clientEmail = 't.p.tshabalala98@gmail.com';
+  
+  
 
   bool _showHeader = true;
 
@@ -22,9 +24,11 @@ class _ScheduledShipmentsScreenState extends State<ScheduledShipmentsScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      final session = context.read<AuthSessionController>();
+    final email = session.email;
       context
           .read<ShipmentController>()
-          .fetchShipmentsByClientEmail(_clientEmail);
+          .fetchShipmentsByClientEmail(email.toString());
     });
   }
 
@@ -54,6 +58,7 @@ class _ScheduledShipmentsScreenState extends State<ScheduledShipmentsScreen> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
+              Kolors.kPrimary,
               Kolors.kPrimary,
               Kolors.kSecondaryLight,
             ],

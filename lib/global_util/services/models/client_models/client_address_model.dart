@@ -8,8 +8,16 @@ class ClientAddressModel {
   final String locality;
   final String administrativeArea;
   final String? formattedAddress;
+
   final String country;
   final String postalCode;
+
+  // New fields to match backend
+  final String unitNumber;
+  final String? accessNotes;
+  final String buildingType;
+  final bool isVerified;
+
   final String addressType;
 
   ClientAddressModel({
@@ -24,6 +32,10 @@ class ClientAddressModel {
     this.formattedAddress,
     required this.country,
     required this.postalCode,
+    required this.unitNumber,
+    this.accessNotes,
+    required this.buildingType,
+    required this.isVerified,
     required this.addressType,
   });
 
@@ -40,6 +52,10 @@ class ClientAddressModel {
         administrativeArea: '',
         country: '',
         postalCode: '',
+        unitNumber: '',
+        accessNotes: null,
+        buildingType: 'house',
+        isVerified: false,
         addressType: '',
       );
     }
@@ -60,6 +76,10 @@ class ClientAddressModel {
       formattedAddress: json['formatted_address'] as String?,
       country: json['country'] as String? ?? '',
       postalCode: json['postal_code'] as String? ?? '',
+      unitNumber: json['unit_number'] as String? ?? '',
+      accessNotes: json['access_notes'] as String?,
+      buildingType: json['building_type'] as String? ?? 'house',
+      isVerified: json['is_verified'] as bool? ?? false,
       addressType: json['address_type'] as String? ?? '',
     );
   }
@@ -74,10 +94,14 @@ class ClientAddressModel {
       'street_number': streetNumber,
       'route': route,
       'locality': locality,
-      'administrative_area': administrativeArea,
+      'administrative_area_level_1': administrativeArea,
       'formatted_address': formattedAddress,
       'country': country,
       'postal_code': postalCode,
+      'unit_number': unitNumber,
+      'access_notes': accessNotes,
+      'building_type': buildingType,
+      'is_verified': isVerified,
       'address_type': addressType,
     };
   }
@@ -95,6 +119,10 @@ class ClientAddressModel {
     String? formattedAddress,
     String? country,
     String? postalCode,
+    String? unitNumber,
+    String? accessNotes,
+    String? buildingType,
+    bool? isVerified,
     String? addressType,
   }) {
     return ClientAddressModel(
@@ -109,6 +137,10 @@ class ClientAddressModel {
       formattedAddress: formattedAddress ?? this.formattedAddress,
       country: country ?? this.country,
       postalCode: postalCode ?? this.postalCode,
+      unitNumber: unitNumber ?? this.unitNumber,
+      accessNotes: accessNotes ?? this.accessNotes,
+      buildingType: buildingType ?? this.buildingType,
+      isVerified: isVerified ?? this.isVerified,
       addressType: addressType ?? this.addressType,
     );
   }

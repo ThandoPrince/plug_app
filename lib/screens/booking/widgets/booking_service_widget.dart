@@ -3,10 +3,13 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/widgets/flushbar_service.dart';
+import 'package:flutter_application_1/global_util/services/controler/auth_session_controller.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_application_1/global_util/services/models/service_provider_model.dart';
 import 'package:flutter_application_1/global_util/services/models/client_models/address_client_model.dart';
 import 'package:flutter_application_1/global_util/services/models/cost_of_service_model.dart';
+import 'package:provider/provider.dart';
 
 class BookingService {
   static Future<void> submitBooking({
@@ -66,14 +69,16 @@ class BookingService {
       negotiatedPrice = double.tryParse(proposedPriceController.text.replaceAll(',', ''));
       
     } 
-    
+    final session = context.read<AuthSessionController>();
+    final email = session.email;
 
     final invitedProvidersEmails =
         selectedProviders.map((sp) => sp.spProfile.emailAddress).toList();
+        final String baseUrl = dotenv.env['API_BASE_URL'] ?? '';
 
     final request = http.MultipartRequest(
       'POST',
-      Uri.parse('http://192.168.18.64:8000/api/bookings/order_a_service/'),
+      Uri.parse('$baseUrl/bookings/order_a_service/'),
     );
 
     final timeString =
@@ -83,12 +88,12 @@ class BookingService {
         "${scheduled.month.toString().padLeft(2, '0')}-"
         "${scheduled.day.toString().padLeft(2, '0')}";
 
-    request.fields['client'] = 't.p.tshabalala98@gmail.com';
+    request.fields['client'] = email.toString();
     request.fields['title'] = titleController.text.trim();
     request.fields['notes'] = notesController.text;
     request.fields['requested_date_time'] = timeString;
     request.fields['requested_date'] = dateString;
-    request.fields['delivery_address'] = defaultAddress.id.toString();
+    request.fields['delivery_address'] = defaultAddress.address.placeId.toString();
     request.fields['status'] = "pending";
     request.fields['is_broadcasted'] = "true";
     request.fields['service_required'] = serviceId.toString();

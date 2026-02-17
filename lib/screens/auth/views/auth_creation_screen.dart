@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
 import 'package:flutter_application_1/common/widgets/custom_button.dart';
@@ -34,6 +35,7 @@ class AuthCreationScreen extends StatelessWidget {
                   padding: EdgeInsets.symmetric(horizontal: 35.w),
                   child: Consumer<ClientAuthProvider>(
                     builder: (context, provider, child) {
+                      
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
@@ -59,7 +61,6 @@ class AuthCreationScreen extends StatelessWidget {
                             ),
                             textAlign: TextAlign.center,
                           ),
-                          
                           SizedBox(height: 50.h),
 
                           // --- Form Card ---
@@ -82,7 +83,7 @@ class AuthCreationScreen extends StatelessWidget {
                                   controller: provider.emailController,
                                   hint: "Email Address",
                                   icon: Icons.email_outlined,
-                                  type: TextInputType.emailAddress,
+                                  errorText: provider.fieldErrors['email'],
                                 ),
                                 SizedBox(height: 16.h),
                                 _buildTextField(
@@ -90,6 +91,7 @@ class AuthCreationScreen extends StatelessWidget {
                                   hint: "Mobile Number",
                                   icon: Icons.phone_android_outlined,
                                   type: TextInputType.phone,
+                                  errorText: provider.fieldErrors['mobile'],
                                 ),
                                 SizedBox(height: 16.h),
                                 _buildTextField(
@@ -97,30 +99,48 @@ class AuthCreationScreen extends StatelessWidget {
                                   hint: "Password",
                                   icon: Icons.lock_outline_rounded,
                                   isPassword: true,
+                                  errorText: provider.fieldErrors['password'],
                                 ),
+                                SizedBox(height: 6.h),
+                                                                  
+                                     SizedBox(height: 4.h),
                               ],
                             ),
                           ),
 
-                          // --- Error Display ---
-                          if (provider.error != null) ...[
-                            SizedBox(height: 16.h),
-                            Container(
-                              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-                              decoration: BoxDecoration(
-                                color: Colors.redAccent.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: ReusableText(
-                                text: provider.error!,
-                                style: TextStyle(
-                                  color: Colors.redAccent,
-                                  fontSize: 13.sp,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ],
+                          // --- Non-field / general error display ---
+                       // --- Non-field / general error display ---
+if (provider.error != null) ...[
+  SizedBox(height: 16.h),
+  Container(
+    padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+    decoration: BoxDecoration(
+      color: Colors.redAccent.withOpacity(0.1),
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: SingleChildScrollView(
+      scrollDirection: Axis.horizontal, 
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width - 70.w, 
+        ),
+        child: Text(
+          provider.error!,
+          style: TextStyle(
+            color: Colors.redAccent,
+            fontSize: 13.sp,
+            fontWeight: FontWeight.w600,
+            
+          ),
+          softWrap: true,
+          overflow: TextOverflow.visible
+          
+        ),
+      ),
+    ),
+  ),
+],
+
                         ],
                       );
                     },
@@ -141,9 +161,13 @@ class AuthCreationScreen extends StatelessWidget {
                             : GradientBtn(
                                 text: "CREATE ACCOUNT",
                                 onTap: () async {
-                                  await provider.register();
-                                  if (context.mounted && provider.error == null) {
-                                    context.go('/clientDetailsPatch?email=${provider.emailController.text.trim()}');
+                                  FocusScope.of(context).unfocus();
+                                  final success = await provider.register();
+
+                                  // Navigate only on success
+                                  if (context.mounted && success) {
+                                    context.go(
+                                        '/clientDetailsPatch?email=${provider.emailController.text.trim()}');
                                   }
                                 },
                                 btnColor: primaryColor,
@@ -163,13 +187,13 @@ class AuthCreationScreen extends StatelessWidget {
                               ),
                             ),
                             TextButton(
-                              onPressed: () => Navigator.pushNamed(context, "/login"),
+                              onPressed: () => context.go( "/login"),
                               child: Text(
                                 "Login",
                                 style: TextStyle(
                                   fontWeight: FontWeight.w800,
                                   fontSize: 14.sp,
-                                  color: primaryColor,
+                                  color: Kolors.kBlue,
                                 ),
                               ),
                             ),
@@ -187,15 +211,16 @@ class AuthCreationScreen extends StatelessWidget {
     );
   }
 
-  // TextField helper remains the same
+  // --- Updated TextFormField ---
   Widget _buildTextField({
     required TextEditingController controller,
     required String hint,
     required IconData icon,
     bool isPassword = false,
+    String? errorText,
     TextInputType type = TextInputType.text,
   }) {
-    return TextField(
+    return TextFormField(
       controller: controller,
       obscureText: isPassword,
       keyboardType: type,
@@ -207,17 +232,18 @@ class AuthCreationScreen extends StatelessWidget {
         filled: true,
         fillColor: Colors.grey.shade50,
         contentPadding: EdgeInsets.symmetric(vertical: 18.h, horizontal: 16.w),
+        errorText: errorText,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade200),
+          borderSide: BorderSide(color: errorText != null ? Colors.red : Colors.grey.shade200),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Kolors.kPrimary, width: 1.5),
+          borderSide: BorderSide(color: errorText != null ? Colors.red : Kolors.kPrimary, width: 1.5),
         ),
       ),
     );

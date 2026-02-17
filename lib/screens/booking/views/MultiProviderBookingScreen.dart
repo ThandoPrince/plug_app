@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
+import 'package:flutter_application_1/global_util/services/controler/auth_session_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/def_add_controller.dart';
 import 'package:flutter_application_1/global_util/services/models/client_models/address_client_model.dart';
 import 'package:flutter_application_1/global_util/services/models/cost_of_service_model.dart';
@@ -43,8 +44,11 @@ class _MultiProviderBookingScreenState extends State<MultiProviderBookingScreen>
   void initState() {
     super.initState();
     Future.microtask(() async {
+      final session = context.read<AuthSessionController>();
+    final email = session.email;
       final defAddCtrl = Provider.of<DefAddController>(context, listen: false);
-      await defAddCtrl.fetchAddresses('t.p.tshabalala98@gmail.com');
+
+      await defAddCtrl.fetchAddresses(email.toString());
       final AddressClientModel? found = defAddCtrl.addresses.isNotEmpty
           ? defAddCtrl.addresses.firstWhere(
               (a) => a.isDefault == true,

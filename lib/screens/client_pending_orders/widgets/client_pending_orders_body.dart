@@ -54,7 +54,7 @@ class ClientPendingOrdersBody extends StatelessWidget {
           padding: const EdgeInsets.all(12.0),
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [Kolors.kPrimary, Kolors.kSecondaryLight],
+              colors: [Kolors.kPrimary,Kolors.kPrimary, Kolors.kSecondaryLight],
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
             ),

@@ -42,7 +42,7 @@ class ClientQrCheckinContent extends StatelessWidget {
               height: double.infinity,
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Kolors.kPrimary, Kolors.kSecondaryLight],
+                  colors: [Kolors.kPrimary,Kolors.kPrimary, Kolors.kSecondaryLight],
                   begin: Alignment.topRight,
                   end: Alignment.bottomLeft,
                 ),

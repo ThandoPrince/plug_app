@@ -61,10 +61,9 @@ class ClientDetailsPatchScreen extends StatelessWidget {
                               ),
                             ),
                             SizedBox(height: 40.h),
-
-                            _buildProfilePictureSection(context, controller, primaryColor),
+                            _buildProfilePictureSection(
+                                context, controller, primaryColor),
                             SizedBox(height: 40.h),
-
                             Container(
                               padding: EdgeInsets.all(20.w),
                               decoration: BoxDecoration(
@@ -80,25 +79,30 @@ class ClientDetailsPatchScreen extends StatelessWidget {
                               ),
                               child: Column(
                                 children: [
-                                  _buildTextField(controller.firstNameController, "First Name", Icons.person_outline),
+                                  _buildTextField(
+                                      controller.firstNameController,
+                                      "First Name",
+                                      Icons.person_outline),
                                   SizedBox(height: 16.h),
-                                  _buildTextField(controller.lastNameController, "Last Name", Icons.person_outline),
+                                  _buildTextField(controller.lastNameController,
+                                      "Last Name", Icons.person_outline),
                                   SizedBox(height: 16.h),
                                   _buildTextField(
                                     controller.dobController,
                                     "Date of Birth",
                                     Icons.calendar_today_outlined,
                                     readOnly: true,
-                                    onTap: () => _selectDate(context, controller),
+                                    onTap: () =>
+                                        _selectDate(context, controller),
                                   ),
                                 ],
                               ),
                             ),
                             SizedBox(height: 30.h),
-
                             if (controller.error != null)
                               Container(
-                                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 16.w, vertical: 8.h),
                                 decoration: BoxDecoration(
                                   color: Colors.redAccent.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(8),
@@ -112,47 +116,67 @@ class ClientDetailsPatchScreen extends StatelessWidget {
                                   ),
                                 ),
                               ),
-                            if (controller.error != null) SizedBox(height: 20.h),
+                            if (controller.error != null)
+                              SizedBox(height: 20.h),
                           ],
                         ),
                       ),
                     ),
-
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 35.w, vertical: 20.h),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 35.w, vertical: 20.h),
                       child: controller.isLoading
-                          ? const Center(child: CircularProgressIndicator(color: primaryColor))
+                          ? const Center(
+                              child: CircularProgressIndicator(
+                                  color: primaryColor))
                           : GradientBtn(
                               text: "COMPLETE PROFILE",
                               onTap: () async {
                                 // --- Validate required fields ---
                                 if (controller.profileImagePath == null) {
-                                  controller.error = "Please select a profile picture.";
+                                  controller.error =
+                                      "Please select a profile picture.";
                                   controller.notifyListeners();
                                   return;
                                 }
-                                if (controller.firstNameController.text.trim().isEmpty) {
+                                if (controller.firstNameController.text
+                                    .trim()
+                                    .isEmpty) {
                                   controller.error = "First Name is required.";
                                   controller.notifyListeners();
                                   return;
                                 }
-                                if (controller.lastNameController.text.trim().isEmpty) {
+                                if (controller.lastNameController.text
+                                    .trim()
+                                    .isEmpty) {
                                   controller.error = "Last Name is required.";
                                   controller.notifyListeners();
                                   return;
                                 }
-                                if (controller.dobController.text.trim().isEmpty) {
-                                  controller.error = "Date of Birth is required.";
+                                if (controller.dobController.text
+                                    .trim()
+                                    .isEmpty) {
+                                  controller.error =
+                                      "Date of Birth is required.";
                                   controller.notifyListeners();
                                   return;
                                 }
-
+                                final age = controller.dobController.text
+                                    .trim()
+                                    .toAge();
+                                if (age < 13) {
+                                  controller.error =
+                                      "You must be at least 18 years old.";
+                                  controller.notifyListeners();
+                                  return;
+                                }
                                 // Clear any previous error
                                 controller.error = null;
                                 controller.notifyListeners();
 
                                 // --- Save details ---
-                                final success = await controller.patchClientDetails(email);
+                                final success =
+                                    await controller.patchClientDetails(email);
                                 if (success && context.mounted) {
                                   context.go('/addaddress?email=$email');
                                 }
@@ -173,11 +197,13 @@ class ClientDetailsPatchScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildProfilePictureSection(BuildContext context, ClientDetailsController controller, Color primaryColor) {
+  Widget _buildProfilePictureSection(BuildContext context,
+      ClientDetailsController controller, Color primaryColor) {
     return Stack(
       children: [
         GestureDetector(
-          onTap: () => _pickProfileImage(context, controller, fromCamera: false),
+          onTap: () =>
+              _pickProfileImage(context, controller, fromCamera: false),
           child: Container(
             decoration: BoxDecoration(
               shape: BoxShape.circle,
@@ -197,7 +223,8 @@ class ClientDetailsPatchScreen extends StatelessWidget {
                   ? FileImage(File(controller.profileImagePath!))
                   : null,
               child: controller.profileImagePath == null
-                  ? Icon(Icons.person_add_rounded, size: 40.sp, color: primaryColor)
+                  ? Icon(Icons.person_add_rounded,
+                      size: 40.sp, color: primaryColor)
                   : null,
             ),
           ),
@@ -206,14 +233,16 @@ class ClientDetailsPatchScreen extends StatelessWidget {
           bottom: 5,
           right: 5,
           child: GestureDetector(
-            onTap: () => _pickProfileImage(context, controller, fromCamera: true),
+            onTap: () =>
+                _pickProfileImage(context, controller, fromCamera: true),
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: primaryColor,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.camera_alt, color: Colors.white, size: 18),
+              child:
+                  const Icon(Icons.camera_alt, color: Colors.white, size: 18),
             ),
           ),
         ),
@@ -221,11 +250,14 @@ class ClientDetailsPatchScreen extends StatelessWidget {
     );
   }
 
-  void _pickProfileImage(BuildContext context, ClientDetailsController controller, {bool fromCamera = false}) async {
+  void _pickProfileImage(
+      BuildContext context, ClientDetailsController controller,
+      {bool fromCamera = false}) async {
     final picker = ImagePicker();
     final XFile? image = await picker.pickImage(
       source: fromCamera ? ImageSource.camera : ImageSource.gallery,
-      preferredCameraDevice: fromCamera ? CameraDevice.front : CameraDevice.rear,
+      preferredCameraDevice:
+          fromCamera ? CameraDevice.front : CameraDevice.rear,
       imageQuality: 80,
     );
     if (image != null) {
@@ -234,7 +266,8 @@ class ClientDetailsPatchScreen extends StatelessWidget {
     }
   }
 
-  Future<void> _selectDate(BuildContext context, ClientDetailsController controller) async {
+  Future<void> _selectDate(
+      BuildContext context, ClientDetailsController controller) async {
     DateTime? picked = await showDatePicker(
       context: context,
       initialDate: DateTime(2000),
@@ -268,7 +301,8 @@ class ClientDetailsPatchScreen extends StatelessWidget {
       style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Colors.grey, fontWeight: FontWeight.w500),
+        labelStyle:
+            const TextStyle(color: Colors.grey, fontWeight: FontWeight.w500),
         prefixIcon: Icon(icon, color: Kolors.kPrimary, size: 20),
         filled: true,
         fillColor: Colors.grey.shade50,

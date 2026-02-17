@@ -1,7 +1,8 @@
+/// Represents authentication credentials for a client.
 class ClientAuthModel {
   final String emailAddress;
   final String mobileNumber;
-  final String password; 
+  final String password;
 
   ClientAuthModel({
     required this.emailAddress,
@@ -9,22 +10,31 @@ class ClientAuthModel {
     this.password = '',
   });
 
+
   factory ClientAuthModel.fromJson(Map<String, dynamic>? json) {
     if (json == null) {
       return ClientAuthModel(
-        emailAddress: 't.p.tshabalala98@gmail.com',
-        mobileNumber: '0719503706',
+        emailAddress: '',
+        mobileNumber: '',
       );
     }
 
     return ClientAuthModel(
-      emailAddress: json['email_address'] as String? ?? 't.p.tshabalala98@gmail.com',
-      mobileNumber: json['mobile_number'] as String? ?? '0719503706',
+      emailAddress: json['email_address'] as String? ?? '',
+      mobileNumber: json['mobile_number'] as String? ?? '',
       password: json['password'] as String? ?? '',
     );
   }
+
+  /// Converts the model to JSON.
+  Map<String, dynamic> toJson() => {
+        'email_address': emailAddress,
+        'mobile_number': mobileNumber,
+        'password': password,
+      };
 }
 
+/// Represents a client profile.
 class ClientModel {
   final ClientAuthModel clientProfile;
   final String firstName;
@@ -40,6 +50,7 @@ class ClientModel {
     this.profilePic,
   });
 
+  /// Creates a [ClientModel] from JSON.
   factory ClientModel.fromJson(Map<String, dynamic> json) {
     return ClientModel(
       clientProfile: ClientAuthModel.fromJson(
@@ -47,8 +58,17 @@ class ClientModel {
       ),
       firstName: json['first_name'] as String? ?? '',
       lastName: json['last_name'] as String? ?? '',
-      rating: json['rating'] as String? ?? '0.00',
+      rating: json['rating']?.toString() ?? '0.00',
       profilePic: json['client_pp'] as String?,
     );
   }
+
+  /// Converts the model to JSON.
+  Map<String, dynamic> toJson() => {
+        'client_profile': clientProfile.toJson(),
+        'first_name': firstName,
+        'last_name': lastName,
+        'rating': rating,
+        'client_pp': profilePic,
+      };
 }

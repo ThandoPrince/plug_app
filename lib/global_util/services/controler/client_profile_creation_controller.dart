@@ -19,6 +19,8 @@ class ClientDetailsController with ChangeNotifier {
   // Base URL from dotenv
   final String baseUrl = dotenv.env['API_BASE_URL'] ?? '';
 
+  
+
   // PATCH request to update client profile
   Future<bool> patchClientDetails(String email) async {
     isLoading = true;
@@ -70,5 +72,22 @@ class ClientDetailsController with ChangeNotifier {
     isLoading = false;
     notifyListeners();
     return false;
+  }
+}
+
+extension DateUtils on String {
+  /// Returns age in years from a yyyy-MM-dd string
+  int toAge() {
+    try {
+      final dob = DateTime.parse(this);
+      final today = DateTime.now();
+      int age = today.year - dob.year;
+      if (today.month < dob.month || (today.month == dob.month && today.day < dob.day)) {
+        age--;
+      }
+      return age;
+    } catch (_) {
+      return 0;
+    }
   }
 }

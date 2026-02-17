@@ -2,14 +2,14 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/const/services/registration/client_auth_api.dart';
 
-
 class ClientAuthProvider extends ChangeNotifier {
-  /// Controllers
+  
+ 
   final TextEditingController emailController = TextEditingController();
   final TextEditingController mobileController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
-  /// State
+  
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
@@ -22,95 +22,87 @@ class ClientAuthProvider extends ChangeNotifier {
   /// ==============================
   /// REGISTER
   /// ==============================
+  /// 
 
-  Future<void> register() async {
-  _setLoading(true);
+
+  Future<bool> register() async {
+  _isLoading = true;
   _error = null;
-  _isSuccess = false;
-
-  final email = emailController.text.trim();
-  final mobile = mobileController.text.trim();
-  final password = passwordController.text.trim();
-
-  // Basic client-side validation
-  if (email.isEmpty || mobile.isEmpty || password.isEmpty) {
-    _setFieldErrors({
-      'email': email.isEmpty ? 'Email is required' : null,
-      'mobile': mobile.isEmpty ? 'Mobile is required' : null,
-      'password': password.isEmpty ? 'Password is required' : null,
-    });
-    return;
-  }
-
-  if (!email.contains('@')) {
-    _setFieldErrors({'email': 'Invalid email format'});
-    return;
-  }
-
-  if (password.length < 6) {
-    _setFieldErrors({'password': 'Password must be at least 6 characters'});
-    return;
-  }
+  fieldErrors = {};
+  notifyListeners();
 
   try {
     final response = await ClientAuthApi.register(
-      email: email,
-      mobile: mobile,
-      password: password,
+      email: emailController.text.trim(),
+      mobile: mobileController.text.trim(),
+      password: passwordController.text.trim(),
     );
 
     final body = jsonDecode(response.body);
 
     if (response.statusCode == 201) {
-      _isSuccess = true;
+      _isLoading = false;
       notifyListeners();
-    } else if (body is Map<String, dynamic>) {
-      // Backend validation errors
-      final fieldErrors = <String, String>{};
+      return true;
+    }
+
+    // Handle backend validation errors properly
+    if (body is Map<String, dynamic>) {
+      final errors = <String, String?>{};
+
       body.forEach((key, value) {
-        if (value is List && value.isNotEmpty) {
-          fieldErrors[key] = value.join('\n'); // Join multiple errors
-        } else if (value is String) {
-          fieldErrors[key] = value;
+        final message = (value is List && value.isNotEmpty)
+            ? value.join('\n')
+            : value.toString();
+
+        switch (key) {
+          case 'email_address':
+            errors['email'] = message;
+            break;
+          case 'mobile_number':
+            errors['mobile'] = message;
+            break;
+          case 'password':
+            errors['password'] = message;
+            break;
+          case 'non_field_errors':
+            _error = message;
+            break;
+          default:
+            _error = message;
         }
       });
-      _setFieldErrors(fieldErrors);
+
+      if (errors.isNotEmpty) {
+        fieldErrors = errors;
+      }
     } else {
-      _setError('Something went wrong. Please try again.');
+      _error = "Registration failed. Please try again.";
     }
-  } catch (e) {
-    _setError('Something went wrong. Please try again.');
-  }
-}
 
-/// State to hold field-specific errors
-Map<String, String?> fieldErrors = {};
-
-void _setFieldErrors(Map<String, String?> errors) {
-  fieldErrors = errors;
-  _isLoading = false;
-  notifyListeners();
-}
-
-
-
-
-  /// ==============================
-  /// HELPERS
-  /// ==============================
-
-  void _setLoading(bool value) {
-    _isLoading = value;
-    notifyListeners();
-  }
-
-  void _setError(String message) {
-    _error = message;
     _isLoading = false;
     notifyListeners();
+    return false;
+  } catch (e) {
+    _error = "Something went wrong. Please try again.";
+    _isLoading = false;
+    notifyListeners();
+    return false;
   }
+}
 
-  /// Dispose controllers properly
+
+
+
+
+
+
+
+  Map<String, String?> fieldErrors = {};
+
+ 
+
+ 
   @override
   void dispose() {
     emailController.dispose();

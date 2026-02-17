@@ -19,7 +19,7 @@ class Onboardingslidertwo extends StatelessWidget {
       child: Stack(
         children: [
           SizedBox(
-            height: ScreenUtil().screenHeight * 0.5,
+            height: ScreenUtil().screenHeight * 0.4,
             width: ScreenUtil().screenWidth,
             child: Container(
               decoration: BoxDecoration(

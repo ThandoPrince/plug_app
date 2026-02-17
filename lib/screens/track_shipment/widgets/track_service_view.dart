@@ -89,16 +89,7 @@ class TrackServiceView extends StatelessWidget {
         /// ---------------------------
         return Scaffold(
           extendBodyBehindAppBar: true,
-          appBar: AppBar(
-            title: const Text(
-              'Track Service',
-              style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white),
-            ),
-            centerTitle: true,
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            iconTheme: const IconThemeData(color: Colors.white),
-          ),
+      
           body: Stack(
             children: [
               /// 🗺️ MAP + SHEET in Column
@@ -118,7 +109,7 @@ class TrackServiceView extends StatelessWidget {
                   return Container(
                     decoration: const BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [Kolors.kPrimary, Kolors.kWhite],
+                        colors: [Kolors.kPrimary,Kolors.kPrimary, Kolors.kWhite],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                       ),

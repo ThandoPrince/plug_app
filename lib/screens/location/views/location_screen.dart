@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
 import 'package:flutter_application_1/global_util/services/controler/address_client_ctrl.dart';
+import 'package:flutter_application_1/global_util/services/controler/auth_session_controller.dart';
 import 'package:flutter_application_1/screens/location/widgets/address_list_view.dart';
 import 'package:provider/provider.dart';
 
@@ -16,9 +17,11 @@ class _LocationScreenState extends State<LocationScreen> {
   void initState() {
     super.initState();
     Future.microtask(() {
-      // NOTE: Hardcoded email used from original code
+      final session = context.read<AuthSessionController>();
+    final email = session.email;
+      
       Provider.of<AddressClientCtrl>(context, listen: false)
-          .fetchAddresses('t.p.tshabalala98@gmail.com');
+          .fetchAddresses(email.toString());
     });
   }
 

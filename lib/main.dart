@@ -1,11 +1,11 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/utils/app_routes.dart';
 import 'package:flutter_application_1/common/utils/kstrings.dart';
 import 'package:flutter_application_1/const/services/booking_services/create_booking_api.dart';
-import 'package:flutter_application_1/const/services/sessions/confirm_checkin_api.dart';
 import 'package:flutter_application_1/global_util/services/controler/address_client_ctrl.dart';
 import 'package:flutter_application_1/global_util/services/controler/address_creation_controller.dart';
+import 'package:flutter_application_1/global_util/services/controler/auth_login_controller.dart';
+import 'package:flutter_application_1/global_util/services/controler/auth_session_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/client_address_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/client_auth_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/client_location_controller.dart';
@@ -24,7 +24,6 @@ import 'package:flutter_application_1/global_util/services/controler/home_refres
 import 'package:flutter_application_1/global_util/services/controler/location_permission_ctrl.dart';
 import 'package:flutter_application_1/global_util/services/controler/negotiation_by_OrderID_Ctrl.dart';
 import 'package:flutter_application_1/global_util/services/controler/negotiation_by_negoID_ctrl.dart';
-import 'package:flutter_application_1/global_util/services/controler/rating_navigation_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/session_by_shipment_ctrl.dart';
 import 'package:flutter_application_1/global_util/services/controler/session_location_ping_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/shipment_confirm_controller.dart';
@@ -48,28 +47,22 @@ import 'package:here_sdk/core.errors.dart';
 
 Future<void> main() async {
 
-
-  
-  WidgetsFlutterBinding.ensureInitialized();
-
- 
-
-  await _initializeHERESDK();
-
-  
+WidgetsFlutterBinding.ensureInitialized();
+await AuthSessionController.instance.loadSession();
+ await _initializeHERESDK();
 
 
-
- 
-
-
-
-  // 5️⃣ Run the app with MultiProvider
   runApp(
     MultiProvider(
       providers: [
+        
         ChangeNotifierProvider(create: (_) => OnboardingNotifier()),
         ChangeNotifierProvider(create: (_) => TabIndexNotifier()),
+        ChangeNotifierProvider(create: (_) => LoginController()),
+        ChangeNotifierProvider(create: (_) => ClientAuthProvider(),),
+        ChangeNotifierProvider(create: (_) => AuthSessionController()),
+        ChangeNotifierProvider(create: (_) => ClientDetailsController(),),
+        ChangeNotifierProvider(create: (_) => AddressCreationController(),),
         ChangeNotifierProvider(create: (_) => DefAddController()),
         ChangeNotifierProvider(create: (_) => CostOfServiceByemailController()),
         ChangeNotifierProvider(create: (_) => AddressController()),
@@ -122,24 +115,14 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => SessionByShipmentController(),),
         ChangeNotifierProvider(create: (_) => ClientSessionLocationPingController(),),
         ChangeNotifierProvider(create: (_) => RatingController(),),
-        ChangeNotifierProvider(create: (_) => ClientAuthProvider(),),
-        ChangeNotifierProvider(create: (_) => ClientDetailsController(),),
-        ChangeNotifierProvider(create: (_) => AddressCreationController(),),
-        
-       
-
-        
-         
+ 
       ],
       child: const MyApp(),
     ),
   );
 }
 Future<void> _initializeHERESDK() async {
-  // Needs to be called before accessing SDKOptions to load necessary libraries.
   SdkContext.init(IsolateOrigin.main);
-
-  // Set your credentials for the HERE SDK.
   String accessKeyId = "A4BPfmQeylObiKyCy4bpVw";
   String accessKeySecret = "fJ-0ruCb_mS29BQk46Hi28mp6toudzEIViGwUgiihVmLVgzAvnGB9P6KFDKgFDdSpB9_RHv4mbPW4d4DMudlRQ";
   AuthenticationMode authenticationMode =
@@ -162,7 +145,7 @@ class MyApp extends StatelessWidget {
 
     return ScreenUtilInit(
       
-      designSize: const Size(375, 812), // or your preferred default
+      designSize: const Size(375, 812),
       minTextAdapt: true,
       splitScreenMode: false,
       builder: (_, child) {

@@ -94,7 +94,8 @@ void initState() {
                 ),
                 centerTitle: true,
                 backgroundColor: Kolors.kPrimary,
-                foregroundColor: Colors.white,
+                
+                
                 elevation: 0,
               ),
               body: Stack(
@@ -113,7 +114,7 @@ void initState() {
                       return Container(
                         decoration: const BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [Kolors.kPrimary, Colors.white],
+                            colors: [Kolors.kPrimary,Kolors.kPrimary, Colors.white],
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
                           ),

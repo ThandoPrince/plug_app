@@ -68,14 +68,14 @@ class _OnboardingScreenThreeState extends State<OnboardingScreenThree> {
           ),
         ),
         child: SafeArea(
-          // We remove the bottom: false to ensure buttons stay within screen bounds
+         
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: 35.w, vertical: 20.h),
             child: Column(
               children: [
                 const SizedBox(height: 40),
 
-                // --- Top Section: Value Proposition ---
+              
                 Text(
                   'Join the\nPlug Community.',
                   style: TextStyle(
@@ -183,7 +183,7 @@ class _OnboardingScreenThreeState extends State<OnboardingScreenThree> {
                             style: TextStyle(
                               fontSize: 15.sp,
                               fontWeight: FontWeight.w800,
-                              color: backgroundColor1,
+                              color: textColor,
                             ),
                           ),
                         ),

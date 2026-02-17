@@ -45,7 +45,7 @@ class _HereMapDemoState extends State<HereMapDemo>
       key: const PageStorageKey('hereMap'), // keep map alive
       onMapCreated: (HereMapController controller) {
         _controller = controller;
-        mapCtrl.onMapCreated(controller);
+        mapCtrl.onMapCreated(controller, context);
       },
     );
   }

@@ -8,6 +8,7 @@ class Kolors {
   static const Color kGrayLight = Color(0xFFC1C0C8);
   static const Color kWhite = Color(0xFFFFFFFF);
   static const Color kDark = Color(0xFF000000);
+  static const Color kBlue = Colors.blue;
   static const Color kOffWhite = Color(0xFFF3F4F8);
   static const Color kGold = Color(0xFFFFC107);
   static const Color kRed = Color(0xFFC80000);

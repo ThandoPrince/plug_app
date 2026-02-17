@@ -83,7 +83,7 @@ class _SpashScreenState extends State<SpashScreen> {
         height: ScreenUtil().screenHeight,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Kolors.kPrimary, Kolors.kWhite],
+            colors: [Kolors.kPrimary,Kolors.kPrimary, Kolors.kWhite],
                 begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),

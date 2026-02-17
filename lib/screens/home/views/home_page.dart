@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
+import 'package:flutter_application_1/global_util/services/controler/auth_session_controller.dart';
 import 'package:flutter_application_1/screens/home/widgets/here_map_view_home.dart';
 import 'package:flutter_application_1/global_util/services/controler/home_here_map_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/service_controller.dart';
@@ -66,7 +67,7 @@ class _HomePageState extends State<HomePage> {
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                     child: SizedBox(
                       width: 100,
-                      height: 60,
+                      height: 62,
                       child: Center(
                         child: FittedBox(
                           fit: BoxFit.contain,
@@ -100,7 +101,7 @@ class _HomePageState extends State<HomePage> {
                   fontSize: 16.sp,
                   fontWeight: FontWeight.w900,
                   fontStyle: FontStyle.italic,
-                  color: Colors.orange.shade800,
+                  color: Kolors.kOffWhite,
                 ),
               ),
             ),
@@ -114,8 +115,10 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     const Color primaryColor = Kolors.kPrimary;
     const Color secondaryColor = Kolors.kSecondaryLight;
+    final session = context.read<AuthSessionController>();
+    final email = session.email;
 
-    final double availSerBarHeight = 160.h;
+    final double availSerBarHeight = 161.h;
 
     return Scaffold(
       body: Container(
@@ -154,7 +157,7 @@ class _HomePageState extends State<HomePage> {
                 builder: (_, mapCtrl, __) {
                   return HereMapDemo(
                     key: const PageStorageKey('hereMap'),
-                    email: "t.p.tshabalala98@gmail.com",
+                    email: email.toString(),
                   );
                 },
               ),

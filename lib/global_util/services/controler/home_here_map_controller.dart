@@ -2,9 +2,11 @@ import 'dart:ui' as ui;
 import 'dart:math';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/global_util/services/controler/auth_session_controller.dart';
 import 'package:here_sdk/core.dart';
 import 'package:here_sdk/mapview.dart';
 import 'package:here_sdk/gestures.dart';
+import 'package:provider/provider.dart';
 
 import '../models/sp_live_location_model.dart';
 import '../models/client_models/address_client_model.dart';
@@ -17,6 +19,7 @@ class HereMapMarkerController extends ChangeNotifier {
   // ----------------------------
   int? _selectedServiceId;
   int? get selectedServiceId => _selectedServiceId;
+  
 
   SPLiveLocationModel? _selectedProvider;
   SPLiveLocationModel? get selectedProvider => _selectedProvider;
@@ -29,6 +32,7 @@ class HereMapMarkerController extends ChangeNotifier {
 
   final List<MapMarker> _markers = [];
   List<MapMarker> get markers => List.unmodifiable(_markers);
+  
 
   final List<SPLiveLocationModel> _visibleProviders = [];
   List<SPLiveLocationModel> get visibleProviders => List.unmodifiable(_visibleProviders);
@@ -50,28 +54,35 @@ class HereMapMarkerController extends ChangeNotifier {
   // ----------------------------
   // Map Initialization
   // ----------------------------
-  void onMapCreated(HereMapController controller) {
-    _mapController = controller;
 
-    controller.mapScene.loadSceneForMapScheme(
-      MapScheme.normalDay,
-      (error) async {
-        if (error != null) {
-          debugPrint("❌ Map load error: $error");
-          return;
-        }
+ void onMapCreated(HereMapController controller, BuildContext context) async {
+  _mapController = controller;
 
-        _configureGestures(controller);
-        _focusOnFallback();
+  controller.mapScene.loadSceneForMapScheme(
+    MapScheme.normalDay,
+    (error) async {
+      if (error != null) {
+        debugPrint("❌ Map load error: $error");
+        return;
+      }
 
-       
-        await _ensureMarkerImagesLoaded();
-        await restoreMarkers();
-        await showDefaultAddress("t.p.tshabalala98@gmail.com");
-        
-      },
-    );
-  }
+      _configureGestures(controller);
+      _focusOnFallback();
+
+      await _ensureMarkerImagesLoaded();
+      await restoreMarkers();
+
+      // ✅ Get email from AuthSession
+      final session = context.read<AuthSessionController>();
+    final email = session.email;
+      if (email != null) {
+        await showDefaultAddress(email);
+      } else {
+        debugPrint("❌ No logged-in email found for default address.");
+      }
+    },
+  );
+}
 
   void removeSpMarkers() {
   for (final m in List<MapMarker>.from(_markers)) {
@@ -134,6 +145,7 @@ class HereMapMarkerController extends ChangeNotifier {
   // ----------------------------
   Future<void> showDefaultAddress(String email) async {
     if (_mapController == null) return;
+    
 
     await defAddCtrl.fetchAddresses(email);
 

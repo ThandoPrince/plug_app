@@ -45,7 +45,7 @@ class _NegotiationsByOrderidScreenState
       builder: (_) => Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Kolors.kPrimary, Kolors.kSecondaryLight],
+            colors: [Kolors.kPrimary,Kolors.kPrimary, Kolors.kSecondaryLight],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
