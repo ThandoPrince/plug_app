@@ -177,44 +177,5 @@ class _EntryPointState extends State<EntryPoint> {
 
 
 
-  Widget _navItem(
-      int index, IconData icon, String label, TabIndexNotifier tabNotifier) {
-    final bool isSelected = tabNotifier.index == index;
-
-    return GestureDetector(
-      onTap: () {
-        tabNotifier.setIndex(index);
-        _pageController.jumpToPage(index);
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? Colors.white.withOpacity(0.2)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(15),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              color: isSelected ? Colors.white : Colors.white70,
-              size: 24,
-            ),
-            if (isSelected)
-              Text(
-                label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
+  
 }

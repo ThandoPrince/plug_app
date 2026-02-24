@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-
+import 'package:flutter/services.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_vector_icons/flutter_vector_icons.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
 import 'package:flutter_application_1/global_util/services/controler/submit_ratings_controller.dart';
 import 'package:flutter_application_1/screens/entryPoint/controller/bottom_tab_notifier.dart';
@@ -30,147 +32,260 @@ class _RatingScreenState extends State<RatingScreen> {
       create: (_) => RatingController(),
       child: Consumer<RatingController>(
         builder: (context, controller, _) {
-          return WillPopScope(
-             onWillPop: () async {
-    goToSchedule(context);
-    return false;
-  },
+          return PopScope(
+            canPop: false,
+            onPopInvokedWithResult: (didPop, result) {
+              if (didPop) return;
+              goToSchedule(context);
+            },
             child: Scaffold(
-              backgroundColor: Colors.white,
-              appBar: AppBar(
-                leading: IconButton(
-        icon: const Icon(Icons.arrow_back),
-        onPressed: () => goToSchedule(context),
-      ),
-                backgroundColor: Colors.white,
-                elevation: 0,
-                centerTitle: true,
-                title: Text(
-                  "Session # ${widget.sessionId}",
-                  style: const TextStyle(
-                      color: Colors.grey, fontSize: 14, fontWeight: FontWeight.bold),
+              backgroundColor: Kolors.kPrimary,
+              body: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Kolors.kPrimary, Color(0xFF1A1A1A)],
+                  ),
                 ),
-                automaticallyImplyLeading: false,
-              ),
-              body: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 30),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 20),
-                    Container(
-                      height: 100,
-                      width: 100,
-                      decoration: BoxDecoration(
-                        color: Kolors.kPrimary.withOpacity(0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.star_rounded,
-                          color: Kolors.kPrimary, size: 60),
-                    ),
-                    const SizedBox(height: 30),
-                    const Text(
-                      "How was the service?",
-                      style: TextStyle(
-                          fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF263238)),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      "Your feedback helps us improve the quality of service for everyone.",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                          fontSize: 15, color: Colors.blueGrey.shade400, height: 1.5),
-                    ),
-                    const SizedBox(height: 40),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(5, (index) {
-                        return IconButton(
-                          onPressed: () => controller.setRating(index + 1),
-                          icon: Icon(
-                            index < controller.rating
-                                ? Icons.star_rounded
-                                : Icons.star_outline_rounded,
-                            color: index < controller.rating ? Colors.orange : Colors.grey.shade300,
-                            size: 45,
+                child: SafeArea(
+                  bottom: false,
+                  child: Column(
+                    children: [
+                      // --- Premium Header ---
+                      _buildHeader(context),
+
+                      // --- Floating Sheet ---
+                      Expanded(
+                        child: Container(
+                          width: double.infinity,
+                          margin: EdgeInsets.only(top: 10.h),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(35.r),
+                              topRight: Radius.circular(35.r),
+                            ),
                           ),
-                        );
-                      }),
-                    ),
-                    if (controller.rating > 0)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8.0),
-                        child: Text(
-                          _getMoodText(controller.rating),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Kolors.kPrimary,
+                          child: SingleChildScrollView(
+                            physics: const BouncingScrollPhysics(),
+                            padding: EdgeInsets.symmetric(horizontal: 30.w),
+                            child: Column(
+                              children: [
+                                SizedBox(height: 35.h),
+                                // Hero Icon
+                                _buildHeroIcon(controller.rating),
+                                
+                                SizedBox(height: 25.h),
+                                Text(
+                                  "How was the service?",
+                                  style: TextStyle(
+                                    fontSize: 24.sp,
+                                    fontWeight: FontWeight.w900,
+                                    color: Kolors.kDark,
+                                    letterSpacing: -0.5,
+                                  ),
+                                ),
+                                SizedBox(height: 10.h),
+                                Text(
+                                  "Your feedback helps us maintain the highest service standards.",
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 14.sp,
+                                    color: Colors.grey.shade500,
+                                    height: 1.4,
+                                  ),
+                                ),
+                                
+                                SizedBox(height: 35.h),
+                                // Stars Row
+                                _buildStarRating(controller),
+                                
+                                SizedBox(height: 15.h),
+                                // Mood Label
+                                AnimatedOpacity(
+                                  opacity: controller.rating > 0 ? 1.0 : 0.0,
+                                  duration: const Duration(milliseconds: 300),
+                                  child: Container(
+                                    padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
+                                    decoration: BoxDecoration(
+                                      color: Kolors.kPrimary.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(20.r),
+                                    ),
+                                    child: Text(
+                                      controller.rating > 0 ? _getMoodText(controller.rating).toUpperCase() : "",
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                        color: Kolors.kPrimary,
+                                        fontSize: 12.sp,
+                                        letterSpacing: 1.2,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
+                                SizedBox(height: 35.h),
+                                // Comment Box
+                                _buildCommentField(controller),
+                                
+                                SizedBox(height: 40.h),
+                                // Actions
+                                _buildSubmitButton(controller),
+                                
+                                TextButton(
+                                  onPressed: () => goToSchedule(context),
+                                  child: Text(
+                                    "Skip for now",
+                                    style: TextStyle(
+                                      color: Colors.grey.shade400,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(height: 20.h),
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                    const SizedBox(height: 40),
-                    TextField(
-                      controller: _commentController,
-                      maxLines: 4,
-                      onChanged: controller.setComment,
-                      decoration: InputDecoration(
-                        hintText: "Anything else you'd like to share?",
-                        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-                        filled: true,
-                        fillColor: const Color(0xFFF5F7F9),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(20),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 40),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 55,
-                      child: ElevatedButton(
-                        onPressed: (controller.rating == 0 || controller.isSubmitting)
-                            ? null
-                            : () async {
-                                final success = await controller.submitRating(
-                                    sessionId: widget.sessionId,
-                                    clientEmail: widget.clientEmail);
-            
-                                if (success && mounted) {
-                                  _showSuccessDialog();
-                                }
-                              },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Kolors.kPrimary,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: controller.isSubmitting
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                    color: Colors.white, strokeWidth: 2),
-                              )
-                            : const Text("SUBMIT RATING",
-                                style:
-                                    TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: Text("Skip for now", style: TextStyle(color: Colors.grey.shade500)),
-                    ),
-                    const SizedBox(height: 20),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 15.w, vertical: 10.h),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Ionicons.chevron_back, color: Colors.white),
+            onPressed: () => goToSchedule(context),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "Rate Experience",
+                style: TextStyle(color: Colors.white, fontSize: 18.sp, fontWeight: FontWeight.bold),
+              ),
+              Text(
+                "Session ID: #$widget.sessionId",
+                style: TextStyle(color: Colors.white70, fontSize: 12.sp),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeroIcon(int rating) {
+    return Container(
+      height: 100.h,
+      width: 100.h,
+      decoration: BoxDecoration(
+        color: Kolors.kPrimary.withOpacity(0.05),
+        shape: BoxShape.circle,
+        border: Border.all(color: Kolors.kPrimary.withOpacity(0.1), width: 2),
+      ),
+      child: Center(
+        child: Icon(
+          rating >= 4 ? Ionicons.happy_outline : (rating == 0 ? Ionicons.star : Ionicons.chatbubble_ellipses_outline),
+          color: Kolors.kPrimary,
+          size: 50.sp,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStarRating(RatingController controller) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(5, (index) {
+        bool isSelected = index < controller.rating;
+        return GestureDetector(
+          onTap: () {
+            HapticFeedback.lightImpact();
+            controller.setRating(index + 1);
+          },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            transform: Matrix4.identity()..scale(isSelected ? 1.1 : 1.0),
+            child: Icon(
+              isSelected ? Icons.star_rounded : Icons.star_outline_rounded,
+              color: isSelected ? Colors.orangeAccent : Colors.grey.shade300,
+              size: 52.sp,
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildCommentField(RatingController controller) {
+    return TextField(
+      controller: _commentController,
+      maxLines: 4,
+      onChanged: controller.setComment,
+      decoration: InputDecoration(
+        hintText: "Tell us more about your experience...",
+        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14.sp),
+        filled: true,
+        fillColor: Colors.grey.shade50,
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20.r),
+          borderSide: BorderSide(color: Colors.grey.shade200),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20.r),
+          borderSide: const BorderSide(color: Kolors.kPrimary, width: 1.5),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSubmitButton(RatingController controller) {
+    bool canSubmit = controller.rating > 0 && !controller.isSubmitting;
+    
+    return SizedBox(
+      width: double.infinity,
+      height: 56.h,
+      child: ElevatedButton(
+        onPressed: !canSubmit
+            ? null
+            : () async {
+                HapticFeedback.mediumImpact();
+                final success = await controller.submitRating(
+                    sessionId: widget.sessionId, clientEmail: widget.clientEmail);
+
+                if (success && mounted) {
+                  _showSuccessDialog();
+                }
+              },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Kolors.kPrimary,
+          foregroundColor: Colors.white,
+          disabledBackgroundColor: Colors.grey.shade200,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18.r)),
+          elevation: canSubmit ? 4 : 0,
+        ),
+        child: controller.isSubmitting
+            ? const SizedBox(
+                height: 24,
+                width: 24,
+                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+              )
+            : Text(
+                "SUBMIT REVIEW",
+                style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.bold, letterSpacing: 1),
+              ),
       ),
     );
   }
@@ -186,39 +301,38 @@ class _RatingScreenState extends State<RatingScreen> {
       barrierDismissible: false,
       builder: (BuildContext context) {
         return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30.r)),
           child: Padding(
-            padding: const EdgeInsets.all(24.0),
+            padding: EdgeInsets.all(25.w),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFE8F5E9),
+                  padding: EdgeInsets.all(20.w),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.check_circle_rounded,
-                      color: Colors.green, size: 50),
+                  child: const Icon(Ionicons.checkmark_done, color: Colors.green, size: 50),
                 ),
-                const SizedBox(height: 20),
-                const Text(
-                  "Thank You!",
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+                SizedBox(height: 25.h),
+                Text(
+                  "Review Shared!",
+                  style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.w900, color: Kolors.kDark),
                 ),
-                const SizedBox(height: 10),
-                const Text(
-                  "Your feedback helps us provide a better experience for everyone.",
+                SizedBox(height: 10.h),
+                Text(
+                  "Thank you for helping us grow. Your feedback is now live.",
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey, height: 1.4),
+                  style: TextStyle(color: Colors.grey.shade600, height: 1.5, fontSize: 14.sp),
                 ),
-                const SizedBox(height: 30),
+                SizedBox(height: 30.h),
                 SizedBox(
                   width: double.infinity,
-                  height: 50,
+                  height: 50.h,
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.pop(context); // close dialog
+                      Navigator.pop(context);
                       Provider.of<TabIndexNotifier>(context, listen: false).setIndex(0);
                       Navigator.of(context).pushAndRemoveUntil(
                         MaterialPageRoute(builder: (_) => const EntryPoint()),
@@ -226,13 +340,11 @@ class _RatingScreenState extends State<RatingScreen> {
                       );
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Kolors.kPrimary,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
+                      backgroundColor: Kolors.kDark,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.r)),
                     ),
-                    child: const Text("DONE",
-                        style: TextStyle(
-                            color: Colors.white, fontWeight: FontWeight.bold)),
+                    child: const Text("BACK TO HOME",
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                   ),
                 ),
               ],

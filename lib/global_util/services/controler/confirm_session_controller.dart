@@ -38,7 +38,7 @@ class ClientCheckinController extends ChangeNotifier {
 
   void tick() {
     final now = DateTime.now();
-    remaining = token!.tokenExpiry!.difference(now);
+    remaining = token!.tokenExpiry.difference(now);
 
     if (remaining.isNegative) {
       remaining = Duration.zero;

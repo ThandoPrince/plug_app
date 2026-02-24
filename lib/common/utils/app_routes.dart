@@ -4,6 +4,7 @@ import 'package:flutter_application_1/common/widgets/global/navigation_observer_
 import 'package:flutter_application_1/screens/Onboarding/Views/clientOnboarding_screen.dart';
 import 'package:flutter_application_1/screens/View_SP_Profile_Request/views/viewSP_Profile_requestScreen.dart';
 import 'package:flutter_application_1/screens/address/views/address_creation_screen.dart';
+import 'package:flutter_application_1/screens/address/views/address_verification_screen.dart';
 import 'package:flutter_application_1/screens/auth/views/auth_creation_screen.dart';
 import 'package:flutter_application_1/screens/auth/views/client_details_patch_screen.dart';
 import 'package:flutter_application_1/screens/auth/views/login_page.dart';
@@ -51,6 +52,10 @@ final GoRouter _router = GoRouter(
         GoRoute(
       path: '/entryPoint',
       builder: (context, state) => EntryPoint(),
+    ),
+    GoRoute(
+      path: '/addressVerificationUpload',
+      builder: (context, state) => const AddressVerificationUploadScreen(),
     ),
 
     GoRoute(

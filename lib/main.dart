@@ -4,6 +4,7 @@ import 'package:flutter_application_1/common/utils/kstrings.dart';
 import 'package:flutter_application_1/const/services/booking_services/create_booking_api.dart';
 import 'package:flutter_application_1/global_util/services/controler/address_client_ctrl.dart';
 import 'package:flutter_application_1/global_util/services/controler/address_creation_controller.dart';
+import 'package:flutter_application_1/global_util/services/controler/address_verification_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/auth_login_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/auth_session_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/client_address_controller.dart';
@@ -60,7 +61,8 @@ await AuthSessionController.instance.loadSession();
         ChangeNotifierProvider(create: (_) => TabIndexNotifier()),
         ChangeNotifierProvider(create: (_) => LoginController()),
         ChangeNotifierProvider(create: (_) => ClientAuthProvider(),),
-        ChangeNotifierProvider(create: (_) => AuthSessionController()),
+        ChangeNotifierProvider(create: (_) => AuthSessionController.instance),
+        ChangeNotifierProvider(create: (_) => AddressVerificationController(),),
         ChangeNotifierProvider(create: (_) => ClientDetailsController(),),
         ChangeNotifierProvider(create: (_) => AddressCreationController(),),
         ChangeNotifierProvider(create: (_) => DefAddController()),
