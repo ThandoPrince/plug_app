@@ -24,6 +24,7 @@ class TrackServiceView extends StatelessWidget {
       builder: (context, child) {
         final routeCtrl = context.watch<ShipmentRouteController>();
         final provider = shipment.serviceOrdered?.providerForService?.provider;
+        final service = shipment.serviceOrdered;
 
         /// ---------------------------
         /// CONFIRM SERVICE DIALOG LOGIC
@@ -89,7 +90,6 @@ class TrackServiceView extends StatelessWidget {
         /// ---------------------------
         return Scaffold(
           extendBodyBehindAppBar: true,
-      
           body: Stack(
             children: [
               /// 🗺️ MAP + SHEET in Column
@@ -109,15 +109,21 @@ class TrackServiceView extends StatelessWidget {
                   return Container(
                     decoration: const BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [Kolors.kPrimary,Kolors.kPrimary, Kolors.kWhite],
+                        colors: [
+                          Kolors.kPrimary,
+                          Kolors.kPrimary,
+                          Kolors.kWhite
+                        ],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                       ),
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+                      borderRadius:
+                          BorderRadius.vertical(top: Radius.circular(32)),
                     ),
                     child: SingleChildScrollView(
                       controller: scrollController,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 24),
                       child: Column(
                         children: [
                           /// Pull handle
@@ -132,12 +138,15 @@ class TrackServiceView extends StatelessWidget {
                           ),
 
                           /// ETA
-                          EtaCard(routeController: routeCtrl, shipment: shipment),
+                          EtaCard(
+                              routeController: routeCtrl, shipment: shipment),
                           const SizedBox(height: 16),
 
                           /// Provider
                           if (provider != null) ...[
-                            ProviderCard(provider: provider),
+                            ProviderCard(provider: provider,
+                            service: service
+                            ),
                             const SizedBox(height: 16),
                           ],
 
@@ -148,7 +157,8 @@ class TrackServiceView extends StatelessWidget {
                           if (shipment.shipmentStatus == "arrived") ...[
                             const SizedBox(height: 24),
                             ConfirmServiceButton(
-                              onConfirm: () => confirmService(context, shipment),
+                              onConfirm: () =>
+                                  confirmService(context, shipment),
                             ),
                           ],
 

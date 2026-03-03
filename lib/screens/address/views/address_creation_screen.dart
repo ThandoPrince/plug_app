@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
 import 'package:flutter_application_1/global_util/services/controler/address_creation_controller.dart';
+import 'package:flutter_application_1/screens/Onboarding/Widgets/back_to_exit_widget.dart';
 import 'package:flutter_application_1/screens/auth/views/registration_success_overlay.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_google_places_hoc081098/flutter_google_places_hoc081098.dart';
@@ -25,44 +26,46 @@ class AddAddressScreen extends StatelessWidget {
 
     return ChangeNotifierProvider(
       create: (_) => AddressCreationController(),
-      child: Scaffold(
-        body: Container(
-          width: double.infinity,
-          height: double.infinity,
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Kolors.kPrimary, Kolors.kPrimary, Colors.white],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
+      child: DoubleBackToExit(
+        child: Scaffold(
+          body: Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Kolors.kPrimary, Kolors.kPrimary, Colors.white],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
             ),
-          ),
-          child: SafeArea(
-            child: Consumer<AddressCreationController>(
-              builder: (context, ctrl, child) {
-                return Column(
-                  children: [
-                    _buildHeader(),
-                    SizedBox(height: 40.h),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        padding: EdgeInsets.symmetric(horizontal: 25.w),
-                        physics: const BouncingScrollPhysics(),
-                        child: Column(
-                          children: [
-                            _buildSearchField(context, ctrl),
-                            SizedBox(height: 20.h),
-                            if (ctrl.addressController.text.isNotEmpty)
-                              _buildAddressPreviewCard(ctrl),
-                            SizedBox(height: 20.h),
-                            _buildSettingsCard(ctrl),
-                          ],
+            child: SafeArea(
+              child: Consumer<AddressCreationController>(
+                builder: (context, ctrl, child) {
+                  return Column(
+                    children: [
+                      _buildHeader(),
+                      SizedBox(height: 40.h),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          padding: EdgeInsets.symmetric(horizontal: 25.w),
+                          physics: const BouncingScrollPhysics(),
+                          child: Column(
+                            children: [
+                              _buildSearchField(context, ctrl),
+                              SizedBox(height: 20.h),
+                              if (ctrl.addressController.text.isNotEmpty)
+                                _buildAddressPreviewCard(ctrl),
+                              SizedBox(height: 20.h),
+                              _buildSettingsCard(ctrl),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                    _buildBottomButton(context, ctrl, email, primaryColor),
-                  ],
-                );
-              },
+                      _buildBottomButton(context, ctrl, email, primaryColor),
+                    ],
+                  );
+                },
+              ),
             ),
           ),
         ),

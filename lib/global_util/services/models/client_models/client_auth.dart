@@ -1,74 +1,39 @@
-/// Represents authentication credentials for a client.
 class ClientAuthModel {
+  final int? id;
   final String emailAddress;
   final String mobileNumber;
-  final String password;
+  final String profileStatus; 
 
   ClientAuthModel({
+    this.id,
     required this.emailAddress,
     required this.mobileNumber,
-    this.password = '',
+    required this.profileStatus,
   });
-
 
   factory ClientAuthModel.fromJson(Map<String, dynamic>? json) {
     if (json == null) {
       return ClientAuthModel(
+        id: null,
         emailAddress: '',
         mobileNumber: '',
+        profileStatus: 'in-details',
       );
     }
 
     return ClientAuthModel(
+      id: json['id'] as int?,
       emailAddress: json['email_address'] as String? ?? '',
       mobileNumber: json['mobile_number'] as String? ?? '',
-      password: json['password'] as String? ?? '',
+      profileStatus:
+          json['is_profile_completed'] as String? ?? 'in-details',
     );
   }
 
-  /// Converts the model to JSON.
   Map<String, dynamic> toJson() => {
+        'id': id,
         'email_address': emailAddress,
         'mobile_number': mobileNumber,
-        'password': password,
-      };
-}
-
-/// Represents a client profile.
-class ClientModel {
-  final ClientAuthModel clientProfile;
-  final String firstName;
-  final String lastName;
-  final String rating;
-  final String? profilePic;
-
-  ClientModel({
-    required this.clientProfile,
-    required this.firstName,
-    required this.lastName,
-    required this.rating,
-    this.profilePic,
-  });
-
-  /// Creates a [ClientModel] from JSON.
-  factory ClientModel.fromJson(Map<String, dynamic> json) {
-    return ClientModel(
-      clientProfile: ClientAuthModel.fromJson(
-        json['client_profile'] as Map<String, dynamic>?,
-      ),
-      firstName: json['first_name'] as String? ?? '',
-      lastName: json['last_name'] as String? ?? '',
-      rating: json['rating']?.toString() ?? '0.00',
-      profilePic: json['client_pp'] as String?,
-    );
-  }
-
-  /// Converts the model to JSON.
-  Map<String, dynamic> toJson() => {
-        'client_profile': clientProfile.toJson(),
-        'first_name': firstName,
-        'last_name': lastName,
-        'rating': rating,
-        'client_pp': profilePic,
+        'is_profile_completed': profileStatus,
       };
 }

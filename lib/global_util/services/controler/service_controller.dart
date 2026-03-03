@@ -15,7 +15,9 @@ class ServiceController with ChangeNotifier {
   //     fetchServices();
   //   });
   // }
-
+final List<int> _featuredServiceIds = [
+  1, 2, 8, 61, 9, 12, 62, 18, 66, 25
+];
 
 
   // Filtered services (currently displayed)
@@ -54,7 +56,11 @@ class ServiceController with ChangeNotifier {
     }
     notifyListeners();
   }
-
+List<ServiceModel> get featuredServices {
+  return _allServices
+      .where((s) => _featuredServiceIds.contains(s.serviceId))
+      .toList();
+}
   void updateSearchQuery(String query) {
     filterServices(query);
   }

@@ -22,7 +22,7 @@ class _OnboardingScreenThreeState extends State<OnboardingScreenThree> {
       _showErrorSnackBar("Please accept the Terms of Use to continue.");
       return;
     }
-    
+
     final status = await Permission.locationWhenInUse.request();
     if (status.isGranted) {
       context.go("/authCreation");
@@ -32,22 +32,95 @@ class _OnboardingScreenThreeState extends State<OnboardingScreenThree> {
   }
 
   void _showErrorSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.redAccent,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: EdgeInsets.all(20.w),
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Row(
+        children: [
+          const Icon(Icons.error_outline, color: Colors.white, size: 20),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
       ),
-    );
-  }
+      backgroundColor: Colors.redAccent,
+      behavior: SnackBarBehavior.floating,
+      elevation: 6,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.r)),
+      duration: const Duration(seconds: 4),
+      // This margin logic pushes the SnackBar to the top
+      margin: EdgeInsets.only(
+        top: 20.h, 
+        bottom: MediaQuery.of(context).size.height - 160.h, 
+        left: 20.w, 
+        right: 20.w,
+      ),
+    ),
+  );
+}
 
-  void _showPermissionSnackBar() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Location access helps us find pros near you.")),
-    );
-  }
+
+
+void _showPermissionSnackBar() {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(6.w),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.location_on_rounded, color: Colors.white, size: 18.sp),
+          ),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Text(
+              "Location access helps us find pros near you.",
+              style: TextStyle(
+                fontSize: 13.sp,
+                fontWeight: FontWeight.w500,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+      backgroundColor: const Color(0xFF2C2C2C), // Modern deep onyx
+      behavior: SnackBarBehavior.floating,
+      elevation: 0, // Flat design looks cleaner for top toasts
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30.r)),
+      duration: const Duration(seconds: 5),
+      
+      // Top positioning
+      margin: EdgeInsets.only(
+        bottom: MediaQuery.of(context).size.height - 140.h,
+        left: 25.w,
+        right: 25.w,
+      ),
+      
+      action: SnackBarAction(
+        label: "SETTINGS",
+        textColor: Kolors.kPrimary,
+        onPressed: () async {
+          // This triggers the native OS settings page for your app
+          bool opened = await openAppSettings();
+          if (!opened) {
+            debugPrint("Could not open settings.");
+          }
+        },
+      ),
+    ),
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -62,20 +135,22 @@ class _OnboardingScreenThreeState extends State<OnboardingScreenThree> {
         height: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [ backgroundColor1, backgroundColor1,backgroundColor2, ],
+            colors: [
+              backgroundColor1,
+              backgroundColor1,
+              backgroundColor2,
+            ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
         ),
         child: SafeArea(
-         
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: 35.w, vertical: 20.h),
             child: Column(
               children: [
                 const SizedBox(height: 40),
 
-              
                 Text(
                   'Join the\nPlug Community.',
                   style: TextStyle(
@@ -87,7 +162,7 @@ class _OnboardingScreenThreeState extends State<OnboardingScreenThree> {
                   ),
                   textAlign: TextAlign.center,
                 ),
-                
+
                 const Spacer(),
 
                 // --- Center Section: Visual Cue ---
@@ -98,7 +173,8 @@ class _OnboardingScreenThreeState extends State<OnboardingScreenThree> {
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
-                    Icons.rocket_launch_rounded, // Swapped to a 'Launch' icon for the final screen
+                    Icons
+                        .rocket_launch_rounded, // Swapped to a 'Launch' icon for the final screen
                     size: 80,
                     color: Colors.white,
                   ),
@@ -119,27 +195,39 @@ class _OnboardingScreenThreeState extends State<OnboardingScreenThree> {
                           child: Checkbox(
                             value: _isAgreed,
                             activeColor: primaryColor,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                            onChanged: (val) => setState(() => _isAgreed = val ?? false),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(6)),
+                            onChanged: (val) =>
+                                setState(() => _isAgreed = val ?? false),
                           ),
                         ),
                         SizedBox(width: 12.w),
                         Expanded(
                           child: RichText(
                             text: TextSpan(
-                              style: TextStyle(fontSize: 12.sp, color: Colors.black54, height: 1.4),
+                              style: TextStyle(
+                                  fontSize: 12.sp,
+                                  color: Colors.black54,
+                                  height: 1.4),
                               children: [
-                                const TextSpan(text: "By continuing, you agree to our "),
+                                const TextSpan(
+                                    text: "By continuing, you agree to our "),
                                 TextSpan(
                                   text: "Terms",
-                                  style: const TextStyle(color: textColor, fontWeight: FontWeight.bold),
-                                  recognizer: TapGestureRecognizer()..onTap = () {},
+                                  style: const TextStyle(
+                                      color: textColor,
+                                      fontWeight: FontWeight.bold),
+                                  recognizer: TapGestureRecognizer()
+                                    ..onTap = () => context.push("/terms"),
                                 ),
                                 const TextSpan(text: " & "),
                                 TextSpan(
                                   text: "Privacy Policy",
-                                  style: const TextStyle(color: textColor, fontWeight: FontWeight.bold),
-                                  recognizer: TapGestureRecognizer()..onTap = () {},
+                                  style: const TextStyle(
+                                      color: textColor,
+                                      fontWeight: FontWeight.bold),
+                                  recognizer: TapGestureRecognizer()
+                                    ..onTap = () => context.push("/privacy"),
                                 ),
                               ],
                             ),
@@ -150,46 +238,17 @@ class _OnboardingScreenThreeState extends State<OnboardingScreenThree> {
 
                     SizedBox(height: 25.h),
 
-                    // Primary Get Started Button
                     GradientBtn(
                       text: "GET STARTED",
                       onTap: _handleGetStarted,
-                      // Subtle visual cue: button is less vibrant if not agreed
-                      btnColor: _isAgreed ? primaryColor : primaryColor.withOpacity(0.5),
+                      btnColor: _isAgreed
+                          ? primaryColor
+                          : primaryColor.withOpacity(0.5),
                       radius: 16,
-                      btnHieght: 58, 
+                      btnHieght: 58,
                       btnWidth: double.infinity,
                     ),
 
-                    SizedBox(height: 10.h),
-
-                    // Login Link
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        ReusableText(
-                          text: "Already have an account? ",
-                          style: TextStyle(
-                            fontSize: 15.sp,
-                            fontWeight: FontWeight.w400,
-                            color: Colors.black45,
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () => context.go("/login"),
-                          style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
-                          child: Text(
-                            "Login",
-                            style: TextStyle(
-                              fontSize: 15.sp,
-                              fontWeight: FontWeight.w800,
-                              color: textColor,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    // Small padding to prevent the "Login" button from touching the very bottom edge
                     SizedBox(height: 10.h),
                   ],
                 ),

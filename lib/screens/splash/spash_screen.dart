@@ -37,30 +37,26 @@ class _SpashScreenState extends State<SpashScreen> {
   }
 
   Future<void> _initAsync() async {
-    try {
-      await dotenv.load(fileName: envFile);
-      debugPrint("✅ Loaded $envFile");
-    } catch (e) {
-      debugPrint("⚠️ Could not load $envFile: $e");
-    }
-
-    // Ensure first frame is rendered before navigation
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-
-      _timer = Timer(const Duration(seconds: 3), () {
-        if (!mounted) return;
-
-        final firstOpen = Storage().getBool('firstOpen') ?? false;
-
-        if (firstOpen == false) {
-          context.go('/welcome');
-        } else {
-          context.go('/onboarding');
-        }
-      });
-    });
+  try {
+    await dotenv.load(fileName: envFile);
+    debugPrint("✅ Loaded $envFile");
+  } catch (e) {
+    debugPrint("⚠️ Could not load $envFile: $e");
   }
+
+  await Future.delayed(const Duration(seconds: 3));
+
+  if (!mounted) return;
+
+  final hasOpenedBefore = Storage().getBool('firstOpen');
+
+  if (hasOpenedBefore == null || hasOpenedBefore == false) {
+    Storage().setBool('firstOpen', true);
+    context.go('/welcome');
+  } else {
+    context.go('/login');
+  }
+}
 
   
 

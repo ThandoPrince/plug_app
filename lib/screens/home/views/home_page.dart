@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
 import 'package:flutter_application_1/global_util/services/controler/auth_session_controller.dart';
+import 'package:flutter_application_1/screens/Onboarding/Widgets/back_to_exit_widget.dart';
 import 'package:flutter_application_1/screens/home/widgets/here_map_view_home.dart';
 import 'package:flutter_application_1/global_util/services/controler/home_here_map_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/service_controller.dart';
@@ -61,7 +62,7 @@ class _HomePageState extends State<HomePage> {
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
-                children: serviceCtrl.services.take(10).map((service) {
+                children: serviceCtrl.featuredServices.map((service) {
                   final isSelected = mapCtrl.selectedServiceId == service.serviceId;
                   return Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -113,56 +114,57 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    const Color primaryColor = Kolors.kPrimary;
-    const Color secondaryColor = Kolors.kSecondaryLight;
+
     final session = context.read<AuthSessionController>();
     final email = session.email;
 
     final double availSerBarHeight = 161.h;
 
-    return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [primaryColor, secondaryColor],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+    return DoubleBackToExit(
+      child: Scaffold(
+        body: Container(
+          width: double.infinity,
+          height: double.infinity,
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Kolors.kPrimary,Kolors.kPrimary, Kolors.kSecondaryLight],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
           ),
-        ),
-        child: Column(
-          children: [
-            // Top Service Bar with RefreshIndicator
-            SizedBox(
-              height: availSerBarHeight,
-              child: SafeArea(
-                child: RefreshIndicator(
-                  key: _refreshKey,
-                  onRefresh: _refresh,
-                  child: SingleChildScrollView(
-                    physics: const ScrollDownOnlyPhysics(),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      child: _buildAvailSerBar(),
+          child: Column(
+            children: [
+              // Top Service Bar with RefreshIndicator
+              SizedBox(
+                height: availSerBarHeight,
+                child: SafeArea(
+                  child: RefreshIndicator(
+                    key: _refreshKey,
+                    onRefresh: _refresh,
+                    child: SingleChildScrollView(
+                      physics: const ScrollDownOnlyPhysics(),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: _buildAvailSerBar(),
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-
-            // Map fills remaining space
-            Expanded(
-              child: Consumer<HereMapMarkerController>(
-                builder: (_, mapCtrl, __) {
-                  return HereMapDemo(
-                    key: const PageStorageKey('hereMap'),
-                    email: email.toString(),
-                  );
-                },
+      
+              // Map fills remaining space
+              Expanded(
+                child: Consumer<HereMapMarkerController>(
+                  builder: (_, mapCtrl, __) {
+                    return HereMapDemo(
+                      key: const PageStorageKey('hereMap'),
+                      email: email.toString(),
+                    );
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

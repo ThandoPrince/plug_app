@@ -3,10 +3,12 @@ import 'package:flutter_application_1/common/utils/kcolors.dart';
 import 'package:flutter_application_1/global_util/services/controler/address_client_ctrl.dart';
 import 'package:flutter_application_1/global_util/services/controler/auth_session_controller.dart';
 import 'package:flutter_application_1/screens/location/widgets/address_list_view.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 class LocationScreen extends StatefulWidget {
-  const LocationScreen({super.key});
+  final String email;
+  const LocationScreen({super.key, required this.email});
 
   @override
   State<LocationScreen> createState() => _LocationScreenState();
@@ -45,10 +47,10 @@ class _LocationScreenState extends State<LocationScreen> {
       // Floating Action Button for adding new address
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // Placeholder for navigation to add new address screen
-          // Navigator.of(context).push(MaterialPageRoute(builder: (_) => AddAddressScreen()));
-          ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Add New Address functionality TBD')));
+          final session = context.read<AuthSessionController>();
+    final email = session.email;
+           // Get email from widget or session
+         GoRouter.of(context).push('/main_addaddress?=$email'); 
         },
         backgroundColor: primaryColor,
         foregroundColor: Colors.white,

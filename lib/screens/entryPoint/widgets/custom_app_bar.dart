@@ -7,7 +7,8 @@ import 'package:flutter_application_1/screens/entryPoint/widgets/settings_widget
 
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const CustomAppBar({super.key});
+  final String email;
+  const CustomAppBar({super.key, required this.email});
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +29,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
             ),
           ),
           
-          const LocationWidget(),  
+          const LocationWidget(email: ''),  
         ],
       ),
 

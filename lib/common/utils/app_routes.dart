@@ -2,8 +2,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/widgets/global/navigation_observer_flushbar.dart';
 import 'package:flutter_application_1/screens/Onboarding/Views/clientOnboarding_screen.dart';
+import 'package:flutter_application_1/screens/Onboarding/terms_of_use/views/privacy_policy_screen.dart';
+import 'package:flutter_application_1/screens/Onboarding/terms_of_use/views/terms_of_use_screen.dart';
 import 'package:flutter_application_1/screens/View_SP_Profile_Request/views/viewSP_Profile_requestScreen.dart';
 import 'package:flutter_application_1/screens/address/views/address_creation_screen.dart';
+import 'package:flutter_application_1/screens/address/views/address_screen.dart';
 import 'package:flutter_application_1/screens/address/views/address_verification_screen.dart';
 import 'package:flutter_application_1/screens/auth/views/auth_creation_screen.dart';
 import 'package:flutter_application_1/screens/auth/views/client_details_patch_screen.dart';
@@ -74,6 +77,15 @@ final GoRouter _router = GoRouter(
     ),
 
 GoRoute(
+  path: "/terms",
+  builder: (context, state) => const TermsOfUseScreen(),
+),
+GoRoute(
+  path: "/privacy",
+  builder: (context, state) => const PrivacyPolicyScreen(),
+),
+
+GoRoute(
   path: '/viewspByService',
   name: 'viewSPByService',
   builder: (context, state) {
@@ -124,7 +136,13 @@ GoRoute(
       path: '/addaddress',
       builder: (context, state) => const AddAddressScreen(),
     ),
-
+GoRoute(
+  path: '/main_addaddress',
+  builder: (context, state) {
+    final email = state.uri.queryParameters['email'];
+    return MainAddAddressScreen(email: email);
+  },
+),
     GoRoute(
       path: '/login',
       builder: (context, state) => const AuthLoginScreen(),
@@ -132,7 +150,10 @@ GoRoute(
 
         GoRoute(
       path: '/location',
-      builder: (context, state) => const LocationScreen(),
+      builder: (context, state) {
+        final email = state.uri.queryParameters['email'] ?? '';
+        return LocationScreen(email: email);
+      },
     ),
 
   ],

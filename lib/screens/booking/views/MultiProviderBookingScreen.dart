@@ -66,7 +66,7 @@ class _MultiProviderBookingScreenState extends State<MultiProviderBookingScreen>
   double? get averagePrice {
     final relevantCosts = widget.selectedCosts
         .where((cost) =>
-            cost.service.serviceId == widget.serviceId && cost.basePrice != null)
+             cost.basePrice != null)
         .toList();
     if (relevantCosts.isEmpty) return null;
     final totalBasePrice =

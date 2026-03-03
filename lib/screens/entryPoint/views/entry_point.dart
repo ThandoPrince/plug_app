@@ -76,7 +76,7 @@ class _EntryPointState extends State<EntryPoint> {
             ),
             child: Scaffold(
               backgroundColor: Colors.transparent,
-              appBar: isHome ? const CustomAppBar() : null,
+              appBar: isHome ? CustomAppBar(email: email) : null,
               drawer: _buildDrawer(context, tabNotifier),
               body: PageView(
                 controller: _pageController,

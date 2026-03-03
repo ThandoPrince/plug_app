@@ -5,8 +5,9 @@ import 'card_decoration.dart';
 
 class ProviderCard extends StatelessWidget {
   final dynamic provider;
+  final dynamic service;
   static final String baseUrl = dotenv.env['MEDIA_BASE_URL'] ?? '';
-  const ProviderCard({super.key, required this.provider});
+  const ProviderCard({super.key, required this.provider, required this.service});
 
   @override
   Widget build(BuildContext context) {
@@ -17,8 +18,8 @@ class ProviderCard extends StatelessWidget {
         children: [
           Container(
             padding: const EdgeInsets.all(3),
-            decoration:
-                const BoxDecoration(color: Kolors.kPrimary, shape: BoxShape.circle),
+            decoration: const BoxDecoration(
+                color: Kolors.kPrimary, shape: BoxShape.circle),
             child: CircleAvatar(
               radius: 30,
               backgroundColor: Colors.white,
@@ -33,7 +34,7 @@ class ProviderCard extends StatelessWidget {
                 Text(provider.fullName,
                     style: const TextStyle(
                         fontWeight: FontWeight.w900, fontSize: 17)),
-                Text(provider.services.first.serviceName,
+                Text(service.serviceRequired.serviceName,
                     style: TextStyle(
                         color: Kolors.kPrimary,
                         fontWeight: FontWeight.w600,

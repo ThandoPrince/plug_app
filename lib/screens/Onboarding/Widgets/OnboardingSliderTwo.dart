@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
@@ -10,8 +11,39 @@ List<String> images = [
   "assets/images/welcome_slider_3.jpeg",
 ];
 
-class Onboardingslidertwo extends StatelessWidget {
+class Onboardingslidertwo extends StatefulWidget {
   const Onboardingslidertwo({super.key});
+
+  @override
+  State<Onboardingslidertwo> createState() => _OnboardingslidertwoState();
+}
+
+class _OnboardingslidertwoState extends State<Onboardingslidertwo> {
+  bool _autoPlay = true;
+  Timer? _inactivityTimer;
+
+  void _stopAutoPlay() {
+    setState(() {
+      _autoPlay = false;
+    });
+
+    _inactivityTimer?.cancel();
+
+    // Restart autoplay after 30 seconds
+    _inactivityTimer = Timer(const Duration(seconds: 30), () {
+      if (mounted) {
+        setState(() {
+          _autoPlay = true;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _inactivityTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,28 +52,26 @@ class Onboardingslidertwo extends StatelessWidget {
         children: [
           SizedBox(
             height: ScreenUtil().screenHeight * 0.4,
-            width: ScreenUtil().screenWidth,
-            child: Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.blue, width: 3.0),
-                borderRadius: BorderRadius.circular(12.0),
-              ),
+            width: ScreenUtil().screenWidth * 0.5,
+            child: GestureDetector(
+              onPanDown: (_) => _stopAutoPlay(),
+              onTap: _stopAutoPlay,
               child: ImageSlideshow(
                 width: ScreenUtil().screenWidth,
                 height: ScreenUtil().screenHeight,
                 indicatorColor: Kolors.kGray,
                 indicatorBackgroundColor: Colors.grey,
+                autoPlayInterval: _autoPlay ? 5000 : 0,
+                isLoop: true,
                 onPageChanged: (p) {
                   if (kDebugMode) {
                     print("Page changed: $p");
                   }
                 },
-                autoPlayInterval: 5000,
-                isLoop: true,
                 children: images.map((path) {
                   return Image.asset(
                     path,
-                    fit: BoxFit.fill,
+                    fit: BoxFit.fitHeight,
                   );
                 }).toList(),
               ),

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // Added for haptics
+import 'package:flutter_application_1/screens/Onboarding/Widgets/back_to_exit_widget.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_vector_icons/flutter_vector_icons.dart';
 import 'package:go_router/go_router.dart';
@@ -50,94 +51,96 @@ class _AddressVerificationUploadScreenState
       create: (_) => AddressVerificationController(),
       child: Consumer<AddressVerificationController>(
         builder: (context, ctrl, child) {
-          return Scaffold(
-            backgroundColor: Kolors.kPrimary, // Matches the header
-            body: Container(
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Kolors.kPrimary, Color(0xFF1A1A1A)], // Deep brand gradient
+          return DoubleBackToExit(
+            child: Scaffold(
+              backgroundColor: Kolors.kPrimary, // Matches the header
+              body: Container(
+                width: double.infinity,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Kolors.kPrimary, Color(0xFF1A1A1A)], // Deep brand gradient
+                  ),
                 ),
-              ),
-              child: SafeArea(
-                bottom: false,
-                child: Column(
-                  children: [
-                    // --- Custom Premium Header ---
-                    _buildCustomHeader(context),
-
-                    // --- Scrollable Content ---
-                    Expanded(
-                      child: Container(
-                        width: double.infinity,
-                        margin: EdgeInsets.only(top: 15.h),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(35.r),
-                            topRight: Radius.circular(35.r),
+                child: SafeArea(
+                  bottom: false,
+                  child: Column(
+                    children: [
+                      // --- Custom Premium Header ---
+                      _buildCustomHeader(context),
+            
+                      // --- Scrollable Content ---
+                      Expanded(
+                        child: Container(
+                          width: double.infinity,
+                          margin: EdgeInsets.only(top: 15.h),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(35.r),
+                              topRight: Radius.circular(35.r),
+                            ),
                           ),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(35.r),
-                            topRight: Radius.circular(35.r),
-                          ),
-                          child: SingleChildScrollView(
-                            physics: const BouncingScrollPhysics(),
-                            padding: EdgeInsets.symmetric(horizontal: 25.w),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                SizedBox(height: 30.h),
-                                _buildAddressBadge(clientAddressId, unitNumber),
-                                SizedBox(height: 25.h),
-                                Text(
-                                  "Verification Details",
-                                  style: TextStyle(
-                                    fontSize: 22.sp,
-                                    fontWeight: FontWeight.bold,
-                                    color: Kolors.kDark,
-                                    letterSpacing: -0.5,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(35.r),
+                              topRight: Radius.circular(35.r),
+                            ),
+                            child: SingleChildScrollView(
+                              physics: const BouncingScrollPhysics(),
+                              padding: EdgeInsets.symmetric(horizontal: 25.w),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SizedBox(height: 30.h),
+                                  _buildAddressBadge(clientAddressId, unitNumber),
+                                  SizedBox(height: 25.h),
+                                  Text(
+                                    "Verification Details",
+                                    style: TextStyle(
+                                      fontSize: 22.sp,
+                                      fontWeight: FontWeight.bold,
+                                      color: Kolors.kDark,
+                                      letterSpacing: -0.5,
+                                    ),
                                   ),
-                                ),
-                                SizedBox(height: 8.h),
-                                Text(
-                                  "To keep our community safe, please upload a clear photo of the documents below.",
-                                  style: TextStyle(fontSize: 14.sp, color: Colors.grey.shade600, height: 1.4),
-                                ),
-                                SizedBox(height: 30.h),
-
-                                // --- Upload Sections ---
-                                _buildUploadTile(
-                                  title: "Proof of Residence",
-                                  subtitle: "Utility bill, Lease, or Bank Statement",
-                                  file: _proofFile,
-                                  onTap: () => _pickImage(ImageSource.gallery, false, ctrl),
-                                ),
-
-                                SizedBox(height: 16.h),
-
-                                _buildUploadTile(
-                                  title: "Identification Document",
-                                  subtitle: "National ID, Passport, or Driver's License",
-                                  file: _idFile,
-                                  onTap: () => _pickImage(ImageSource.gallery, true, ctrl),
-                                ),
-                                
-                                SizedBox(height: 40.h),
-                              ],
+                                  SizedBox(height: 8.h),
+                                  Text(
+                                    "To keep our community safe, please upload a clear photo of the documents below.",
+                                    style: TextStyle(fontSize: 14.sp, color: Colors.grey.shade600, height: 1.4),
+                                  ),
+                                  SizedBox(height: 30.h),
+            
+                                  // --- Upload Sections ---
+                                  _buildUploadTile(
+                                    title: "Proof of Residence",
+                                    subtitle: "Utility bill, Lease, or Bank Statement",
+                                    file: _proofFile,
+                                    onTap: () => _pickImage(ImageSource.gallery, false, ctrl),
+                                  ),
+            
+                                  SizedBox(height: 16.h),
+            
+                                  _buildUploadTile(
+                                    title: "Identification Document",
+                                    subtitle: "National ID, Passport, or Driver's License",
+                                    file: _idFile,
+                                    onTap: () => _pickImage(ImageSource.gallery, true, ctrl),
+                                  ),
+                                  
+                                  SizedBox(height: 40.h),
+                                ],
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-
-                    // --- Fixed Bottom Action ---
-                    _buildBottomAction(ctrl, clientAddressId),
-                  ],
+            
+                      // --- Fixed Bottom Action ---
+                      _buildBottomAction(ctrl, clientAddressId),
+                    ],
+                  ),
                 ),
               ),
             ),

@@ -24,8 +24,8 @@ class RatingApiHelper {
           // 'Authorization': 'Bearer <token>', // uncomment if needed
         },
         body: jsonEncode({
-          'rating': rating,
-          'comment': comment ?? '',
+          'score': rating,
+          'review': comment ?? '',
         }),
       );
 

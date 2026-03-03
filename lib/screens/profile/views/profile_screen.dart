@@ -28,8 +28,6 @@ class _ProfileState extends State<Profile> {
     super.initState();
     _profileCtrl = ClientProfileController();
     _addressCtrl = AddressClientCtrl();
-
-    // Fetch data only once
     _profileCtrl.fetchClientByEmail(widget.email);
     _addressCtrl.fetchAddresses(widget.email);
   }
@@ -44,8 +42,7 @@ class _ProfileState extends State<Profile> {
   void _changeProfilePicture() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
     if (image != null) {
-      // Handle image upload logic here
-      print('Selected image path: ${image.path}');
+      debugPrint('Selected image path: ${image.path}');
     }
   }
 
@@ -54,18 +51,23 @@ class _ProfileState extends State<Profile> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text('Edit $fieldName'),
-        content: TextField(controller: controller),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+        title: Text('Edit $fieldName', style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold)),
+        content: TextField(
+          controller: controller,
+          decoration: InputDecoration(
+            hintText: "Enter $fieldName",
+            focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Kolors.kPrimary)),
+          ),
+        ),
         actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel', style: TextStyle(color: Colors.grey))),
           TextButton(
             onPressed: () {
-              print('$fieldName updated to: ${controller.text}');
+              debugPrint('$fieldName updated to: ${controller.text}');
               Navigator.pop(context);
             },
-            child: const Text('Save'),
+            child: const Text('Save', style: TextStyle(color: Kolors.kPrimary, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -73,206 +75,91 @@ class _ProfileState extends State<Profile> {
   }
 
   void _logout() {
-    // TODO: Implement logout logic
-    print("User logged out!");
+    debugPrint("User logged out!");
   }
 
   @override
   Widget build(BuildContext context) {
-    const Color primaryColor = Kolors.kPrimary;
-    const Color secondaryColor = Kolors.kSecondaryLight;
-
     return MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: _profileCtrl),
         ChangeNotifierProvider.value(value: _addressCtrl),
       ],
       child: Scaffold(
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.transparent, // Background handled by parent gradient
         body: Consumer2<ClientProfileController, AddressClientCtrl>(
           builder: (context, profileCtrl, addressCtrl, child) {
             if (profileCtrl.isLoading || addressCtrl.isLoading) {
-              return const Center(
-                  child: CircularProgressIndicator(color: Colors.white));
-            }
-
-            if (profileCtrl.errorMessage != null) {
-              return Center(
-                child: Text(
-                  profileCtrl.errorMessage!,
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18),
-                ),
-              );
+              return const Center(child: CircularProgressIndicator(color: Colors.white));
             }
 
             final profile = profileCtrl.clientProfile;
             if (profile == null) {
-              return const Center(
-                  child: Text(
-                'No profile available.',
-                style: TextStyle(color: Colors.white, fontSize: 18),
-              ));
+              return const Center(child: Text('Profile not found', style: TextStyle(color: Colors.white)));
             }
 
             return SafeArea(
               child: SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(10.w, 10.h, 10.w, 40.h),
+                physics: const BouncingScrollPhysics(),
+                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Profile picture
-                    Stack(
-                      alignment: Alignment.bottomRight,
-                      children: [
-                        CircleAvatar(
-                          radius: 65.r,
-                          backgroundImage: profile.profilePic != null
-                              ? NetworkImage(
-                                  'http://192.168.18.64:8000${profile.profilePic}')
-                              : const AssetImage(
-                                      'assets/default_profile.png')
-                                  as ImageProvider,
-                        ),
-                        GestureDetector(
-                          onTap: _changeProfilePicture,
-                          child: CircleAvatar(
-                            radius: 18.r,
-                            backgroundColor: Colors.blueAccent,
-                            child: Icon(Icons.edit,
-                                size: 18.sp, color: Colors.white),
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 16.h),
-
-                    // Main info card
+                    _buildProfileHeader(profile),
+                    SizedBox(height: 25.h),
+                    
+                    // Stats Section
                     _buildGlassCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildEditableRow(
-                              'Name', '${profile.firstName} ${profile.lastName}'),
-                          _buildEditableRow(
-                              'Email', profile.clientProfile?.emailAddress ?? ''),
-                          _buildEditableRow(
-                              'Phone', profile.clientProfile?.mobileNumber ?? ''),
-                        ],
-                      ),
-                    ),
-                    SizedBox(height: 16.h),
-
-                    // Stats card
-                    _buildGlassCard(
+                      padding: EdgeInsets.symmetric(vertical: 20.h),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
                           _buildStatItem('Bookings', '12'),
+                          _buildVerticalDivider(),
                           _buildStatItem('Points', '450'),
-                          _buildStatItem('Rating', profile.rating ?? '0.0'),
+                          _buildVerticalDivider(),
+                          _buildStatItem('Rating', profile.rating ?? '5.0'),
                         ],
                       ),
                     ),
-                    SizedBox(height: 16.h),
+                    
+                    SizedBox(height: 10.h),
 
-                    // View Addresses card
+                    // Information Section
                     _buildGlassCard(
-                      child: InkWell(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const LocationScreen(),
-                            ),
-                          );
-                        },
-                        borderRadius: BorderRadius.circular(20.r),
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(vertical: 14.h),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                "View my Addresses",
-                                style: TextStyle(
-                                  fontSize: 16.sp,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black.withOpacity(0.8),
-                                ),
-                              ),
-                              const Icon(Icons.keyboard_arrow_right,
-                                  color: Colors.black),
-                            ],
-                          ),
-                        ),
+                      child: Column(
+                        children: [
+                          _buildEditableRow(Icons.person_outline, 'Name', '${profile.firstName} ${profile.lastName}'),
+                          _buildDivider(),
+                          _buildEditableRow(Icons.email_outlined, 'Email', profile.clientProfile?.emailAddress ?? ''),
+                          _buildDivider(),
+                          _buildEditableRow(Icons.phone_android_outlined, 'Phone', profile.clientProfile?.mobileNumber ?? ''),
+                        ],
                       ),
                     ),
-                    SizedBox(height: 16.h),
 
-                    // Help center
-                    _buildGlassCard(
-                      child: InkWell(
-                        onTap: () => showHelpCenterBottomSheet(context),
-                        borderRadius: BorderRadius.circular(20.r),
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(vertical: 14.h),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(
-                                MaterialCommunityIcons.lifebuoy,
-                                color: Colors.blueAccent,
-                              ),
-                              SizedBox(width: 10.w),
-                              Text(
-                                "Help & Support",
-                                style: TextStyle(
-                                  fontSize: 18.sp,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.black,
-                                ),
-                              ),
-                              SizedBox(width: 5.w),
-                              const Icon(Icons.keyboard_arrow_right,
-                                  color: Colors.black),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 16.h),
+                    SizedBox(height: 10.h),
 
-                    // Logout card
-                    _buildGlassCard(
-                      child: InkWell(
-                        onTap: _logout,
-                        borderRadius: BorderRadius.circular(20.r),
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(vertical: 14.h),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(
-                                MaterialCommunityIcons.logout,
-                                color: Colors.redAccent,
-                              ),
-                              SizedBox(width: 10.w),
-                              Text(
-                                "Logout",
-                                style: TextStyle(
-                                  fontSize: 18.sp,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.redAccent,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                    // Actions Section
+                    _buildActionTile(
+                      icon: Ionicons.location_outline,
+                      title: "View my Addresses",
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => LocationScreen(email: widget.email))),
                     ),
+                    
+                    _buildActionTile(
+                      icon: Ionicons.help_buoy_outline,
+                      title: "Help & Support",
+                      onTap: () => showHelpCenterBottomSheet(context),
+                    ),
+
+                    _buildActionTile(
+                      icon: Ionicons.log_out_outline,
+                      title: "Logout",
+                      isDestructive: true,
+                      onTap: _logout,
+                    ),
+                    
+                    SizedBox(height: 20.h),
                   ],
                 ),
               ),
@@ -283,72 +170,118 @@ class _ProfileState extends State<Profile> {
     );
   }
 
-  // Editable row helper
-  Widget _buildEditableRow(String title, String value) {
-    return GestureDetector(
+  Widget _buildProfileHeader(dynamic profile) {
+    return Column(
+      children: [
+        Stack(
+          alignment: Alignment.bottomRight,
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white.withOpacity(0.5), width: 4),
+              ),
+              child: CircleAvatar(
+                radius: 60.r,
+                backgroundColor: Colors.grey.shade200,
+                backgroundImage: profile.profilePic != null
+                    ? NetworkImage('http://192.168.18.64:8000${profile.profilePic}')
+                    : const AssetImage('assets/default_profile.png') as ImageProvider,
+              ),
+            ),
+            GestureDetector(
+              onTap: _changeProfilePicture,
+              child: CircleAvatar(
+                radius: 18.r,
+                backgroundColor: Kolors.kPrimary,
+                child: Icon(Icons.camera_alt, size: 18.sp, color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 12.h),
+        Text(
+          '${profile.firstName} ${profile.lastName}',
+          style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.bold, color: Kolors.kDark),
+        ),
+        Text(
+          profile.clientProfile?.emailAddress ?? '',
+          style: TextStyle(fontSize: 14.sp, color: Kolors.kDark),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionTile({required IconData icon, required String title, required VoidCallback onTap, bool isDestructive = false}) {
+    return _buildGlassCard(
+      padding: EdgeInsets.zero,
+      child: ListTile(
+        onTap: onTap,
+        leading: Icon(icon, color: isDestructive ? Colors.redAccent : Kolors.kDark),
+        title: Text(
+          title,
+          style: TextStyle(
+            fontSize: 16.sp, 
+            fontWeight: FontWeight.w500, 
+            color: isDestructive ? Colors.redAccent : Kolors.kDark.withOpacity(0.9)
+          ),
+        ),
+        trailing: Icon(Icons.chevron_right, color: isDestructive ? Colors.redAccent.withOpacity(0.5) : Kolors.kDark),
+      ),
+    );
+  }
+
+  Widget _buildEditableRow(IconData icon, String title, String value) {
+    return InkWell(
       onTap: () => _editField(title, value),
       child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 6.h),
+        padding: EdgeInsets.symmetric(vertical: 12.h),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(title,
-                style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold)),
-            Row(
+            Icon(icon, size: 20.sp, color: Kolors.kDark),
+            SizedBox(width: 15.w),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(value,
-                    style: TextStyle(
-                        fontSize: 16.sp, color: Colors.black.withOpacity(0.8))),
-                SizedBox(width: 8.w),
-                const Icon(Icons.edit, size: 18),
+                Text(title, style: TextStyle(fontSize: 12.sp, color: Kolors.kDark)),
+                Text(value, style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600, color: Kolors.kDark)),
               ],
             ),
+            const Spacer(),
+            Icon(Icons.edit_note, size: 20.sp, color: Kolors.kDark),
           ],
         ),
       ),
     );
   }
 
-  // Stat item helper
   Widget _buildStatItem(String label, String value) {
     return Column(
       children: [
-        Text(value,
-            style: TextStyle(
-                fontSize: 20.sp,
-                fontWeight: FontWeight.bold,
-                color: Colors.black)),
-        SizedBox(height: 4.h),
-        Text(label,
-            style: TextStyle(
-                fontSize: 14.sp, color: Colors.black.withOpacity(0.7))),
+        Text(value, style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold, color: Kolors.kDark)),
+        Text(label, style: TextStyle(fontSize: 12.sp, color: Kolors.kDark.withOpacity(1))),
       ],
     );
   }
 
-  // Glass card helper
-  Widget _buildGlassCard({required Widget child}) {
+  Widget _buildVerticalDivider() => Container(height: 30.h, width: 1, color: Colors.white10);
+  
+  Widget _buildDivider() => Divider(color: Colors.white.withOpacity(0.05), height: 1);
+
+  Widget _buildGlassCard({required Widget child, EdgeInsetsGeometry? padding}) {
     return Container(
-      width: double.infinity,
-      margin: EdgeInsets.symmetric(vertical: 8.h),
+      margin: EdgeInsets.symmetric(vertical: 6.h),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(20.r),
+        borderRadius: BorderRadius.circular(24.r),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
           child: Container(
+            padding: padding ?? EdgeInsets.all(16.w),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(20.r),
-              border: Border.all(color: Colors.white.withOpacity(0.25)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+              color: Colors.white.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(24.r),
+              border: Border.all(color: Colors.white.withOpacity(0.15)),
             ),
-            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
             child: child,
           ),
         ),

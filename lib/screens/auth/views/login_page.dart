@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/global_util/services/controler/auth_login_controller.dart';
+import 'package:flutter_application_1/global_util/services/controler/get_client_auth_controller.dart';
+import 'package:flutter_application_1/screens/Onboarding/Widgets/back_to_exit_widget.dart';
+import 'package:flutter_application_1/screens/auth/widgets/success_overlay_widget.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_application_1/common/widgets/custom_button.dart';
@@ -20,89 +23,137 @@ class _AuthLoginScreenState extends State<AuthLoginScreen> {
   Widget build(BuildContext context) {
     const primaryColor = Kolors.kPrimary;
 
-    return ChangeNotifierProvider<LoginController>.value(
-      value: LoginController.instance,
-      child: Consumer<LoginController>(
-        builder: (context, controller, _) {
-          return Scaffold(
-            body: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Kolors.kPrimary, Kolors.kPrimary, Colors.white],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider<LoginController>.value(
+          value: LoginController.instance,
+        ),
+        ChangeNotifierProvider<GetClientAuthController>(
+          create: (_) => GetClientAuthController(),
+        ),
+      ],
+      child: Consumer2<LoginController, GetClientAuthController>(
+        builder: (context, loginController, authController, _) {
+          return DoubleBackToExit(
+            child: Scaffold(
+              body: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Kolors.kPrimary, Kolors.kPrimary, Colors.white],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
                 ),
-              ),
-              child: SafeArea(
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: SingleChildScrollView(
-                        padding: EdgeInsets.symmetric(horizontal: 35.w),
-                        physics: const BouncingScrollPhysics(),
-                        child: Column(
-                          children: [
-                            SizedBox(height: 80.h),
+                child: SafeArea(
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: SingleChildScrollView(
+                          padding: EdgeInsets.symmetric(horizontal: 35.w),
+                          physics: const BouncingScrollPhysics(),
+                          child: Column(
+                            children: [
+                              SizedBox(height: 80.h),
 
-                            // ---- Header ----
-                            Text(
-                              "Welcome Back",
-                              style: TextStyle(
-                                fontSize: 32.sp,
-                                fontWeight: FontWeight.w900,
-                                color: Colors.white,
-                                letterSpacing: -1,
+                              // ---- Header ----
+                              Text(
+                                "Welcome Back",
+                                style: TextStyle(
+                                  fontSize: 32.sp,
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.white,
+                                  letterSpacing: -1,
+                                ),
                               ),
-                            ),
-                            SizedBox(height: 8.h),
-                            const Text(
-                              "Login to continue booking services",
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.white70,
-                                fontWeight: FontWeight.w500,
+                              SizedBox(height: 8.h),
+                              const Text(
+                                "Login to continue booking services",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.white70,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                textAlign: TextAlign.center,
                               ),
-                              textAlign: TextAlign.center,
-                            ),
-                            SizedBox(height: 60.h),
+                              SizedBox(height: 60.h),
 
-                            // ---- Form Card ----
-                            _buildFormCard(controller),
+                              // ---- Form Card ----
+                              _buildFormCard(loginController),
 
-                            // ---- General Error ----
-                            if (controller.generalError != null)
-                              _buildGeneralError(controller.generalError!),
-                          ],
+                              // ---- General Error ----
+                              if (loginController.generalError != null)
+                                _buildGeneralError(
+                                    loginController.generalError!),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
 
-                    // ---- Bottom Button ----
-                    Padding(
-                      padding: EdgeInsets.symmetric(
-                          horizontal: 35.w, vertical: 20.h),
-                      child: controller.isLoading
-                          ? const CircularProgressIndicator(
-                              color: primaryColor)
-                          : GradientBtn(
-                              text: "LOGIN",
-                              onTap: () async {
-                                FocusScope.of(context).unfocus();
-                                final success =
-                                    await controller.login();
-                                if (success && mounted) {
-                                  context.go('/entryPoint');
-                                }
-                              },
-                              btnColor: primaryColor,
-                              btnHieght: 58.h,
-                              btnWidth: double.infinity,
-                              radius: 16,
-                            ),
-                    ),
+                      // ---- Bottom Button ----
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 35.w, vertical: 20.h),
+                        child: loginController.isLoading
+                            ? const CircularProgressIndicator(
+                                color: primaryColor)
+                            : GradientBtn(
+                                text: "LOGIN",
+                                onTap: () async {
+                                  FocusScope.of(context).unfocus();
 
-                    _buildSignupSection(context),
-                  ],
+                                  final success = await loginController.login();
+
+                                  if (success) {
+                                    final email = loginController
+                                        .emailController.text
+                                        .trim();
+
+                                    SuccessOverlay.show(
+                                      context,
+                                      message:
+                                          "Welcome back! We are preparing your profile.",
+                                    );
+
+                                    // Fetch auth state
+                                    await context
+                                        .read<GetClientAuthController>()
+                                        .loadClientAuth(email);
+
+                                    await Future.delayed(
+                                        const Duration(seconds: 2));
+
+                                    if (!mounted) return;
+
+                                    Navigator.of(context)
+                                        .pop(); // dismiss overlay
+
+                                    final profileState = context
+                                        .read<GetClientAuthController>()
+                                        .clientAuth
+                                        ?.profileStatus;
+
+                                    if (profileState == "in-details") {
+                                      context.go(
+                                          '/clientDetailsPatch?email=$email');
+                                    } else if (profileState == "in-address") {
+                                      context.go('/addaddress?email=$email');
+                                    } else if (profileState == "completed") {
+                                      context.go('/entryPoint');
+                                    } else {
+                                      context.go('/entryPoint');
+                                    }
+                                  }
+                                },
+                                btnColor: primaryColor,
+                                btnHieght: 58.h,
+                                btnWidth: double.infinity,
+                                radius: 16,
+                              ),
+                      ),
+
+                      _buildSignupSection(context),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -111,10 +162,6 @@ class _AuthLoginScreenState extends State<AuthLoginScreen> {
       ),
     );
   }
-
-  // ============================================================
-  // FORM CARD
-  // ============================================================
 
   Widget _buildFormCard(LoginController controller) {
     return Container(
@@ -140,10 +187,6 @@ class _AuthLoginScreenState extends State<AuthLoginScreen> {
     );
   }
 
-  // ============================================================
-  // EMAIL FIELD
-  // ============================================================
-
   Widget _buildEmailField(LoginController controller) {
     return TextFormField(
       controller: controller.emailController,
@@ -156,19 +199,13 @@ class _AuthLoginScreenState extends State<AuthLoginScreen> {
             Icon(Icons.email_outlined, color: Kolors.kPrimary, size: 20),
         filled: true,
         fillColor: Colors.grey.shade50,
-        contentPadding:
-            EdgeInsets.symmetric(vertical: 18.h, horizontal: 16.w),
+        contentPadding: EdgeInsets.symmetric(vertical: 18.h, horizontal: 16.w),
         border: _inputBorder(),
         enabledBorder: _inputBorder(color: Colors.grey.shade200),
-        focusedBorder:
-            _inputBorder(color: Kolors.kPrimary, width: 1.5),
+        focusedBorder: _inputBorder(color: Kolors.kPrimary, width: 1.5),
       ),
     );
   }
-
-  // ============================================================
-  // PASSWORD FIELD
-  // ============================================================
 
   Widget _buildPasswordField(LoginController controller) {
     return TextFormField(
@@ -178,40 +215,29 @@ class _AuthLoginScreenState extends State<AuthLoginScreen> {
       decoration: InputDecoration(
         hintText: "Password",
         errorText: controller.passwordError,
-        prefixIcon:
-            Icon(Icons.lock_outline, color: Kolors.kPrimary, size: 20),
+        prefixIcon: Icon(Icons.lock_outline, color: Kolors.kPrimary, size: 20),
         suffixIcon: IconButton(
           icon: Icon(
-            _obscurePassword
-                ? Icons.visibility_off
-                : Icons.visibility,
+            _obscurePassword ? Icons.visibility_off : Icons.visibility,
             color: Kolors.kPrimary,
           ),
-          onPressed: () =>
-              setState(() => _obscurePassword = !_obscurePassword),
+          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
         ),
         filled: true,
         fillColor: Colors.grey.shade50,
-        contentPadding:
-            EdgeInsets.symmetric(vertical: 18.h, horizontal: 16.w),
+        contentPadding: EdgeInsets.symmetric(vertical: 18.h, horizontal: 16.w),
         border: _inputBorder(),
         enabledBorder: _inputBorder(color: Colors.grey.shade200),
-        focusedBorder:
-            _inputBorder(color: Kolors.kPrimary, width: 1.5),
+        focusedBorder: _inputBorder(color: Kolors.kPrimary, width: 1.5),
       ),
     );
   }
-
-  // ============================================================
-  // ERROR BOX
-  // ============================================================
 
   Widget _buildGeneralError(String message) {
     return Padding(
       padding: EdgeInsets.only(top: 16.h),
       child: Container(
-        padding:
-            EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
         decoration: BoxDecoration(
           color: Colors.redAccent.withOpacity(0.1),
           borderRadius: BorderRadius.circular(8),
@@ -228,18 +254,13 @@ class _AuthLoginScreenState extends State<AuthLoginScreen> {
     );
   }
 
-  // ============================================================
-  // SIGNUP SECTION
-  // ============================================================
-
   Widget _buildSignupSection(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
           "Don't have an account? ",
-          style:
-              TextStyle(fontSize: 14.sp, color: Colors.black54),
+          style: TextStyle(fontSize: 14.sp, color: Colors.black54),
         ),
         TextButton(
           onPressed: () => context.go("/authCreation"),
@@ -256,16 +277,10 @@ class _AuthLoginScreenState extends State<AuthLoginScreen> {
     );
   }
 
-  // ============================================================
-  // INPUT BORDER
-  // ============================================================
-
-  OutlineInputBorder _inputBorder(
-      {Color? color, double width = 1}) {
+  OutlineInputBorder _inputBorder({Color? color, double width = 1}) {
     return OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
-      borderSide:
-          BorderSide(color: color ?? Colors.transparent, width: width),
+      borderSide: BorderSide(color: color ?? Colors.transparent, width: width),
     );
   }
 }

@@ -22,7 +22,8 @@ class _CostOfServiceCardState extends State<CostOfServiceCard> {
     final filteredCosts = widget.serviceId == null
         ? widget.costs
         : widget.costs
-            .where((cost) => cost.service.serviceId == widget.serviceId)
+             .where((cost) =>
+             cost.basePrice != null)
             .toList();
 
     if (filteredCosts.isEmpty) {
@@ -77,16 +78,7 @@ class _CostOfServiceCardState extends State<CostOfServiceCard> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(
-                  child: Text(
-                    cost.service.serviceName,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF455A64),
-                    ),
-                  ),
-                ),
+                
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(

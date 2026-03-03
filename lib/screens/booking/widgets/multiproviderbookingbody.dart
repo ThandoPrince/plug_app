@@ -2,13 +2,15 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/widgets/flushbar_service.dart';
+import 'package:flutter_application_1/global_util/services/controler/auth_session_controller.dart';
 import 'package:flutter_application_1/global_util/services/models/client_models/address_client_model.dart';
 import 'package:flutter_application_1/global_util/services/models/cost_of_service_model.dart';
 import 'package:flutter_application_1/global_util/services/models/service_provider_model.dart';
 import 'package:flutter_application_1/screens/location/views/location_screen.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
-import 'package:intl/intl.dart'; 
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 class MultiProviderBookingBody extends StatefulWidget {
   final Future<bool> Function({required bool isCamera}) handlePermission;
@@ -52,26 +54,24 @@ class MultiProviderBookingBody extends StatefulWidget {
 class _MultiProviderBookingBodyState extends State<MultiProviderBookingBody> {
   final List<File> _selectedImages = [];
 
- 
- 
   final Color hintColor = Colors.grey.shade500;
   final Color borderColor = Colors.grey.shade400;
 
   @override
   void initState() {
     super.initState();
-    
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       widget.onImagesChanged(_selectedImages);
     });
   }
 
   double? get averagePrice {
-    final relevantCosts = widget.selectedCosts
-        .where((c) =>
-            c.service.serviceId == widget.serviceId && c.basePrice != null)
-        .toList();
+    // Use all costs with a base price, ignore serviceId
+    final relevantCosts =
+        widget.selectedCosts.where((c) => c.basePrice != null).toList();
     if (relevantCosts.isEmpty) return null;
+
     final totalBasePrice = relevantCosts.fold<double>(
         0, (sum, cost) => sum + (cost.basePrice ?? 0));
     return totalBasePrice / relevantCosts.length;
@@ -79,16 +79,15 @@ class _MultiProviderBookingBodyState extends State<MultiProviderBookingBody> {
 
   Future<void> _pickImage(ImageSource source) async {
     if (_selectedImages.length >= 5) {
-      FlushbarService.error(
-          context, 'You can only upload up to 5 images.');
+      FlushbarService.error(context, 'You can only upload up to 5 images.');
       return;
     }
 
     bool granted =
         await widget.handlePermission(isCamera: source == ImageSource.camera);
     if (!granted) {
-      FlushbarService.error(
-          context, 'Permission denied. Cannot access ${source == ImageSource.camera ? 'camera' : 'gallery'}.');
+      FlushbarService.error(context,
+          'Permission denied. Cannot access ${source == ImageSource.camera ? 'camera' : 'gallery'}.');
       return;
     }
 
@@ -99,7 +98,7 @@ class _MultiProviderBookingBodyState extends State<MultiProviderBookingBody> {
       setState(() {
         _selectedImages.add(File(pickedFile.path));
       });
-      widget.onImagesChanged(_selectedImages); 
+      widget.onImagesChanged(_selectedImages);
     }
   }
 
@@ -111,12 +110,8 @@ class _MultiProviderBookingBodyState extends State<MultiProviderBookingBody> {
   }
 
   void _dismissKeyboard() {
-    
-  FocusScope.of(context).unfocus();
-}
-
-
-  
+    FocusScope.of(context).unfocus();
+  }
 
   Widget _buildSectionTitle(String title, {Color? color}) {
     return Padding(
@@ -163,15 +158,12 @@ class _MultiProviderBookingBodyState extends State<MultiProviderBookingBody> {
   @override
   Widget build(BuildContext context) {
     final providerCount = widget.selectedProviders.length;
-    final relevantCosts = widget.selectedCosts
-        .where((c) =>
-            c.service.serviceId == widget.serviceId && c.basePrice != null)
-        .toList();
+    final relevantCosts =
+        widget.selectedCosts.where((c) => c.basePrice != null).toList();
     final firstProviderCost =
         relevantCosts.isNotEmpty ? relevantCosts.first : null;
 
     return GestureDetector(
-      
       onTap: _dismissKeyboard,
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -190,7 +182,7 @@ class _MultiProviderBookingBodyState extends State<MultiProviderBookingBody> {
               ),
             ),
             const SizedBox(height: 20),
-      
+
             // Date & Time Pickers
             _buildSectionTitle("Required Date and Time"),
             Row(
@@ -198,12 +190,11 @@ class _MultiProviderBookingBodyState extends State<MultiProviderBookingBody> {
                 Expanded(
                   child: InkWell(
                     onTap: () {
-        _dismissKeyboard();
-        widget.onPickDate();
-      },
+                      _dismissKeyboard();
+                      widget.onPickDate();
+                    },
                     child: InputDecorator(
-                      decoration:
-                          _buildInputDecoration(label: '').copyWith(
+                      decoration: _buildInputDecoration(label: '').copyWith(
                         prefixIcon: Icon(Icons.calendar_today,
                             color: Kolors.kDark.withOpacity(0.7)),
                       ),
@@ -223,12 +214,11 @@ class _MultiProviderBookingBodyState extends State<MultiProviderBookingBody> {
                 Expanded(
                   child: InkWell(
                     onTap: () {
-        _dismissKeyboard();
-        widget.onPickTime();
-      },
+                      _dismissKeyboard();
+                      widget.onPickTime();
+                    },
                     child: InputDecorator(
-                      decoration:
-                          _buildInputDecoration(label: '').copyWith(
+                      decoration: _buildInputDecoration(label: '').copyWith(
                         labelStyle: const TextStyle(
                             color: Kolors.kDark), // <-- set label color
                         prefixIcon: Icon(
@@ -252,7 +242,7 @@ class _MultiProviderBookingBodyState extends State<MultiProviderBookingBody> {
               ],
             ),
             const SizedBox(height: 20),
-      
+
             // Providers List
             _buildSectionTitle("Potential Service Providers ($providerCount)"),
             Container(
@@ -276,11 +266,13 @@ class _MultiProviderBookingBodyState extends State<MultiProviderBookingBody> {
                         padding: const EdgeInsets.symmetric(vertical: 4.0),
                         child: Row(
                           children: [
-                            Icon(Icons.person_pin, size: 20, color: Kolors.kDark),
+                            Icon(Icons.person_pin,
+                                size: 20, color: Kolors.kDark),
                             const SizedBox(width: 8),
                             Text(
                               widget.selectedProviders[i].fullName,
-                              style: const TextStyle(fontWeight: FontWeight.w500),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w500),
                             ),
                           ],
                         ),
@@ -288,7 +280,7 @@ class _MultiProviderBookingBodyState extends State<MultiProviderBookingBody> {
                     ),
             ),
             const SizedBox(height: 20),
-      
+
             // Delivery address
             if (widget.defaultAddress != null)
               Column(
@@ -313,23 +305,26 @@ class _MultiProviderBookingBodyState extends State<MultiProviderBookingBody> {
                     alignment: Alignment.centerRight,
                     child: TextButton.icon(
                       onPressed: () {
-                        
+                        final session = context.read<AuthSessionController>();
+                        final email = session.email;
+
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => LocationScreen()),
+                          MaterialPageRoute(
+                              builder: (_) =>
+                                  LocationScreen(email: email.toString())),
                         );
-      
-                      }, 
+                      },
                       icon: const Icon(Icons.edit_location_alt, size: 18),
                       label: const Text("Change Address"),
-                      style: TextButton.styleFrom(foregroundColor: Kolors.kDark),
+                      style:
+                          TextButton.styleFrom(foregroundColor: Kolors.kDark),
                     ),
                   ),
                 ],
               ),
             const SizedBox(height: 12),
-      
-            
+
             if (averagePrice != null ||
                 (firstProviderCost != null && firstProviderCost.negotiable))
               Padding(
@@ -337,7 +332,7 @@ class _MultiProviderBookingBodyState extends State<MultiProviderBookingBody> {
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white, 
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Kolors.kPrimary.withOpacity(0.3)),
                   ),
@@ -356,7 +351,6 @@ class _MultiProviderBookingBodyState extends State<MultiProviderBookingBody> {
                             ),
                           ),
                         ),
-                      
                       if (firstProviderCost != null &&
                           firstProviderCost.negotiable)
                         TextField(
@@ -375,7 +369,7 @@ class _MultiProviderBookingBodyState extends State<MultiProviderBookingBody> {
                   ),
                 ),
               ),
-      
+
             // Notes
             _buildSectionTitle("Additional Notes / Description"),
             TextField(
@@ -385,7 +379,7 @@ class _MultiProviderBookingBodyState extends State<MultiProviderBookingBody> {
               maxLines: 4,
             ),
             const SizedBox(height: 20),
-      
+
             // Images
             _buildSectionTitle("Upload Photos (max 5)"),
             Row(
@@ -413,7 +407,8 @@ class _MultiProviderBookingBodyState extends State<MultiProviderBookingBody> {
                     height: 100,
                     child: _selectedImages.isEmpty
                         ? Center(
-                            child: Text("Please add images regarding the service you require.",
+                            child: Text(
+                                "Please add images regarding the service you require.",
                                 style: TextStyle(color: hintColor)),
                           )
                         : ListView.builder(
@@ -452,7 +447,7 @@ class _MultiProviderBookingBodyState extends State<MultiProviderBookingBody> {
               ],
             ),
             const SizedBox(height: 30),
-      
+
             // Submit Button
             SizedBox(
               width: double.infinity,

@@ -165,23 +165,7 @@ class _ProviderListWidgetState extends State<ProviderListWidget> {
                                 ],
                               ),
                               // Phone Number
-                              if (provider.mobileNumber.isNotEmpty) ...[
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    const Icon(Icons.star_border,
-                                        size: 16, color: Colors.grey),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      provider.rating?.toString() ?? "N/A",
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.black87,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                              
                             ],
                           ),
                         ),

@@ -10,6 +10,9 @@ class ServicesIcons {
     bool isSelected = false,
   }) {
     final icon = _getIconForService(service.serviceName);
+    
+
+
 
     return GestureDetector(
       onTap: onTap,
@@ -80,6 +83,8 @@ class ServicesIcons {
     );
   }
 
+  
+
   static IconData _getIconForService(String name) {
     switch (name.toLowerCase()) {
       case 'makeup technician':
@@ -90,7 +95,7 @@ class ServicesIcons {
         return Icons.colorize;
       case 'barber':
         return Icons.face;
-      case 'car_wash':
+      case 'car wash':
         return Icons.local_car_wash;
       case 'skincare specialist':
         return Icons.spa_outlined;
