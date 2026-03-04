@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/global_util/services/controler/address_client_ctrl.dart';
-import 'package:flutter_application_1/common/utils/kcolors.dart'; // Import kcolors for primary color
-
-import 'package:flutter_application_1/global_util/services/models/client_models/address_client_model.dart';
+import 'package:flutter_application_1/common/utils/kcolors.dart';
 import 'package:provider/provider.dart';
 
 class AddressListView extends StatelessWidget {
-  const AddressListView({super.key});
+  final int? selectedAddressId;
+  final Function(int) onSelect; // callback to parent
+
+  const AddressListView({
+    super.key,
+    required this.selectedAddressId,
+    required this.onSelect,
+  });
 
   @override
   Widget build(BuildContext context) {
-    // Define colors
     const Color primaryColor = Kolors.kPrimary;
     const Color defaultTextColor = Colors.black87;
     const Color hintColor = Colors.black54;
@@ -35,57 +39,50 @@ class AddressListView extends StatelessWidget {
         }
 
         return ListView.builder(
-          padding: const EdgeInsets.only(top: 8, bottom: 8, left: 16, right: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           itemCount: controller.addresses.length,
           itemBuilder: (context, index) {
-            final AddressClientModel address = controller.addresses[index];
-            final bool isDefault = address.isDefault;
-
-            // debugPrint statements removed for final clean code
+            final address = controller.addresses[index];
+            final bool isSelected = selectedAddressId == address.id;
+            final bool isDefault = address.isDefault || isSelected;
 
             return Padding(
               padding: const EdgeInsets.symmetric(vertical: 8.0),
               child: Card(
-                elevation: isDefault ? 8 : 2, // Highlight default address with shadow
+                elevation: isDefault ? 8 : 2,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(15),
                   side: isDefault
-                      ? const BorderSide(color: primaryColor, width: 2) // Primary color border
+                      ? const BorderSide(color: primaryColor, width: 2)
                       : BorderSide.none,
                 ),
                 child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  
-                  // Use primary color for the icon
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   leading: Icon(
                     isDefault ? Icons.home_filled : Icons.location_on_outlined,
                     color: isDefault ? primaryColor : hintColor,
                     size: 30,
                   ),
-                  
                   title: Text(
                     address.address.formattedAddress ?? "No address",
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontWeight: isDefault ? FontWeight.bold : FontWeight.w500,
-                      color: defaultTextColor,
-                    ),
+                        fontWeight: isDefault ? FontWeight.bold : FontWeight.w500,
+                        color: defaultTextColor),
                   ),
-                  
                   subtitle: Text(
                     "${address.isOwner ? 'Primary' : 'Secondary'} • ${address.address.country}"
                         .trim(),
                     style: TextStyle(color: hintColor, fontSize: 12),
                   ),
-                  
                   trailing: isDefault
                       ? Icon(Icons.check_circle, color: primaryColor)
                       : const Icon(Icons.radio_button_off, color: hintColor),
-                  
-                  // Wrap the entire ListTile in a GestureDetector or InkWell to handle selection
-                  // For simplicity, we'll keep the onTap action absent here, but you'd add:
-                  // onTap: () => controller.setDefaultAddress(address.id),
+                  onTap: () {
+                    onSelect(address.id); // notify parent
+                  },
                 ),
               ),
             );

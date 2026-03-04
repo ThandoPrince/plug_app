@@ -6,13 +6,14 @@ import 'package:flutter_application_1/screens/Onboarding/terms_of_use/views/priv
 import 'package:flutter_application_1/screens/Onboarding/terms_of_use/views/terms_of_use_screen.dart';
 import 'package:flutter_application_1/screens/View_SP_Profile_Request/views/viewSP_Profile_requestScreen.dart';
 import 'package:flutter_application_1/screens/address/views/address_creation_screen.dart';
-import 'package:flutter_application_1/screens/address/views/address_screen.dart';
+import 'package:flutter_application_1/screens/location/views/address_screen.dart';
 import 'package:flutter_application_1/screens/address/views/address_verification_screen.dart';
 import 'package:flutter_application_1/screens/auth/views/auth_creation_screen.dart';
 import 'package:flutter_application_1/screens/auth/views/client_details_patch_screen.dart';
 import 'package:flutter_application_1/screens/auth/views/login_page.dart';
 import 'package:flutter_application_1/screens/entryPoint/views/entry_point.dart';
 import 'package:flutter_application_1/screens/location/views/location_screen.dart';
+import 'package:flutter_application_1/screens/location/views/new_address_verification_screen.dart';
 import 'package:flutter_application_1/screens/notifications/views/notifications_screen.dart';
 import 'package:flutter_application_1/screens/splash/spash_screen.dart';
 import 'package:flutter_application_1/screens/viewAllServices/screens/view_all_services.dart';
@@ -25,7 +26,7 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 final GoRouter _router = GoRouter(
   observers: [
-    AppNavigationObserver(), // ✅ Flushbar auto-dismiss
+    AppNavigationObserver(), 
   ],
    navigatorKey: navigatorKey,
   initialLocation: '/',
@@ -59,6 +60,11 @@ final GoRouter _router = GoRouter(
     GoRoute(
       path: '/addressVerificationUpload',
       builder: (context, state) => const AddressVerificationUploadScreen(),
+    ),
+
+  GoRoute(
+      path: '/addressVerification',
+      builder: (context, state) => const AddressVerificationScreen(),
     ),
 
     GoRoute(
@@ -140,7 +146,7 @@ GoRoute(
   path: '/main_addaddress',
   builder: (context, state) {
     final email = state.uri.queryParameters['email'];
-    return MainAddAddressScreen(email: email);
+    return MainAddAddressScreen(clientemail: email);
   },
 ),
     GoRoute(

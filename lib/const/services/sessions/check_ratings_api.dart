@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
@@ -18,14 +17,8 @@ class CheckClientRatingApi {
 
     if (response.statusCode == 200) {
       final List data = jsonDecode(response.body);
-
-      if (kDebugMode) {
-        print('⭐ Ratings for session $sessionId: ${data.length}');
-      }
-
       return data.isNotEmpty;
     }
-
     return false;
   }
 }

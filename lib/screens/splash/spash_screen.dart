@@ -20,80 +20,66 @@ class SpashScreen extends StatefulWidget {
 class _SpashScreenState extends State<SpashScreen> {
   final envFile = kReleaseMode ? ".env.production" : ".env.development";
 
-  // 4️⃣ Load environment variables
-  
-  late Timer _timer;
-
-
-
   @override
   void initState() {
     super.initState();
-
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
 
-    // Run async logic AFTER initState
     _initAsync();
   }
 
   Future<void> _initAsync() async {
-  try {
-    await dotenv.load(fileName: envFile);
-    debugPrint("✅ Loaded $envFile");
-  } catch (e) {
-    debugPrint("⚠️ Could not load $envFile: $e");
+    try {
+      await dotenv.load(fileName: envFile);
+      debugPrint("✅ Loaded $envFile");
+    } catch (e) {
+      debugPrint("⚠️ Could not load $envFile: $e");
+    }
+
+    await Future.delayed(const Duration(seconds: 3));
+
+    if (!mounted) return;
+
+    final hasOpenedBefore = Storage().getBool('firstOpen');
+
+    if (hasOpenedBefore == null || hasOpenedBefore == false) {
+      Storage().setBool('firstOpen', true);
+      context.go('/welcome');
+    } else {
+      context.go('/login');
+    }
   }
-
-  await Future.delayed(const Duration(seconds: 3));
-
-  if (!mounted) return;
-
-  final hasOpenedBefore = Storage().getBool('firstOpen');
-
-  if (hasOpenedBefore == null || hasOpenedBefore == false) {
-    Storage().setBool('firstOpen', true);
-    context.go('/welcome');
-  } else {
-    context.go('/login');
-  }
-}
-
-  
 
   @override
-    void dispose() {
+  void dispose() {
     SystemChrome.setEnabledSystemUIMode(
       SystemUiMode.manual,
       overlays: SystemUiOverlay.values,
     );
-
-    _timer.cancel();
+    // no _timer to cancel, safe now
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) {  
+  Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
         width: ScreenUtil().screenWidth,
         height: ScreenUtil().screenHeight,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Kolors.kPrimary,Kolors.kPrimary, Kolors.kWhite],
-                begin: Alignment.topLeft,
+            colors: [Kolors.kPrimary, Kolors.kPrimary, Kolors.kWhite],
+            begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-             SizedBox(
+            SizedBox(
               height: 100,
-              child: Image.asset(
-                'assets/icons/plug_icon.png',
-              ),
+              child: Image.asset('assets/icons/plug_icon.png'),
             ),
-
             const SizedBox(height: 20),
             const SizedBox(
               height: 20,
@@ -105,10 +91,7 @@ class _SpashScreenState extends State<SpashScreen> {
             const SizedBox(height: 20),
             const Text(
               'Be the game changer!',
-              style: TextStyle(
-                fontSize: 16,
-                fontStyle: FontStyle.italic,
-              ),
+              style: TextStyle(fontSize: 16, fontStyle: FontStyle.italic),
             ),
           ],
         ),

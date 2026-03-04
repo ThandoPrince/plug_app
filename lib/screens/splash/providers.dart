@@ -1,11 +1,10 @@
-import 'package:flutter/material.dart';
+import 'package:flutter_application_1/global_util/services/controler/completed_service_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/get_client_auth_controller.dart';
+import 'package:flutter_application_1/global_util/services/controler/patch_default_address_controller.dart';
 import 'package:flutter_application_1/screens/Onboarding/controllers/onboarding_notifiers.dart';
 import 'package:flutter_application_1/screens/entryPoint/controller/bottom_tab_notifier.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
-
-// Import all your controllers/providers
 import 'package:flutter_application_1/const/services/booking_services/create_booking_api.dart';
 import 'package:flutter_application_1/global_util/services/controler/address_client_ctrl.dart';
 import 'package:flutter_application_1/global_util/services/controler/address_creation_controller.dart';
@@ -39,16 +38,12 @@ import 'package:flutter_application_1/global_util/services/controler/sp_by_email
 import 'package:flutter_application_1/global_util/services/controler/submit_ratings_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/user_input_ctrl.dart';
 import 'package:flutter_application_1/global_util/services/controler/service_controller.dart';
-// import 'package:flutter_application_1/screens/Onboarding/controllers/onboarding_notifiers.dart';
-// import 'package:flutter_application_1/screens/entryPoint/controller/bottom_tab_notifier.dart';
 import 'package:flutter_application_1/screens/entryPoint/controller/drawer_notifier.dart';
 import 'package:flutter_application_1/global_util/services/controler/sp_contoller.dart';
 import 'package:flutter_application_1/global_util/services/controler/sp_address_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/sp_profile_controller.dart';
 
-
 List<SingleChildWidget> appProviders = [
-  
   ChangeNotifierProvider(create: (_) => OnboardingNotifier()),
   ChangeNotifierProvider(create: (_) => TabIndexNotifier()),
   ChangeNotifierProvider(create: (_) => GetClientAuthController()),
@@ -84,26 +79,50 @@ List<SingleChildWidget> appProviders = [
     ),
   ),
   ChangeNotifierProvider(create: (_) => SPByAddressController()),
+  ChangeNotifierProvider(create: (_) => PatchDefaultAddressController()),
+  ChangeNotifierProvider(create: (_) => ClientRatingsController()),
   ChangeNotifierProvider(create: (_) => NegotiatedPriceController()),
   ChangeNotifierProvider(create: (_) => ClientStartRoundController()),
-  ChangeNotifierProxyProvider2<SPByAddressController, HereMapMarkerController,
-      HomeRefreshController>(
-    create: (_) => HomeRefreshController(
-      spByAddressController: SPByAddressController(),
-      mapMarkerCtrl: HereMapMarkerController(
-        defAddCtrl: DefAddController(),
-        spAddrCtrl: SpAddressControllerByID(),
+ChangeNotifierProvider<DefAddController>(
+  create: (_) => DefAddController(),
+  child: MultiProvider(
+    providers: [
+      ChangeNotifierProvider<SPByAddressController>(
+        create: (_) => SPByAddressController(),
       ),
-      serviceController: ServiceController(),
-    ),
-    update: (_, spCtrl, mapCtrl, homeCtrl) => HomeRefreshController(
-      spByAddressController: spCtrl,
-      mapMarkerCtrl: mapCtrl,
-      serviceController: homeCtrl!.serviceController,
-    ),
+      ChangeNotifierProvider<HereMapMarkerController>(
+        create: (_) => HereMapMarkerController(
+          defAddCtrl: DefAddController(),
+          spAddrCtrl: SpAddressControllerByID(),
+        ),
+      ),
+      ChangeNotifierProvider<ServiceController>(
+        create: (_) => ServiceController(),
+      ),
+      // HomeRefreshController depends on SPByAddressController + HereMapMarkerController + DefAddController
+      ChangeNotifierProxyProvider2<SPByAddressController, HereMapMarkerController, HomeRefreshController>(
+        create: (context) => HomeRefreshController(
+          defAddController: context.read<DefAddController>(),
+          spByAddressController: context.read<SPByAddressController>(),
+          authSessionController: AuthSessionController.instance,
+          mapMarkerCtrl: context.read<HereMapMarkerController>(),
+          serviceController: context.read<ServiceController>(),
+        ),
+        update: (context, spCtrl, mapCtrl, homeCtrl) {
+          return HomeRefreshController(
+            defAddController: context.read<DefAddController>(), 
+            spByAddressController: spCtrl,
+            authSessionController: AuthSessionController.instance,
+            mapMarkerCtrl: mapCtrl,
+            serviceController: context.read<ServiceController>(),
+          );
+        },
+      ),
+    ],
   ),
+),
   ChangeNotifierProvider(create: (_) => ShipmentController()),
-   ChangeNotifierProvider(create: (_) => AddressClientCtrl()),
+  ChangeNotifierProvider(create: (_) => AddressClientCtrl()),
   ChangeNotifierProvider(create: (_) => ShipmentConfirmController()),
   ChangeNotifierProvider(create: (_) => ClientCheckinController()),
   ChangeNotifierProvider(create: (_) => SessionByShipmentController()),

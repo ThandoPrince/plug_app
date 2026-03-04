@@ -3,7 +3,7 @@ import 'package:flutter_application_1/common/utils/kcolors.dart';
 import 'package:flutter_application_1/screens/entryPoint/widgets/create_service_widget.dart';
 import 'package:flutter_application_1/screens/entryPoint/widgets/location_widget.dart';
 import 'package:flutter_application_1/screens/entryPoint/widgets/notifications_widget.dart';
-import 'package:flutter_application_1/screens/entryPoint/widgets/settings_widget.dart';
+
 
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {

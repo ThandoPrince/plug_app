@@ -1,4 +1,6 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter_application_1/global_util/services/controler/auth_session_controller.dart';
+import 'package:flutter_application_1/global_util/services/controler/def_add_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/home_here_map_controller.dart';
 
 import 'package:flutter_application_1/global_util/services/controler/service_controller.dart';
@@ -9,6 +11,8 @@ class HomeRefreshController with ChangeNotifier {
   final SPByAddressController spByAddressController;
   final HereMapMarkerController mapMarkerCtrl;
   final ServiceController serviceController;
+  final DefAddController defAddController;
+  final AuthSessionController authSessionController;
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -18,27 +22,31 @@ class HomeRefreshController with ChangeNotifier {
 
   HomeRefreshController({
     required this.spByAddressController,
+    required this.defAddController,
     required this.mapMarkerCtrl,
     required this.serviceController,
+    required this.authSessionController,
   });
 
   /// Refresh all home page data
   Future<void> refreshHome() async {
-    _isLoading = true;
-    _errorMessage = null;
+  _isLoading = true;
+  _errorMessage = null;
+  notifyListeners();
+
+  try {
+    final email = authSessionController.email;
+
+    // Fetch all data
+    await defAddController.fetchAddresses(email.toString()); 
+    await spByAddressController.fetchFromVisibleMarkers(mapMarkerCtrl);
+    await mapMarkerCtrl.showDefaultAddress(email.toString());
+    await serviceController.fetchServices();
+  } catch (e) {
+    _errorMessage = e.toString();
+  } finally {
+    _isLoading = false;
     notifyListeners();
-
-    try {
-      // 1️⃣ Refresh visible service providers
-      await spByAddressController.fetchFromVisibleMarkers(mapMarkerCtrl);
-
-      // 2️⃣ Refresh all services
-      await serviceController.fetchServices();
-    } catch (e) {
-      _errorMessage = e.toString();
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
   }
+}
 }

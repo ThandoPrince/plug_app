@@ -119,6 +119,12 @@ class ServicesIcons {
         return Icons.pets;
       case 'general labourer':
         return Icons.handyman;
+      case 'runner':
+        return Icons.run_circle_outlined;
+      case 'dj':
+        return Icons.music_note;
+      case 'personal trainer':
+        return Icons.fitness_center;
       default:
         return Icons.miscellaneous_services;
     }

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
+import 'package:flutter_application_1/global_util/services/controler/address_client_ctrl.dart';
 import 'package:flutter_application_1/global_util/services/controler/address_creation_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/auth_session_controller.dart';
-import 'package:flutter_application_1/screens/Onboarding/Widgets/back_to_exit_widget.dart';
-import 'package:flutter_application_1/screens/auth/views/registration_success_overlay.dart';
+import 'package:flutter_application_1/global_util/services/controler/home_here_map_controller.dart';
+
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_google_places_hoc081098/flutter_google_places_hoc081098.dart';
 import 'package:flutter_google_places_hoc081098/google_maps_webservice_places.dart';
@@ -14,8 +15,8 @@ import 'package:flutter_application_1/common/widgets/reusable_text.dart';
 import 'package:go_router/go_router.dart';
 
 class MainAddAddressScreen extends StatelessWidget {
-  final String? email;
-  const MainAddAddressScreen({super.key, required this.email});
+  final String? clientemail;
+  const MainAddAddressScreen({super.key, required this.clientemail});
 
   static final String kGoogleApiKey = dotenv.env['GOOGLE_API_KEY'] ?? '';
 
@@ -62,7 +63,7 @@ class MainAddAddressScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                    _buildBottomButton(context, ctrl, email.toString(), primaryColor),
+                    _buildBottomButton(context, ctrl, clientemail.toString(), primaryColor),
                   ],
                 );
               },
@@ -352,6 +353,7 @@ class MainAddAddressScreen extends StatelessWidget {
               email = email.isEmpty ? context.read<AuthSessionController>().email.toString() : email;
                 final result = await ctrl.postResidentialAddress(email);
 
+
                 if (result == null || !context.mounted) return;
 
                 final data = result["data"];
@@ -367,6 +369,15 @@ class MainAddAddressScreen extends StatelessWidget {
                     ? data?["address"]?["unit_number"]
                     : null;
 
+             
+    final addressCtrl = context.read<AddressClientCtrl>();
+    final mapCtrl = context.read<HereMapMarkerController>(); 
+
+    await addressCtrl.fetchAddresses(email.toString());
+    await mapCtrl.showDefaultAddress(email.toString());
+
+ 
+
                 if (!isVerified) {
                   _showVerificationDialog(
                     context,
@@ -374,7 +385,7 @@ class MainAddAddressScreen extends StatelessWidget {
                     unitNumber,
                   );
                 } else {
-                  Navigator.pop(context);
+                  context.pop();
                 }
               },
       ),
@@ -404,23 +415,24 @@ class MainAddAddressScreen extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () {
-              Navigator.pop(context);
-              
+              Navigator.of(context).pop(); // close dialog
+    context.pop();  
+             
             },
             child: const Text("Maybe Later"),
           ),
           ElevatedButton(
             onPressed: () {
-              Navigator.pop(context);
+              Navigator.of(context).pop();
 
-              // Navigate to verification screen with client_address_id
-              context.go(
-                "/addressVerificationUpload",
-                extra: {
-                  "client_address_id": clientAddressId,
-                  "unit_number": unitNumber,
-                },
-              );
+              
+              context.push(
+  "/addressVerification",
+  extra: {
+    "client_address_id": clientAddressId,
+    "unit_number": unitNumber,
+  },
+);
             },
             child: const Text("Verify Now"),
           ),

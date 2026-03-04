@@ -16,7 +16,7 @@ class ServiceController with ChangeNotifier {
   //   });
   // }
 final List<int> _featuredServiceIds = [
-  1, 2, 8, 61, 9, 12, 62, 18, 66, 25
+  1, 2, 8, 61, 9, 12, 62, 32, 66, 25
 ];
 
 

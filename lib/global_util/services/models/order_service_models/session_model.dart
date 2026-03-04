@@ -50,7 +50,8 @@ class SessionModel {
           : null,
 
       /// 👈 THIS IS THE FIX
-      durationSeconds: (json['duration'] as num?)?.toInt() ?? 0,
+      // durationSeconds: (json['duration'] as num?)?.toInt() ?? 0,
+      durationSeconds: (json['duration_seconds'] as num?)?.toInt() ?? 0,
     );
   }
 
