@@ -1,13 +1,17 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
+import 'package:flutter_application_1/global_util/services/controler/cost_of_service_byemail_controller.dart';
 import 'package:flutter_application_1/global_util/services/models/order_service_models/ratings_model.dart';
+import 'package:flutter_application_1/screens/booking/views/MultiProviderBookingScreen.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 class ClientRatingDetailsScreen extends StatelessWidget {
   final RatingModel rating;
-  const ClientRatingDetailsScreen({Key? key, required this.rating}) : super(key: key);
+  const ClientRatingDetailsScreen({Key? key, required this.rating})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -20,17 +24,20 @@ class ClientRatingDetailsScreen extends StatelessWidget {
     final durationText = "${(durationSec / 60).floor()}m ${durationSec % 60}s";
 
     final checkinTime = rating.session?.checkinTime != null
-        ? DateFormat('dd MMM yyyy – HH:mm').format(DateTime.parse(rating.session!.checkinTime!.toString()))
+        ? DateFormat('dd MMM yyyy – HH:mm')
+            .format(DateTime.parse(rating.session!.checkinTime!.toString()))
         : 'N/A';
 
     final checkoutTime = rating.session?.checkoutTime != null
-        ? DateFormat('dd MMM yyyy – HH:mm').format(DateTime.parse(rating.session!.checkoutTime!.toString()))
+        ? DateFormat('dd MMM yyyy – HH:mm')
+            .format(DateTime.parse(rating.session!.checkoutTime!.toString()))
         : 'N/A';
 
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Service Receipt', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text('Service Receipt',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
@@ -60,17 +67,25 @@ class ClientRatingDetailsScreen extends StatelessWidget {
                         backgroundColor: Colors.white24,
                         child: CircleAvatar(
                           radius: 42.r,
-                          backgroundImage: NetworkImage('http://192.168.18.64:8000${provider?.profileImage ?? ''}'),
+                          backgroundImage: NetworkImage(
+                              'http://192.168.18.64:8000${provider?.profileImage ?? ''}'),
                         ),
                       ),
                       SizedBox(height: 12.h),
                       Text(
                         provider?.fullName ?? 'Unknown',
-                        style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold, color: Kolors.kDark),
+                        style: TextStyle(
+                            fontSize: 20.sp,
+                            fontWeight: FontWeight.bold,
+                            color: Kolors.kDark),
                       ),
                       Text(
                         service?.serviceName?.toUpperCase() ?? '',
-                        style: TextStyle(color: Colors.black38, fontWeight: FontWeight.w600, letterSpacing: 1.2, fontSize: 12.sp),
+                        style: TextStyle(
+                            color: Colors.black38,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 1.2,
+                            fontSize: 12.sp),
                       ),
                       Padding(
                         padding: EdgeInsets.symmetric(vertical: 20.h),
@@ -79,7 +94,8 @@ class ClientRatingDetailsScreen extends StatelessWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          _buildMiniStat("Total Price", "R${order?.finalPrice ?? '0'}"),
+                          _buildMiniStat(
+                              "Total Price", "R${order?.finalPrice ?? '0'}"),
                           _buildMiniStat("Duration", durationText),
                           _buildMiniStat("Rating", "${rating.score}/5"),
                         ],
@@ -95,9 +111,12 @@ class ClientRatingDetailsScreen extends StatelessWidget {
                   title: "Service Times",
                   child: Column(
                     children: [
-                      _buildDetailRow(Icons.calendar_today_outlined, "Check-in", checkinTime),
-                      _buildDetailRow(Icons.access_time, "Check-out", checkoutTime),
-                      _buildDetailRow(Icons.location_on_outlined, "Address", order?.deliveryAddress?.formattedAddress ?? 'N/A'),
+                      _buildDetailRow(Icons.calendar_today_outlined, "Check-in",
+                          checkinTime),
+                      _buildDetailRow(
+                          Icons.access_time, "Check-out", checkoutTime),
+                      _buildDetailRow(Icons.location_on_outlined, "Address",
+                          order?.deliveryAddress?.formattedAddress ?? 'N/A'),
                     ],
                   ),
                 ),
@@ -111,30 +130,65 @@ class ClientRatingDetailsScreen extends StatelessWidget {
                     rating.review?.isEmpty ?? true
                         ? "You didn't leave a written review."
                         : "\"${rating.review!}\"",
-                    style: TextStyle(fontStyle: FontStyle.italic, color: Kolors.kDark.withOpacity(0.9), fontSize: 14.sp),
+                    style: TextStyle(
+                        fontStyle: FontStyle.italic,
+                        color: Kolors.kDark.withOpacity(0.9),
+                        fontSize: 14.sp),
                   ),
                 ),
 
                 SizedBox(height: 30.h),
 
-                // 4. Action Button
-                ElevatedButton(
-                  onPressed: () {
-                    // Navigate to booking service again
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Kolors.kPrimary,
-                    foregroundColor: Kolors.kWhite,
-                    minimumSize: Size(double.infinity, 50.h),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.r)),
-                    elevation: 0,
-                  ),
-                  child: Text(
-                    "Book ${provider?.fullName?.split(' ')[0]} Again",
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.sp),
-                  ),
-                ),
-                SizedBox(height: 40.h),
+  // 4. Action Button
+  ElevatedButton(
+  onPressed: () async {
+    final controller = context.read<CostOfServiceByemailController>();
+
+    final email = rating.session!.shipment!.serviceOrdered!
+        .providerForService!.provider.spProfile.emailAddress;
+
+    await controller.fetchCostOfServiceByEmail(email);
+
+    final costOfService = controller.costs;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => MultiProviderBookingScreen(
+          serviceId: rating.session!.shipment!.serviceOrdered!
+              .serviceRequired!.serviceId,
+          selectedProviders: rating.session!.shipment!.serviceOrdered!
+                      .providerForService !=
+                  null
+              ? [
+                  rating.session!.shipment!.serviceOrdered!
+                      .providerForService!.provider
+                ]
+              : [],
+          selectedCosts: costOfService,
+        ),
+      ),
+    );
+  },
+  style: ElevatedButton.styleFrom(
+    backgroundColor: Kolors.kPrimary,
+    foregroundColor: Kolors.kWhite,
+    minimumSize: Size(double.infinity, 50.h),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(15.r),
+    ),
+    elevation: 0,
+  ),
+  child: Text(
+    "Book ${provider?.fullName?.split(' ')[0]} Again",
+    style: TextStyle(
+      fontWeight: FontWeight.bold,
+      fontSize: 16.sp,
+    ),
+  ),
+),
+
+  SizedBox(height: 40.h),
               ],
             ),
           ),
@@ -152,7 +206,11 @@ class ClientRatingDetailsScreen extends StatelessWidget {
             padding: EdgeInsets.only(left: 8.w, bottom: 8.h),
             child: Text(
               title.toUpperCase(),
-              style: TextStyle(color: Kolors.kDark, fontSize: 11.sp, fontWeight: FontWeight.bold, letterSpacing: 1.1),
+              style: TextStyle(
+                  color: Kolors.kDark,
+                  fontSize: 11.sp,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.1),
             ),
           ),
         ClipRRect(
@@ -178,7 +236,11 @@ class ClientRatingDetailsScreen extends StatelessWidget {
   Widget _buildMiniStat(String label, String value) {
     return Column(
       children: [
-        Text(value, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.sp, color: Kolors.kDark)),
+        Text(value,
+            style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16.sp,
+                color: Kolors.kDark)),
         Text(label, style: TextStyle(color: Colors.black38, fontSize: 11.sp)),
       ],
     );
@@ -196,8 +258,13 @@ class ClientRatingDetailsScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: TextStyle(color: Colors.black38, fontSize: 11.sp)),
-                Text(value, style: TextStyle(fontSize: 13.sp, color: Kolors.kDark, fontWeight: FontWeight.w500)),
+                Text(label,
+                    style: TextStyle(color: Colors.black38, fontSize: 11.sp)),
+                Text(value,
+                    style: TextStyle(
+                        fontSize: 13.sp,
+                        color: Kolors.kDark,
+                        fontWeight: FontWeight.w500)),
               ],
             ),
           ),

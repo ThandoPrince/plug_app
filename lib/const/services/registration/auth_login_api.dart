@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 class AuthLoginApi {
   final String baseUrl = dotenv.env['API_BASE_URL'] ?? '';
 
-  /// Login request using email/password in POST body
+  /// ---------------- LOGIN ----------------
   Future<Map<String, dynamic>> login({
     required String email,
     required String password,
@@ -17,8 +17,8 @@ class AuthLoginApi {
         uri,
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          "email": email,       // include email here
-          "password": password, // include password here
+          "email": email,
+          "password": password,
         }),
       );
 
@@ -32,6 +32,61 @@ class AuthLoginApi {
       return {
         "statusCode": 500,
         "data": {"error": "Something went wrong: $e"},
+      };
+    }
+  }
+
+  /// ---------------- PUSH TOKEN REGISTER ----------------
+  Future<Map<String, dynamic>> updatePushToken({
+    required String email,
+    required String token,
+    required String provider,
+    String? deviceType,
+    String? deviceName,
+    String? osVersion,
+    String? appVersion,
+  }) async {
+    final uri = Uri.parse(
+      '$baseUrl/client_devices/register-device-token/',
+    );
+
+    try {
+      final response = await http.post(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          "email": email,
+          "push_token": token,
+          "device_type": deviceType,
+          "device_name": deviceName,
+          "os_version": osVersion,
+          "app_version": appVersion,
+          "provider": provider,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      // Accept both:
+      // 200 = updated existing token
+      // 201 = created new token
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        return {
+          "statusCode": response.statusCode,
+          "data": data,
+        };
+      }
+
+      return {
+        "statusCode": response.statusCode,
+        "data": data,
+      };
+    } catch (e) {
+      return {
+        "statusCode": 500,
+        "data": {
+          "error": "Failed to update push token: $e",
+        },
       };
     }
   }

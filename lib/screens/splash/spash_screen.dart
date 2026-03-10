@@ -5,7 +5,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_application_1/common/services/storage.dart';
@@ -18,7 +17,7 @@ class SpashScreen extends StatefulWidget {
 }
 
 class _SpashScreenState extends State<SpashScreen> {
-  final envFile = kReleaseMode ? ".env.production" : ".env.development";
+  
 
   @override
   void initState() {
@@ -29,12 +28,7 @@ class _SpashScreenState extends State<SpashScreen> {
   }
 
   Future<void> _initAsync() async {
-    try {
-      await dotenv.load(fileName: envFile);
-      debugPrint("✅ Loaded $envFile");
-    } catch (e) {
-      debugPrint("⚠️ Could not load $envFile: $e");
-    }
+    
 
     await Future.delayed(const Duration(seconds: 3));
 

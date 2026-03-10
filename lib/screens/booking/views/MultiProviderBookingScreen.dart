@@ -140,7 +140,7 @@ class _MultiProviderBookingScreenState extends State<MultiProviderBookingScreen>
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [primaryColor, secondaryColor],
+            colors: [primaryColor,primaryColor, secondaryColor],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),

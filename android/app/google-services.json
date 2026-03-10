@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "69971462139",
+    "project_id": "plug-prj",
+    "storage_bucket": "plug-prj.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:69971462139:android:9af1e3cbb524f477a62d5e",
+        "android_client_info": {
+          "package_name": "com.plug_1431.flutter_application_1"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCwEvKhdDbHSMXGB5YssM_2GmtNCWalkYI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

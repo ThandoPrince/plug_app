@@ -52,6 +52,11 @@ dependencies:
   qr_flutter: ^4.1.0
   flutter_google_places_hoc081098: ^2.0.0
   flutter_secure_storage: ^10.0.0
+  firebase_core: ^4.5.0
+  firebase_messaging: ^16.1.2
+  flutter_local_notifications: ^21.0.0
+  package_info_plus: ^8.3.1
+  huawei_push: ^6.14.0+300
   
 
 
