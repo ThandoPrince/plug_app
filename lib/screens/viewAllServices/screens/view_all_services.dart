@@ -62,15 +62,16 @@ class _ViewAllServicesState extends State<ViewAllServices> with SingleTickerProv
       appBar: AppBar(
         backgroundColor: Kolors.kPrimary,
         elevation: 0,
-        centerTitle: true,
+        centerTitle: false,
         leading: const CustomBackButton(),
         title: ReusableText(
           text: AppText.kServices,
-          style: appStyle(16, Kolors.kOffWhite, FontWeight.w700),
+          style: appStyle(18, Kolors.kOffWhite, FontWeight.w700),
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.search),
+            color: Kolors.kOffWhite,
             onPressed: _toggleSearch,
           )
         ],

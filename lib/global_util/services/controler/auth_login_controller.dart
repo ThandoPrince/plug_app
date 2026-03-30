@@ -5,13 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/const/services/registration/auth_login_api.dart';
 import 'package:flutter_application_1/global_util/services/controler/auth_session_controller.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter_application_1/main.dart';
+import 'package:flutter_application_1/screens/splash/spash_screen.dart';
 import 'package:huawei_push/huawei_push.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 class LoginController extends ChangeNotifier {
-  /// ---------------- Singleton ----------------
   static final LoginController _instance = LoginController._internal();
   factory LoginController() => _instance;
   static LoginController get instance => _instance;
@@ -21,11 +20,9 @@ class LoginController extends ChangeNotifier {
     passwordController.addListener(_clearPasswordError);
   }
 
-  /// ---------------- Controllers ----------------
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
-  /// ---------------- State ----------------
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
@@ -46,9 +43,6 @@ class LoginController extends ChangeNotifier {
   StreamSubscription<String>? _huaweiTokenSubscription;
   StreamSubscription<String>? _firebaseTokenRefreshSubscription;
 
-  /// ---------------------------------------------------------
-  /// LOGIN
-  /// ---------------------------------------------------------
   Future<bool> login() async {
     _startLoading();
     _clearAllErrors();
@@ -85,22 +79,19 @@ class LoginController extends ChangeNotifier {
           print("Session set for ${_userData!['email']}");
         }
 
-        /// Register push token
         await _fetchAndSendPushToken(_userData!['email']);
       }
 
       return true;
     } catch (e) {
       _generalError = "Unable to connect to the server: $e";
+      notifyListeners();
       return false;
     } finally {
       _stopLoading();
     }
   }
 
-  /// ---------------------------------------------------------
-  /// PUSH TOKEN HANDLER
-  /// ---------------------------------------------------------
   Future<void> _fetchAndSendPushToken(String email) async {
     if (!Platform.isAndroid) return;
 
@@ -108,7 +99,6 @@ class LoginController extends ChangeNotifier {
     final appVersion = await _getAppVersion();
 
     try {
-      // ---------------- Huawei Devices ----------------
       if (isHuaweiDevice) {
         if (kDebugMode) print("Huawei device detected → using Huawei Push");
 
@@ -152,7 +142,6 @@ class LoginController extends ChangeNotifier {
         return;
       }
 
-      // ---------------- Google Devices ----------------
       if (kDebugMode) print("Google device detected → using Firebase");
 
       await FirebaseMessaging.instance.requestPermission(
@@ -176,7 +165,7 @@ class LoginController extends ChangeNotifier {
           appVersion: appVersion,
         );
 
-        if (result['statusCode'] != 200 || result['statusCode'] != 201) {
+        if (result['statusCode'] != 200 && result['statusCode'] != 201) {
           if (kDebugMode) {
             print(
               "Firebase push token registration FAILED: "
@@ -216,9 +205,6 @@ class LoginController extends ChangeNotifier {
     }
   }
 
-  /// ---------------------------------------------------------
-  /// DEVICE INFO
-  /// ---------------------------------------------------------
   Future<Map<String, String>> _getDeviceInfo() async {
     String deviceType = Platform.isAndroid ? 'android' : 'ios';
     String deviceName = '';
@@ -247,9 +233,6 @@ class LoginController extends ChangeNotifier {
     };
   }
 
-  /// ---------------------------------------------------------
-  /// APP VERSION
-  /// ---------------------------------------------------------
   Future<String> _getAppVersion() async {
     try {
       return (await PackageInfo.fromPlatform()).version;
@@ -261,9 +244,6 @@ class LoginController extends ChangeNotifier {
     }
   }
 
-  /// ---------------------------------------------------------
-  /// VALIDATION
-  /// ---------------------------------------------------------
   bool _validateInputs() {
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
@@ -276,7 +256,7 @@ class LoginController extends ChangeNotifier {
       return false;
     }
 
-    final emailRegex = RegExp(r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$");
+    final emailRegex = RegExp(r"^[\w\-\.]+@([\w\-]+\.)+[\w\-]{2,4}$");
 
     if (!emailRegex.hasMatch(email)) {
       _emailError = "Invalid email format.";
@@ -333,6 +313,25 @@ class LoginController extends ChangeNotifier {
       _passwordError = null;
       notifyListeners();
     }
+  }
+
+  void clear() {
+    emailController.clear();
+    passwordController.clear();
+    _generalError = null;
+    _emailError = null;
+    _passwordError = null;
+    _userData = null;
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  void clearSensitiveFields() {
+    passwordController.clear();
+    _passwordError = null;
+    _generalError = null;
+    _isLoading = false;
+    notifyListeners();
   }
 
   @override

@@ -1,36 +1,63 @@
+import 'package:another_flushbar/flushbar_helper.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/common/utils/kcolors.dart';
+import 'package:flutter_application_1/global_util/services/controler/confirm_session_controller.dart';
+import 'package:flutter_application_1/global_util/services/controler/update_final_price_controller.dart';
 import 'package:flutter_application_1/screens/schedule/widgets/go_to_schedule_helper.dart';
+import 'package:flutter_application_1/screens/session_confirmation/views/session_confirmation_screen.dart';
 import 'package:flutter_application_1/screens/session_confirmation/widget/detail_row.dart';
 import 'package:flutter_application_1/screens/session_confirmation/widget/ticket_divider.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:flutter_application_1/common/utils/kcolors.dart';
-import 'package:flutter_application_1/global_util/services/controler/confirm_session_controller.dart';
 
+class ClientQrCheckinContent extends StatefulWidget {
+  final PaymentType selectedPaymentType;
+  final ValueChanged<PaymentType> onPaymentTypeChanged;
 
-class ClientQrCheckinContent extends StatelessWidget {
-  const ClientQrCheckinContent({super.key});
+  const ClientQrCheckinContent({
+    super.key,
+    required this.selectedPaymentType,
+    required this.onPaymentTypeChanged,
+  });
+
+  @override
+  State<ClientQrCheckinContent> createState() => _ClientQrCheckinContentState();
+}
+
+class _ClientQrCheckinContentState extends State<ClientQrCheckinContent> {
+  double? _localFinalPriceOverride;
+
+  String get _paymentTypeLabel {
+    switch (widget.selectedPaymentType) {
+      case PaymentType.cash:
+        return 'Cash';
+      case PaymentType.card:
+        return 'Card';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
-    goToSchedule(context);
-    return false;
-  },
+        goToSchedule(context);
+        return false;
+      },
       child: Scaffold(
         extendBodyBehindAppBar: true,
         appBar: AppBar(
           leading: IconButton(
-        icon: const Icon(Icons.arrow_back),
-        onPressed: () => goToSchedule(context),
-      ),
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => goToSchedule(context),
+          ),
           backgroundColor: Colors.transparent,
           elevation: 0,
           title: const Text(
             "Service Check-in",
-            style:
-                TextStyle(fontWeight: FontWeight.w900, color: Colors.white),
+            style: TextStyle(
+              fontWeight: FontWeight.w900,
+              color: Colors.white,
+            ),
           ),
           centerTitle: true,
           iconTheme: const IconThemeData(color: Colors.white),
@@ -42,12 +69,18 @@ class ClientQrCheckinContent extends StatelessWidget {
               height: double.infinity,
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Kolors.kPrimary,Kolors.kPrimary, Kolors.kSecondaryLight],
+                  colors: [
+                    Kolors.kPrimary,
+                    Kolors.kPrimary,
+                    Kolors.kSecondaryLight,
+                  ],
                   begin: Alignment.topRight,
                   end: Alignment.bottomLeft,
                 ),
               ),
-              child: SafeArea(child: _buildContent(controller)),
+              child: SafeArea(
+                child: _buildContent(context, controller),
+              ),
             );
           },
         ),
@@ -55,10 +88,14 @@ class ClientQrCheckinContent extends StatelessWidget {
     );
   }
 
-  Widget _buildContent(ClientCheckinController controller) {
+  Widget _buildContent(
+    BuildContext context,
+    ClientCheckinController controller,
+  ) {
     if (controller.isLoading) {
       return const Center(
-          child: CircularProgressIndicator(color: Colors.white));
+        child: CircularProgressIndicator(color: Colors.white),
+      );
     }
 
     if (controller.error != null) {
@@ -69,9 +106,13 @@ class ClientQrCheckinContent extends StatelessWidget {
       return _buildErrorState("No check-in token available");
     }
 
-    final price =
-        controller.token!.shipment?.serviceOrdered?.proposalPrice ??
-            '0.00';
+    final order = controller.token!.shipment?.serviceOrdered;
+    final int? orderId = order?.orderId;
+
+    final double backendFinalPrice =
+        double.tryParse(order?.finalPrice?.toString() ?? '') ?? 0.00;
+
+    final double displayedPrice = _localFinalPriceOverride ?? backendFinalPrice;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
@@ -97,7 +138,9 @@ class ClientQrCheckinContent extends StatelessWidget {
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     border: Border.all(
-                        color: Kolors.kSecondaryLight, width: 2),
+                      color: Kolors.kSecondaryLight,
+                      width: 2,
+                    ),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: QrImageView(
@@ -124,16 +167,76 @@ class ClientQrCheckinContent extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(24, 0, 24, 30),
                   child: Column(
                     children: [
-                      DetailRow(
+                      _EditablePriceRow(
                         label: "Amount Due",
-                        value: "R $price",
+                        value: "R ${displayedPrice.toStringAsFixed(2)}",
                         icon: Icons.payments_outlined,
+                        enabled: orderId != null,
+                        onEdit: orderId == null
+                            ? null
+                            : () => _editFinalPrice(
+                                  context: context,
+                                  orderId: orderId,
+                                  currentPrice: displayedPrice,
+                                ),
+                      ),
+                      const SizedBox(height: 16),
+                      _PaymentTypeSelector(
+                        selectedPaymentType: widget.selectedPaymentType,
+                        onChanged: widget.onPaymentTypeChanged,
+                      ),
+                      const SizedBox(height: 16),
+                      DetailRow(
+                        label: "Payment Type",
+                        value: _paymentTypeLabel,
+                        icon: widget.selectedPaymentType == PaymentType.cash
+                            ? Icons.money
+                            : Icons.credit_card,
                       ),
                       const SizedBox(height: 16),
                       DetailRow(
                         label: "Expires In",
                         value: controller.formattedRemaining,
                         icon: Icons.timer_outlined,
+                      ),
+                      const SizedBox(height: 12),
+                      Consumer<PatchOrderFinalPriceController>(
+                        builder: (context, patchCtrl, _) {
+                          if (patchCtrl.isLoading) {
+                            return const Padding(
+                              padding: EdgeInsets.only(top: 8),
+                              child: LinearProgressIndicator(),
+                            );
+                          }
+
+                          if (patchCtrl.error != null) {
+                            return Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              child: Text(
+                                patchCtrl.error!,
+                                style: const TextStyle(
+                                  color: Colors.red,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            );
+                          }
+
+                          if (patchCtrl.successMessage != null) {
+                            return Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              child: Text(
+                                patchCtrl.successMessage!,
+                                style: const TextStyle(
+                                  color: Colors.green,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            );
+                          }
+
+                          return const SizedBox.shrink();
+                        },
                       ),
                     ],
                   ),
@@ -146,17 +249,327 @@ class ClientQrCheckinContent extends StatelessWidget {
     );
   }
 
+  Future<void> _editFinalPrice({
+    required BuildContext context,
+    required int orderId,
+    required double currentPrice,
+  }) async {
+    final patchController = context.read<PatchOrderFinalPriceController>();
+
+    final newPrice = await showDialog<double>(
+      context: context,
+      builder: (dialogContext) {
+        return _EditFinalPriceDialog(initialPrice: currentPrice);
+      },
+    );
+
+    if (newPrice == null) return;
+    if (newPrice == currentPrice) return;
+
+    final proceed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Confirm Price Update'),
+          content: Text(
+            'Proceed with updating the final price to '
+            'R ${newPrice.toStringAsFixed(2)}?\n\n'
+            'Payment Type: $_paymentTypeLabel',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('No'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Yes, update'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (proceed != true) return;
+    if (!mounted) return;
+
+    patchController.clearState();
+
+    final success = await patchController.patchFinalPrice(
+      orderId: orderId,
+      finalPrice: newPrice,
+      isNegotiated: true,
+    );
+
+    if (!mounted) return;
+
+    if (success) {
+      setState(() {
+        _localFinalPriceOverride = newPrice;
+      });
+
+      FlushbarHelper.createSuccess(
+        message:
+            'Final price updated to R ${newPrice.toStringAsFixed(2)}. Payment type: $_paymentTypeLabel.',
+      ).show(context);
+    }
+  }
+
   Widget _buildErrorState(String message) {
     return Center(
       child: Container(
         margin: const EdgeInsets.all(24),
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20)),
-        child: Text(message,
-            style: const TextStyle(
-                color: Colors.red, fontWeight: FontWeight.bold)),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          message,
+          style: const TextStyle(
+            color: Colors.red,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EditFinalPriceDialog extends StatefulWidget {
+  final double initialPrice;
+
+  const _EditFinalPriceDialog({
+    required this.initialPrice,
+  });
+
+  @override
+  State<_EditFinalPriceDialog> createState() => _EditFinalPriceDialogState();
+}
+
+class _EditFinalPriceDialogState extends State<_EditFinalPriceDialog> {
+  late final TextEditingController _textController;
+
+  @override
+  void initState() {
+    super.initState();
+    _textController = TextEditingController(
+      text: widget.initialPrice.toStringAsFixed(2),
+    );
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final parsed = double.tryParse(
+      _textController.text.trim().replaceAll(',', '.'),
+    );
+
+    if (parsed == null || parsed < 0) {
+      FlushbarHelper.createError(
+        message: 'Please enter a valid non-negative number.',
+      ).show(context);
+      return;
+    }
+
+    Navigator.of(context).pop(parsed);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Edit Final Price'),
+      content: TextField(
+        controller: _textController,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        autofocus: true,
+        decoration: const InputDecoration(
+          labelText: 'Final price',
+          prefixText: 'R ',
+          border: OutlineInputBorder(),
+        ),
+        onSubmitted: (_) => _submit(),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: _submit,
+          child: const Text('Continue'),
+        ),
+      ],
+    );
+  }
+}
+
+class _PaymentTypeSelector extends StatelessWidget {
+  final PaymentType selectedPaymentType;
+  final ValueChanged<PaymentType> onChanged;
+
+  const _PaymentTypeSelector({
+    required this.selectedPaymentType,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Row(
+          children: [
+            Icon(Icons.account_balance_wallet_outlined, color: Kolors.kPrimary),
+            SizedBox(width: 8),
+            Text(
+              'Payment Type',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: Colors.black87,
+                fontSize: 15,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _PaymentTypeCard(
+                title: 'Cash',
+                icon: Icons.money,
+                isSelected: selectedPaymentType == PaymentType.cash,
+                onTap: () => onChanged(PaymentType.cash),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _PaymentTypeCard(
+                title: 'Card',
+                icon: Icons.credit_card,
+                isSelected: selectedPaymentType == PaymentType.card,
+                onTap: () => onChanged(PaymentType.card),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _PaymentTypeCard extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _PaymentTypeCard({
+    required this.title,
+    required this.icon,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final borderColor = isSelected ? Kolors.kPrimary : Colors.grey.shade300;
+    final bgColor = isSelected
+        ? Kolors.kPrimary.withOpacity(0.08)
+        : Colors.grey.shade50;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: borderColor,
+            width: isSelected ? 2 : 1.2,
+          ),
+        ),
+        child: Column(
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? Kolors.kPrimary : Colors.black54,
+              size: 26,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: isSelected ? Kolors.kPrimary : Colors.black87,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EditablePriceRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  final bool enabled;
+  final VoidCallback? onEdit;
+
+  const _EditablePriceRow({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.enabled,
+    required this.onEdit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: enabled ? onEdit : null,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: Row(
+          children: [
+            Icon(icon, color: Kolors.kPrimary),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+            Text(
+              value,
+              style: const TextStyle(
+                fontWeight: FontWeight.w800,
+                color: Kolors.kPrimary,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(
+              Icons.edit_outlined,
+              size: 18,
+              color: enabled ? Kolors.kPrimary : Colors.grey,
+            ),
+          ],
+        ),
       ),
     );
   }

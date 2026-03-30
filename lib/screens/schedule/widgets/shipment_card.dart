@@ -46,7 +46,7 @@ class ShipmentScheduleCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        order?.title ?? 'Service Request',
+                        order?.title?.toUpperCase() ?? 'Service Request',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w900,
@@ -123,7 +123,7 @@ class ShipmentScheduleCard extends StatelessWidget {
     return;
   }
 
-  /// 🚀 2. AWAITING CONFIRMATION → QR CHECKIN
+
   if (orderStatus == 'awaiting_confirmation') {
     Navigator.push(
       context,
@@ -135,7 +135,7 @@ class ShipmentScheduleCard extends StatelessWidget {
     return;
   }
 
-  /// 🚀 3. CHECK SESSION ONLY IF NEEDED
+ 
   final sessionController = context.read<SessionByShipmentController>();
   await sessionController.fetchSession(shipment.shipmentId.toString());
   if (!context.mounted) return;
@@ -151,7 +151,6 @@ class ShipmentScheduleCard extends StatelessWidget {
     return;
   }
 
-  /// 🚀 4. DEFAULT → TRACK SCREEN
   Navigator.push(
     context,
     MaterialPageRoute(
@@ -231,11 +230,16 @@ class StatusChip extends StatelessWidget {
       case 'pending':
         color = Colors.orange;
         break;
-      case 'completed':
+      case 'arrived':
         color = Colors.green;
         break;
       case 'cancelled':
         color = Colors.red;
+      case 'in_transit':
+        color = Colors.blue;
+      case 'in_session':
+        color = Colors.purple;
+      
         break;
       default:
         color = Kolors.kPrimary;

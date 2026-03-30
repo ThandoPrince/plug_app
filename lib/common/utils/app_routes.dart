@@ -29,13 +29,8 @@ final GoRouter _router = GoRouter(
     AppNavigationObserver(), 
   ],
    navigatorKey: navigatorKey,
-  initialLocation: '/',
+  initialLocation: '/splash',
   routes: [
-
-    GoRoute(
-  path: '/',
-  builder: (context, state) => const SpashScreen(), 
-),
 
     GoRoute(
       path: '/splash',

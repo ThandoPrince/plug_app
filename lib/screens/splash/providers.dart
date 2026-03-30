@@ -1,11 +1,13 @@
+import 'package:flutter_application_1/global_util/services/controler/address_a_creation_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/completed_service_controller.dart';
+import 'package:flutter_application_1/global_util/services/controler/cost_of_service_image_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/get_client_auth_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/patch_default_address_controller.dart';
+import 'package:flutter_application_1/global_util/services/controler/update_final_price_controller.dart';
 import 'package:flutter_application_1/screens/Onboarding/controllers/onboarding_notifiers.dart';
 import 'package:flutter_application_1/screens/entryPoint/controller/bottom_tab_notifier.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
-import 'package:flutter_application_1/const/services/booking_services/create_booking_api.dart';
 import 'package:flutter_application_1/global_util/services/controler/address_client_ctrl.dart';
 import 'package:flutter_application_1/global_util/services/controler/address_creation_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/address_verification_controller.dart';
@@ -20,7 +22,6 @@ import 'package:flutter_application_1/global_util/services/controler/client_pend
 import 'package:flutter_application_1/global_util/services/controler/client_profile_by_email_ctrl.dart';
 import 'package:flutter_application_1/global_util/services/controler/client_profile_creation_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/confirm_session_controller.dart';
-import 'package:flutter_application_1/global_util/services/controler/cost_of_service_byemail_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/create_booking_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/def_add_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/get_client_shipment_ctrl.dart';
@@ -55,7 +56,7 @@ List<SingleChildWidget> appProviders = [
   ChangeNotifierProvider(create: (_) => ClientDetailsController()),
   ChangeNotifierProvider(create: (_) => AddressCreationController()),
   ChangeNotifierProvider(create: (_) => DefAddController()),
-  ChangeNotifierProvider(create: (_) => CostOfServiceByemailController()),
+  ChangeNotifierProvider(create: (_) => ServiceProviderByEmailController()),
   ChangeNotifierProvider(create: (_) => AddressController()),
   ChangeNotifierProvider(create: (_) => SpAddressController()),
   ChangeNotifierProvider(create: (_) => ServiceController()..fetchServices()),
@@ -67,9 +68,11 @@ List<SingleChildWidget> appProviders = [
   ChangeNotifierProvider(create: (_) => NegotiationByIdController()),
   ChangeNotifierProvider(create: (_) => NegotationByOrderIDController()),
   ChangeNotifierProvider(create: (_) => LocationController()),
+  ChangeNotifierProvider(create: (_) => PatchOrderFinalPriceController()),
   ChangeNotifierProvider(create: (_) => LocationPermissionCtrl()),
+  ChangeNotifierProvider(create: (_) => CostOfServiceImageController()),
   ChangeNotifierProvider(
-      create: (_) => BookingController(apiService: BookingApiService())),
+      create: (_) => BookingController()),
   ChangeNotifierProvider(create: (_) => ServiceProviderByEmailController()),
   ChangeNotifierProvider(create: (_) => SpAddressControllerByID()),
   ChangeNotifierProvider(
@@ -122,6 +125,7 @@ ChangeNotifierProvider<DefAddController>(
   ),
 ),
   ChangeNotifierProvider(create: (_) => ShipmentController()),
+  ChangeNotifierProvider(create: (_) => AddressACreationController()),
   ChangeNotifierProvider(create: (_) => AddressClientCtrl()),
   ChangeNotifierProvider(create: (_) => ShipmentConfirmController()),
   ChangeNotifierProvider(create: (_) => ClientCheckinController()),

@@ -81,7 +81,10 @@ class CreateServiceWidget extends StatelessWidget {
               .toList();
 
           final selectedCosts =
-              await CostOfServiceByEmailApi.fetchCostsByEmails(emails);
+             await CostOfServiceApi.fetchCostsByEmailsAndService(
+            emails,
+            selectedServiceId,
+          );
 
           Navigator.of(context).pop();
 

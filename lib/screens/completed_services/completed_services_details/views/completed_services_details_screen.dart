@@ -68,7 +68,7 @@ class ClientRatingDetailsScreen extends StatelessWidget {
                         child: CircleAvatar(
                           radius: 42.r,
                           backgroundImage: NetworkImage(
-                              'http://192.168.18.64:8000${provider?.profileImage ?? ''}'),
+                              provider?.profileImageUrl ?? ''),
                         ),
                       ),
                       SizedBox(height: 12.h),
@@ -142,12 +142,17 @@ class ClientRatingDetailsScreen extends StatelessWidget {
   // 4. Action Button
   ElevatedButton(
   onPressed: () async {
-    final controller = context.read<CostOfServiceByemailController>();
+    final controller = context.read<CostOfServiceController>();
 
     final email = rating.session!.shipment!.serviceOrdered!
         .providerForService!.provider.spProfile.emailAddress;
 
-    await controller.fetchCostOfServiceByEmail(email);
+    await controller.fetchCostsByEmailsAndService(
+  [email],
+  rating.session!.shipment!.serviceOrdered!.serviceRequired!.serviceId,
+);
+
+    
 
     final costOfService = controller.costs;
 

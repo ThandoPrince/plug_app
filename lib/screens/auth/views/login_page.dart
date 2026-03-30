@@ -20,6 +20,12 @@ class _AuthLoginScreenState extends State<AuthLoginScreen> {
   bool _obscurePassword = true;
 
   @override
+void dispose() {
+  LoginController.instance.clear();
+  super.dispose();
+}
+
+  @override
   Widget build(BuildContext context) {
     const primaryColor = Kolors.kPrimary;
 
@@ -106,7 +112,7 @@ class _AuthLoginScreenState extends State<AuthLoginScreen> {
                                   if (success) {
                                     final email = loginController
                                         .emailController.text
-                                        .trim();
+                                        .trim().toLowerCase();
 
                                     SuccessOverlay.show(
                                       context,

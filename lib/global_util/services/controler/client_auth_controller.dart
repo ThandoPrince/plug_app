@@ -33,7 +33,7 @@ class ClientAuthProvider extends ChangeNotifier {
 
   try {
     final response = await ClientAuthApi.register(
-      email: emailController.text.trim(),
+      email: emailController.text.trim().toLowerCase(),
       mobile: mobileController.text.trim(),
       password: passwordController.text.trim(),
     );

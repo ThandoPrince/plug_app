@@ -105,10 +105,13 @@ class _ServiceProvidersByServiceScreenState
       appBar: AppBar(
         backgroundColor: primaryColor,
         elevation: 0,
-        centerTitle: true,
+        centerTitle: false,
+        iconTheme: const IconThemeData(
+    color: Colors.white, // back button color
+  ),
         title: Text(
           widget.serviceName,
-          style: appStyle(16, Kolors.kOffWhite, FontWeight.w700),
+          style: appStyle(18, Kolors.kOffWhite, FontWeight.w700),
         ),
         actions: [
           
@@ -247,7 +250,10 @@ class _ServiceProvidersByServiceScreenState
           .toList();
 
       final costs =
-          await CostOfServiceByEmailApi.fetchCostsByEmails(emails);
+          await CostOfServiceApi.fetchCostsByEmailsAndService(
+            emails,
+            widget.serviceId,
+          );
 
       setState(() => _isLoadingCosts = false);
 

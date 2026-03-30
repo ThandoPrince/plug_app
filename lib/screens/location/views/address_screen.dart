@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
+import 'package:flutter_application_1/global_util/services/controler/address_a_creation_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/address_client_ctrl.dart';
-import 'package:flutter_application_1/global_util/services/controler/address_creation_controller.dart';
+
 import 'package:flutter_application_1/global_util/services/controler/auth_session_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/home_here_map_controller.dart';
 
@@ -28,7 +29,7 @@ class MainAddAddressScreen extends StatelessWidget {
     
 
     return ChangeNotifierProvider(
-      create: (_) => AddressCreationController(),
+      create: (_) => AddressACreationController(),
       child: Scaffold(
         body: Container(
           width: double.infinity,
@@ -41,7 +42,7 @@ class MainAddAddressScreen extends StatelessWidget {
             ),
           ),
           child: SafeArea(
-            child: Consumer<AddressCreationController>(
+            child: Consumer<AddressACreationController>(
               builder: (context, ctrl, child) {
                 return Column(
                   children: [
@@ -112,7 +113,7 @@ class MainAddAddressScreen extends StatelessWidget {
   // ===============================
 
   Widget _buildSearchField(
-      BuildContext context, AddressCreationController ctrl) {
+      BuildContext context, AddressACreationController ctrl) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -153,7 +154,7 @@ class MainAddAddressScreen extends StatelessWidget {
   // ADDRESS PREVIEW
   // ===============================
 
-  Widget _buildAddressPreviewCard(AddressCreationController ctrl) {
+  Widget _buildAddressPreviewCard(AddressACreationController ctrl) {
     final bool valid = ctrl.isValidAddress;
 
     return Container(
@@ -193,7 +194,7 @@ class MainAddAddressScreen extends StatelessWidget {
   // SETTINGS CARD
   // ===============================
 
-  Widget _buildSettingsCard(AddressCreationController ctrl) {
+  Widget _buildSettingsCard(AddressACreationController ctrl) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -333,7 +334,7 @@ class MainAddAddressScreen extends StatelessWidget {
 
   Widget _buildBottomButton(
     BuildContext context,
-    AddressCreationController ctrl,
+    AddressACreationController ctrl,
     String email,
     Color primaryColor,
   ) {

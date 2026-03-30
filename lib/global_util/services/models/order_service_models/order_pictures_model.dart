@@ -1,3 +1,5 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 class ServicePictureModel {
   final int? id;
   final int? orderId;
@@ -31,7 +33,7 @@ class ServicePictureModel {
     };
   }
     String get image {
-    // Replace with your server's IP/domain
-    return "http://192.168.18.64:8000$imageUrl";
+   final String baseUrl = dotenv.env['MEDIA_BASE_URL'] ?? '';
+    return "$baseUrl$imageUrl";
   }
 }

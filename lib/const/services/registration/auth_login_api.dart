@@ -17,7 +17,7 @@ class AuthLoginApi {
         uri,
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          "email": email,
+          "email": email.toLowerCase(),
           "password": password,
         }),
       );
@@ -55,7 +55,7 @@ class AuthLoginApi {
         uri,
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          "email": email,
+          "email": email.toLowerCase(),
           "push_token": token,
           "device_type": deviceType,
           "device_name": deviceName,

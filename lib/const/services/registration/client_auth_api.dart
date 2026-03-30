@@ -19,7 +19,7 @@ class ClientAuthApi {
         "Content-Type": "application/json",
       },
       body: jsonEncode({
-        "email_address": email,
+        "email_address": email.toLowerCase(),
         "mobile_number": mobile,
         "password": password,
       }),

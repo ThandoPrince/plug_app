@@ -106,7 +106,7 @@ class ClientPendingOrdersBody extends StatelessWidget {
     if (status.contains('pending')) {
       statusColor = Colors.orange.shade700;
       statusIcon = Icons.access_time;
-    } else if (status.contains('accepted')) {
+    } else if (status.contains('in-negotiation')) {
       statusColor = Colors.blue.shade700;
       statusIcon = Icons.check_circle_outline;
     } else if (status.contains('declined') || status.contains('rejected')) {

@@ -74,9 +74,9 @@ class _ClientRatingsScreenState extends State<ClientRatingsScreen> {
                   else if (rating.score is String) score = int.tryParse(rating.score as String) ?? 0;
                 }
 
-                final providerImageUrl = provider?.profileImage != null && provider!.profileImage!.isNotEmpty
-                    ? 'http://192.168.18.64:8000${provider.profileImage}'
-                    : null;
+                final providerImageUrl = provider?.profileImageUrl != null && provider!.profileImageUrl!.isNotEmpty;
+                    
+                   
 
                 return _buildGlassListItem(
                   onTap: () => Navigator.push(
@@ -94,7 +94,7 @@ class _ClientRatingsScreenState extends State<ClientRatingsScreen> {
                         child: CircleAvatar(
                           radius: 28.r,
                           backgroundColor: Colors.white12,
-                          backgroundImage: providerImageUrl != null ? NetworkImage(providerImageUrl) : null,
+                          backgroundImage: providerImageUrl != null ? NetworkImage(providerImageUrl.toString()) : null,
                           child: providerImageUrl == null ? Icon(Icons.person, color: Colors.white) : null,
                         ),
                       ),

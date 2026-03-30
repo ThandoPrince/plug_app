@@ -1,4 +1,5 @@
 import 'package:flutter_application_1/global_util/services/models/cost_of_service_model.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'sp_address_model.dart';
 import 'sp_profile_model.dart';
@@ -80,5 +81,10 @@ class ServiceProviderModel {
       'sp_profile': spProfile.toJson(),
   
     };
+  }
+  String get profileImageUrl {
+    final String baseUrl = dotenv.env['MEDIA_BASE_URL'] ?? '';
+    // Replace with your server's IP/domain
+    return "$baseUrl$profileImage";
   }
 }

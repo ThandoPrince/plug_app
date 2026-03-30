@@ -20,13 +20,18 @@ class BookingUtils {
     );
     return pickedDate;
   }
+/// Show time picker and return selected time
+static Future<TimeOfDay?> pickTime(BuildContext context) async {
+  final now = DateTime.now();
 
-  /// Show time picker and return selected time
-  static Future<TimeOfDay?> pickTime(BuildContext context) async {
-    final pickedTime = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
-    );
-    return pickedTime;
-  }
+  // Add 1 hour and 10 minutes
+  final futureTime = now.add(const Duration(hours: 1, minutes: 10));
+
+  final pickedTime = await showTimePicker(
+    context: context,
+    initialTime: TimeOfDay.fromDateTime(futureTime),
+  );
+
+  return pickedTime;
+}
 }
