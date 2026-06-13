@@ -57,7 +57,7 @@ class LocationController extends ChangeNotifier {
   // Fetch addresses from backend
   Future<void> loadAddresses(String email) async {
     try {
-      _addresses = await AddressApi.getClientAddresses(email);
+      _addresses = await AddressApi.getClientAddresses();
       notifyListeners();
     } catch (e) {
       _locationError = "Failed to load addresses: $e";

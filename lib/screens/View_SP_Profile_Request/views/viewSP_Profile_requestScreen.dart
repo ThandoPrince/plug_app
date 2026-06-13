@@ -11,12 +11,13 @@ import 'package:flutter_application_1/screens/booking/views/MultiProviderBooking
 import 'package:provider/provider.dart';
 
 class ServiceProviderDetailsScreen extends StatefulWidget {
-  final String email;
+  final int id;
   final int serviceId;
 
   const ServiceProviderDetailsScreen({
     super.key,
-    required this.email,
+    
+    required this.id,
     required this.serviceId,
   });
 
@@ -45,7 +46,7 @@ class _ServiceProviderDetailsScreenState
   }
 
   Future<void> _loadData() async {
-    await spController.fetchProviderByEmail(widget.email);
+    await spController.fetchProviderByEmail(widget.id);
 
     if (mounted) {
       setState(() {
@@ -54,7 +55,7 @@ class _ServiceProviderDetailsScreenState
     }
 
     await costController.fetchCostByEmailAndService(
-      widget.email,
+      widget.id,
       widget.serviceId,
     );
 
@@ -146,7 +147,7 @@ class _ServiceProviderDetailsScreenState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SPDetailsBody(email: widget.email),
+                SPDetailsBody(id: widget.id.toString()),
                 const SizedBox(height: 16),
 
                 Consumer<CostOfServiceController>(

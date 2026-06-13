@@ -15,13 +15,13 @@ class ClientProfileController with ChangeNotifier {
   List<ClientDetailModel>? get clientProfiles => _clientProfiles;
 
   /// Fetch single client by email
-  Future<void> fetchClientByEmail(String email) async {
+  Future<void> fetchClientByEmail(int id) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      _clientProfile = await ClientProfileApi.fetchClientProfileByEmail(email);
+      _clientProfile = await ClientProfileApi.fetchClientProfileByEmail(id);
     } catch (e) {
       _errorMessage = e.toString();
       _clientProfile = null;

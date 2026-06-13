@@ -5,9 +5,9 @@ import 'package:flutter_application_1/global_util/services/controler/sp_by_email
 import 'package:provider/provider.dart';
 
 class SPDetailsBody extends StatefulWidget {
-  final String email;
+  final String id;
 
-  const SPDetailsBody({super.key, required this.email});
+  const SPDetailsBody({super.key, required this.id});
 
   @override
   State<SPDetailsBody> createState() => _SPDetailsBodyState();
@@ -18,8 +18,11 @@ class _SPDetailsBodyState extends State<SPDetailsBody> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<ServiceProviderByEmailController>(context, listen: false)
-          .fetchProviderByEmail(widget.email);
+      final providerId = int.tryParse(widget.id);
+      if (providerId != null) {
+        Provider.of<ServiceProviderByEmailController>(context, listen: false)
+            .fetchProviderByEmail(providerId);
+      }
     });
   }
 

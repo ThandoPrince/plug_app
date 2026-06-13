@@ -1,11 +1,11 @@
 class ClientAuthModel {
-  final int? id;
+  final int id;
   final String emailAddress;
   final String mobileNumber;
   final String profileStatus; 
 
   ClientAuthModel({
-    this.id,
+    required this.id,
     required this.emailAddress,
     required this.mobileNumber,
     required this.profileStatus,
@@ -14,7 +14,7 @@ class ClientAuthModel {
   factory ClientAuthModel.fromJson(Map<String, dynamic>? json) {
     if (json == null) {
       return ClientAuthModel(
-        id: null,
+        id: 0,
         emailAddress: '',
         mobileNumber: '',
         profileStatus: 'in-details',
@@ -22,7 +22,7 @@ class ClientAuthModel {
     }
 
     return ClientAuthModel(
-      id: json['id'] as int?,
+      id: json['id'] as int? ?? 0,
       emailAddress: json['email_address'] as String? ?? '',
       mobileNumber: json['mobile_number'] as String? ?? '',
       profileStatus:

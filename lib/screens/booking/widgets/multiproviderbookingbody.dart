@@ -130,9 +130,9 @@ class _MultiProviderBookingBodyState extends State<MultiProviderBookingBody> {
   }
 
   void _openProviderDetails(ServiceProviderModel provider) {
-    final providerEmail = provider.spProfile.emailAddress.trim();
+    final providerEmail = provider.spProfile.id;
 
-    if (providerEmail.isEmpty) {
+    if (providerEmail == null ) {
       FlushbarService.error(
         context,
         "This provider does not have a valid email address.",
@@ -144,7 +144,7 @@ class _MultiProviderBookingBodyState extends State<MultiProviderBookingBody> {
       context,
       MaterialPageRoute(
         builder: (_) => ServiceProviderScreen(
-          email: providerEmail,
+          id: providerEmail,
           serviceId: widget.serviceId,
         ),
       ),

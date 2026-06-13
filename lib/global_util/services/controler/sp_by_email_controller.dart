@@ -10,14 +10,14 @@ class ServiceProviderByEmailController extends ChangeNotifier {
 
 
 
-  Future<void> fetchProviderByEmail(String email) async {
+  Future<void> fetchProviderByEmail(int id) async {
     isLoading = true;
     notifyListeners();
 
 
 
     try {
-      provider = await ServiceProviderByEmailApi.fetchProviderByEmail(email);
+      provider = await ServiceProviderByEmailApi.fetchProviderByEmail(id);
       error = null;
     } catch (e) {
       error = e.toString();

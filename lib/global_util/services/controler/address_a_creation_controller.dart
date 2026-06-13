@@ -1,8 +1,6 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/const/services/registration/address_creation_helper.dart';
-import 'package:flutter_application_1/global_util/services/controler/auth_session_controller.dart';
 import 'package:flutter_google_places_hoc081098/google_maps_webservice_places.dart';
 
 class AddressACreationController with ChangeNotifier {
@@ -195,12 +193,7 @@ void dispose() {
       decodedBody = jsonDecode(response.body);
     }
 
-    if (response.statusCode == 201 && decodedBody != null) {
-      if (email.isNotEmpty) {
-        await AuthSessionController.instance.setSession(email);
-      }
-      return decodedBody;
-    }
+    
 
     error = decodedBody?['error'] ??
         decodedBody?['detail'] ??

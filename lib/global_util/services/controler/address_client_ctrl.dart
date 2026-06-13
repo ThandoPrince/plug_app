@@ -18,7 +18,7 @@ class AddressClientCtrl with ChangeNotifier {
     notifyListeners();
 
     try {
-      _addresses = await AddressClientsApi.getAddressClients(email);
+      _addresses = await AddressClientsApi.getAddressClients();
     } catch (e) {
       _errorMessage = e.toString();
       _addresses = [];

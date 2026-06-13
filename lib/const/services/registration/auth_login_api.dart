@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter_application_1/global_util/services/models/client_models/client_login_response_model.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
@@ -6,34 +7,29 @@ class AuthLoginApi {
   final String baseUrl = dotenv.env['API_BASE_URL'] ?? '';
 
   /// ---------------- LOGIN ----------------
-  Future<Map<String, dynamic>> login({
-    required String email,
+    Future<ClientLoginResponse> login({
+    required String identifier,
     required String password,
   }) async {
     final uri = Uri.parse('$baseUrl/clientsDB/login/');
 
-    try {
-      final response = await http.post(
-        uri,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          "email": email.toLowerCase(),
-          "password": password,
-        }),
-      );
+    final response = await http.post(
+      uri,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        "identifier": identifier.toLowerCase().trim(),
+        "password": password,
+      }),
+    );
 
-      final data = jsonDecode(response.body);
+    final data = jsonDecode(response.body);
+    final decoded = jsonDecode(response.body);
 
-      return {
-        "statusCode": response.statusCode,
-        "data": data,
-      };
-    } catch (e) {
-      return {
-        "statusCode": 500,
-        "data": {"error": "Something went wrong: $e"},
-      };
+    if (response.statusCode == 200) {
+      return ClientLoginResponse.fromJson(decoded['data']);
     }
+
+    throw Exception(data['error'] ?? data['message'] ?? "Login failed");
   }
 
   /// ---------------- PUSH TOKEN REGISTER ----------------

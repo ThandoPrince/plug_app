@@ -9,12 +9,12 @@ import 'package:flutter_application_1/screens/sp_profile/widgets%20copy/spbody.d
 import 'package:provider/provider.dart';
 
 class ServiceProviderScreen extends StatefulWidget {
-  final String email;
+  final int id;
   final int serviceId;
 
   const ServiceProviderScreen({
     super.key,
-    required this.email,
+    required this.id,
     required this.serviceId,
   });
 
@@ -43,7 +43,7 @@ class _ServiceProviderScreenState
   }
 
   Future<void> _loadData() async {
-    await spController.fetchProviderByEmail(widget.email);
+    await spController.fetchProviderByEmail(widget.id);
 
     if (mounted) {
       setState(() {
@@ -52,7 +52,7 @@ class _ServiceProviderScreenState
     }
 
     await costController.fetchCostByEmailAndService(
-      widget.email,
+      widget.id,
       widget.serviceId,
     );
 
@@ -115,7 +115,7 @@ class _ServiceProviderScreenState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SPBody(email: widget.email),
+                SPBody(id: widget.id),
                 const SizedBox(height: 16),
 
                 Consumer<CostOfServiceController>(

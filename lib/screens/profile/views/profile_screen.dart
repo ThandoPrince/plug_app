@@ -30,6 +30,7 @@ class Profile extends StatefulWidget {
 
 class _ProfileState extends State<Profile> {
   final ImagePicker _picker = ImagePicker();
+  
 
   late final ClientProfileController _profileCtrl;
   late final AddressClientCtrl _addressCtrl;
@@ -39,8 +40,8 @@ class _ProfileState extends State<Profile> {
     super.initState();
     _profileCtrl = ClientProfileController();
     _addressCtrl = AddressClientCtrl();
-
-    _profileCtrl.fetchClientByEmail(widget.email);
+   final clientId =  AuthSessionController.instance.clientId;
+    _profileCtrl.fetchClientByEmail(clientId!);
     _addressCtrl.fetchAddresses(widget.email);
   }
 

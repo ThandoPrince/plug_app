@@ -110,20 +110,22 @@ GoRoute(
 ),
 
 GoRoute(
-  path: '/provider-details/:email',
+  path: '/provider-details/:id',
   name: 'providerDetails',
   builder: (context, state) {
-    final email = state.pathParameters['email']!;
-    final serviceIdStr = state.uri.queryParameters['serviceId'];
-    final serviceId = serviceIdStr != null ? int.tryParse(serviceIdStr) : null;
+    final id = int.tryParse(state.pathParameters['id'] ?? '');
+    final serviceId = int.tryParse(state.uri.queryParameters['serviceId'] ?? '');
 
-    if (serviceId == null) {
-      return Scaffold(
-        body: Center(child: Text('Missing or invalid serviceId')),
+    if (id == null || serviceId == null) {
+      return const Scaffold(
+        body: Center(child: Text('Invalid route parameters')),
       );
     }
 
-    return ServiceProviderDetailsScreen(email: email, serviceId: serviceId);
+    return ServiceProviderDetailsScreen(
+      id: id,
+      serviceId: serviceId,
+    );
   },
 ),
 

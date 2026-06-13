@@ -203,13 +203,7 @@ class AddressCreationController with ChangeNotifier {
         decodedBody = jsonDecode(response.body);
       }
 
-      if (response.statusCode == 201 && decodedBody != null) {
-        if (email.isNotEmpty) {
-          await AuthSessionController.instance.setSession(email);
-          await _fetchAndSendPushToken(email);
-        }
-        return decodedBody;
-      }
+      
 
       error = decodedBody?['error'] ??
           decodedBody?['detail'] ??

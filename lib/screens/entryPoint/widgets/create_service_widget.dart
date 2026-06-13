@@ -75,14 +75,14 @@ class CreateServiceWidget extends StatelessWidget {
           }
 
           /// 💰 Fetch costs
-          final emails = spByAddrCtrl.serviceProviders
-              .map((sp) => sp.spProfile.emailAddress)
-              .whereType<String>()
-              .toList();
+          final ids = spByAddrCtrl.serviceProviders
+    .map((sp) => int.tryParse(sp.spProfile.id.toString()))
+    .whereType<int>()
+    .toList();
 
           final selectedCosts =
              await CostOfServiceApi.fetchCostsByEmailsAndService(
-            emails,
+            ids,
             selectedServiceId,
           );
 

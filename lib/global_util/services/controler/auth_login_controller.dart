@@ -44,53 +44,51 @@ class LoginController extends ChangeNotifier {
   StreamSubscription<String>? _firebaseTokenRefreshSubscription;
 
   Future<bool> login() async {
-    _startLoading();
-    _clearAllErrors();
+  _startLoading();
+  _clearAllErrors();
 
-    if (!_validateInputs()) {
-      _stopLoading();
-      return false;
-    }
-
-    try {
-      final email = emailController.text.trim();
-      final password = passwordController.text.trim();
-
-      if (kDebugMode) {
-        print("POST DATA: {'email': '$email', 'password': '$password'}");
-      }
-
-      final response = await _apiHelper.login(
-        email: email,
-        password: password,
-      );
-
-      if (response['statusCode'] != 200) {
-        _handleBackendErrors(response['statusCode'], response['data']);
-        return false;
-      }
-
-      _userData = response['data'];
-
-      if (_userData?['email'] != null) {
-        await AuthSessionController.instance.setSession(_userData!['email']);
-
-        if (kDebugMode) {
-          print("Session set for ${_userData!['email']}");
-        }
-
-        await _fetchAndSendPushToken(_userData!['email']);
-      }
-
-      return true;
-    } catch (e) {
-      _generalError = "Unable to connect to the server: $e";
-      notifyListeners();
-      return false;
-    } finally {
-      _stopLoading();
-    }
+  if (!_validateInputs()) {
+    _stopLoading();
+    return false;
   }
+
+  try {
+    final result = await _apiHelper.login(
+      identifier: emailController.text.trim().toString(),
+      password: passwordController.text.trim(),
+    );
+
+    if (result.id == null || result.accessToken == null || result.refreshToken == null) {
+  _generalError = "Incomplete login response";
+  return false;
+}
+
+    final clientId = result.id;
+    if (clientId == null) {
+      _generalError = 'Login response missing client id';
+      return false;
+    }
+
+    // ✅ SESSION
+    await AuthSessionController.instance.setSession(
+      clientId: clientId,
+      email: result.email.toString(),
+      accessToken: result.accessToken.toString(),
+      refreshToken: result.refreshToken.toString(),
+    );
+
+    _userData = {
+      "id": clientId,
+      "email": result.email.toString(),
+    };
+    return true;
+  } catch (e) {
+    _generalError = e.toString();
+    return false;
+  } finally {
+    _stopLoading();
+  }
+}
 
   Future<void> _fetchAndSendPushToken(String email) async {
     if (!Platform.isAndroid) return;

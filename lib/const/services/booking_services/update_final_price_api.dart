@@ -1,61 +1,64 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+
+import 'package:flutter_application_1/const/services/api_tokens_helper.dart';
 
 class PatchOrderFinalPriceApi {
   static final String baseUrl = dotenv.env['API_BASE_URL'] ?? '';
 
-  static Map<String, String> get _headers => {
-        'Content-Type': 'application/json',
-      };
-
+  // =========================
+  // PATCH FINAL PRICE
+  // =========================
   static Future<Map<String, dynamic>> patchFinalPrice({
     required int orderId,
     required double finalPrice,
     bool? isNegotiated,
   }) async {
-    final url = Uri.parse('$baseUrl/bookings/$orderId/final-price/');
+    final url = Uri.parse(
+      '$baseUrl/bookings/$orderId/final-price/',
+    );
 
-    final Map<String, dynamic> body = {
-      'final_price': finalPrice.toStringAsFixed(2),
+    final body = <String, dynamic>{
+      'final_price': finalPrice,
+      if (isNegotiated != null) 'is_negotiated': isNegotiated,
     };
 
-    if (isNegotiated != null) {
-      body['is_negotiated'] = isNegotiated;
-    }
+    try {
+      final response = await http.patch(
+        url,
+        headers: await ApiTokensHelper.authHeaders(),
+        body: jsonEncode(body),
+      );
 
-    final response = await http.patch(
-      url,
-      headers: _headers,
-      body: jsonEncode(body),
-    );
+      if (kDebugMode) {
+        print("Patch Final Price HTTP: ${response.statusCode}");
+        print("Response: ${response.body}");
+      }
 
-    if (response.statusCode == 200) {
       final decoded = jsonDecode(response.body);
 
-      if (decoded is Map<String, dynamic>) {
-        return decoded;
-      }
-
-      throw Exception('Unexpected response format.');
-    }
-
-    if (response.statusCode == 400 || response.statusCode == 404) {
-      try {
-        final decoded = jsonDecode(response.body);
+      if (response.statusCode == 200) {
         if (decoded is Map<String, dynamic>) {
-          throw Exception(decoded.toString());
+          return decoded;
         }
-      } catch (_) {
-        throw Exception(
-          'Failed to update final price. Status: ${response.statusCode}',
-        );
+        throw Exception('Unexpected success response format');
       }
-    }
 
-    throw Exception(
-      'Failed to update final price. '
-      'Status: ${response.statusCode}, Body: ${response.body}',
-    );
+      // Unified error handling
+      if (decoded is Map<String, dynamic>) {
+        throw Exception(decoded.toString());
+      }
+
+      throw Exception(
+        'Failed to update final price: ${response.body}',
+      );
+    } catch (e) {
+      if (kDebugMode) {
+        print('PatchOrderFinalPriceApi error: $e');
+      }
+      throw Exception('Error updating final price: $e');
+    }
   }
 }

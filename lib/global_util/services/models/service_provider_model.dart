@@ -7,6 +7,7 @@ import 'sp_profile_model.dart';
 
 
 class ServiceProviderModel {
+  
  
   final double? rating;
   final String? description;

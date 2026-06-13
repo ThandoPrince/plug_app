@@ -8,22 +8,26 @@
 
 class SPProfileModel {
   final String emailAddress;
+  int? id;
 
 
   SPProfileModel({
     required this.emailAddress,
+    this.id,
 
   });
 
   factory SPProfileModel.fromJson(Map<String, dynamic> json) {
     return SPProfileModel(
       emailAddress: json['email_address'],
+      id: json['id'],
 
     );
   }
 
   Map<String, dynamic> toJson() => {
         'email_address': emailAddress,
+        'id': id,
 
       };
 }

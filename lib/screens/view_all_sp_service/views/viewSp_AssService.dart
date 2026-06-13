@@ -227,7 +227,7 @@ class _ServiceProvidersByServiceScreenState
   void _onProviderTap(ServiceProviderModel provider) {
     context.pushNamed(
       'providerDetails',
-      pathParameters: {'email': provider.spProfile.emailAddress},
+      pathParameters: {'id': provider.spProfile.id.toString()},
       queryParameters: {'serviceId': widget.serviceId.toString()},
     );
   }
@@ -245,13 +245,14 @@ class _ServiceProvidersByServiceScreenState
     setState(() => _isLoadingCosts = true);
 
     try {
-      final emails = _selectedProviders
-          .map((p) => p.spProfile.emailAddress)
+      final ids = _selectedProviders
+          .map((p) => p.spProfile.id)
+          .whereType<int>()
           .toList();
 
       final costs =
           await CostOfServiceApi.fetchCostsByEmailsAndService(
-            emails,
+            ids,
             widget.serviceId,
           );
 

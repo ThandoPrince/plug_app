@@ -18,7 +18,7 @@ class DefAddController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _addresses = await AddressClientsApi.getAddressClients(email);
+      _addresses = await AddressClientsApi.getAddressClients();
     } catch (e) {
       _error = e.toString();
       _addresses = [];

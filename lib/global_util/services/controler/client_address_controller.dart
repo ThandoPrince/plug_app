@@ -20,8 +20,11 @@ Future<void> fetchClientAddresses(String email) async {
   _errorMessage = null;
   notifyListeners();
 
+  
+
   try {
-    _addresses = await AddressApi.getClientAddresses(email);
+    
+    _addresses = await AddressApi.getClientAddresses();
 
  
   } catch (e) {

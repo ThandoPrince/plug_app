@@ -18,7 +18,7 @@ class ClientRatingsController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _ratings = await api.fetchRatingsByClientEmail(email);
+      _ratings = await ClientCompletedServicesApi.fetchRatingsByClientEmail(email);
     } catch (e) {
       debugPrint("Error fetching client ratings: $e");
       _ratings = [];

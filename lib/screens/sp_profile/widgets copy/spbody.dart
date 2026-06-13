@@ -5,9 +5,9 @@ import 'package:flutter_application_1/global_util/services/controler/sp_by_email
 import 'package:provider/provider.dart';
 
 class SPBody extends StatefulWidget {
-  final String email;
+final int id;
 
-  const SPBody({super.key, required this.email});
+  const SPBody({super.key, required this.id});
 
   @override
   State<SPBody> createState() => _SPBodyState();
@@ -19,7 +19,7 @@ class _SPBodyState extends State<SPBody> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<ServiceProviderByEmailController>(context, listen: false)
-          .fetchProviderByEmail(widget.email);
+          .fetchProviderByEmail(widget.id);
     });
   }
 

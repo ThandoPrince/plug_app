@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_application_1/const/services/api_tokens_helper.dart';
 import 'package:flutter_application_1/global_util/services/models/order_service_models/session_token_model.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
@@ -10,50 +12,66 @@ class ConfirmCheckinApi {
 
   static final String baseUrl = dotenv.env['API_BASE_URL'] ?? '';
 
+  // =========================
+  // GET
+  // =========================
   Future<Map<String, dynamic>> get(
-    String endpoint, {
-    Map<String, String>? headers,
-  }) async {
+    String endpoint,
+  ) async {
     final response = await http.get(
       Uri.parse("$baseUrl$endpoint"),
-      headers: _defaultHeaders(headers),
+      headers: await ApiTokensHelper.authHeaders(),
     );
 
     return _handleResponse(response);
   }
 
+  // =========================
+  // POST
+  // =========================
   Future<Map<String, dynamic>> post(
     String endpoint, {
-    Map<String, String>? headers,
     Object? body,
   }) async {
     final response = await http.post(
       Uri.parse("$baseUrl$endpoint"),
-      headers: _defaultHeaders(headers),
+      headers: await ApiTokensHelper.authHeaders(),
       body: jsonEncode(body),
     );
 
     return _handleResponse(response);
   }
 
-  Map<String, String> _defaultHeaders(Map<String, String>? headers) {
-    return {
-      "Content-Type": "application/json",
-      ...?headers,
-    };
-  }
-
+  // =========================
+  // RESPONSE HANDLER
+  // =========================
   Map<String, dynamic> _handleResponse(http.Response response) {
     final decoded = jsonDecode(response.body);
 
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      return decoded;
-    } else {
-      throw Exception(decoded["detail"] ?? "API Error");
+    if (kDebugMode) {
+      print("API ${response.statusCode}: ${response.body}");
     }
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      if (decoded is Map<String, dynamic>) {
+        return decoded;
+      }
+      throw Exception("Invalid response format (expected Map)");
+    }
+
+    String message = "API Error";
+
+    if (decoded is Map<String, dynamic>) {
+      message = decoded["detail"] ?? decoded["error"] ?? decoded.toString();
+    }
+
+    throw Exception(message);
   }
 }
 
+// =========================
+// CLIENT LAYER
+// =========================
 class ClientCheckinApi {
   final ConfirmCheckinApi _api = ConfirmCheckinApi();
 

@@ -347,35 +347,33 @@ class AddAddressScreen extends StatelessWidget {
         btnWidth: double.infinity,
         radius: 16,
         onTap: (!ctrl.isValidAddress || ctrl.isLoading)
-            ? null
-            : () async {
-                final result = await ctrl.postResidentialAddress(email);
+    ? null
+    : () async {
+        try {
+          final result = await ctrl.postResidentialAddress(email);
 
-                if (result == null || !context.mounted) return;
+          if (!context.mounted) return;
+          if (result == null) return;
 
-                final data = result["data"];
+          final data = result["data"];
+          if (data == null) return;
 
-                final bool isVerified = data?["is_verified"] ?? false;
+          final bool isVerified = data["is_verified"] == true;
 
-                final int addressId = data?["address"]?["id"] ?? 0;
+          final int addressId =
+              data["address"]?["id"] ?? data["id"] ?? 0;
 
-                final String buildingType =
-                    data?["address"]?["building_type"] ?? "house";
+          final String? unitNumber = data["address"]?["unit_number"];
 
-                final String? unitNumber = buildingType == "apartment"
-                    ? data?["address"]?["unit_number"]
-                    : null;
-
-                if (!isVerified) {
-                  _showVerificationDialog(
-                    context,
-                    addressId,
-                    unitNumber,
-                  );
-                } else {
-                  _showSuccessOverlay(context);
-                }
-              },
+          if (!isVerified) {
+            _showVerificationDialog(context, addressId, unitNumber);
+          } else {
+            _showSuccessOverlay(context);
+          }
+        } catch (e) {
+          debugPrint("SAVE ADDRESS ERROR: $e");
+        }
+      },
       ),
     );
   }

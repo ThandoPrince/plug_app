@@ -13,7 +13,7 @@ class CostOfServiceController extends ChangeNotifier {
   String? get error => _error;
 
   Future<void> fetchCostsByEmailsAndService(
-    List<String> emails,
+    List<int> providerIds,
     int serviceId,
   ) async {
     _isLoading = true;
@@ -23,7 +23,7 @@ class CostOfServiceController extends ChangeNotifier {
 
     try {
       _costs = await CostOfServiceApi.fetchCostsByEmailsAndService(
-        emails,
+        providerIds,
         serviceId,
       );
 
@@ -40,7 +40,7 @@ class CostOfServiceController extends ChangeNotifier {
   }
 
   Future<void> fetchCostByEmailAndService(
-    String email,
+    int providerId,
     int serviceId,
   ) async {
     _isLoading = true;
@@ -50,7 +50,7 @@ class CostOfServiceController extends ChangeNotifier {
 
     try {
       final cost = await CostOfServiceApi.fetchCostByEmailAndService(
-        email,
+        providerId,
         serviceId,
       );
 
