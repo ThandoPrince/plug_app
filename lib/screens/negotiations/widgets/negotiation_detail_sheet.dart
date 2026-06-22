@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/global_util/services/controler/client_negotiation_round_start_ctrl.dart';
+import 'package:flutter_application_1/screens/sp_profile/views%20copy/viewSP_Profile_Screen.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:another_flushbar/flushbar.dart';
@@ -74,6 +75,45 @@ class _NegotiationDetailSheetState extends State<NegotiationDetailSheet> {
       animationDuration: const Duration(milliseconds: 300),
     ).show(widget.parentContext);
   }
+
+  void _openProviderProfile(NegotiationByIdController negotiation) {
+  final providerId = negotiation.negotiation?.providerForNegotiation?.provider.spProfile?.id;
+  final serviceId = negotiation.negotiation?.providerForNegotiation?.service.serviceId;
+
+  if (providerId == null || serviceId == null) return;
+
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => ServiceProviderScreen(id: providerId, serviceId: serviceId),
+    ),
+  );
+}
+
+void _removeFromNegotiation(NegotiationByIdController negotiation) async {
+  final confirm = await showDialog<bool>(
+    context: context,
+    builder: (_) => AlertDialog(
+      title: const Text("Remove"),
+      content: const Text("Remove this negotiation thread?"),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text("Cancel"),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context, true),
+          child: const Text("Remove"),
+        ),
+      ],
+    ),
+  );
+
+  if (confirm != true) return;
+
+  // TODO: call backend delete/block endpoint
+  Navigator.pop(context);
+}
 
   Future<void> _sendRound(ClientStartRoundController clientCtrl,
       NegotiationByIdController negoCtrl) async {
@@ -161,18 +201,43 @@ class _NegotiationDetailSheetState extends State<NegotiationDetailSheet> {
             children: [
               // Header
               Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                        negotiation.providerForNegotiation?.fullName ??
-                            "Unknown Provider",
-                        style: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              ),
+  padding: const EdgeInsets.all(16),
+  child: Row(
+    children: [
+      Expanded(
+        child: Text(
+          negotiation.providerForNegotiation?.provider.fullName ?? "Unknown Provider",
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+
+      PopupMenuButton<String>(
+        icon: const Icon(Icons.more_vert),
+        onSelected: (value) {
+          if (value == "profile") {
+            _openProviderProfile(negoCtrl);
+          } else if (value == "remove") {
+            _removeFromNegotiation(negoCtrl);
+          }
+        },
+        itemBuilder: (context) => const [
+          PopupMenuItem(
+            value: "profile",
+            child: Text("View Profile"),
+          ),
+          PopupMenuItem(
+            value: "remove",
+            child: Text("Remove / Block"),
+          ),
+        ],
+      ),
+    ],
+  ),
+),
               const Divider(height: 1),
 
               // Rounds list

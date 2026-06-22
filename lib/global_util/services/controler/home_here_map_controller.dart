@@ -1,7 +1,9 @@
 import 'dart:ui' as ui;
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/global_util/services/controler/address_client_ctrl.dart';
 import 'package:flutter_application_1/global_util/services/controler/auth_session_controller.dart';
 import 'package:here_sdk/core.dart';
 import 'package:here_sdk/mapview.dart';
@@ -56,6 +58,8 @@ class HereMapMarkerController extends ChangeNotifier {
   // ----------------------------
 
  void onMapCreated(HereMapController controller, BuildContext context) async {
+  final addressCtrl = context.read<AddressClientCtrl>();
+    
   _mapController = controller;
 
   controller.mapScene.loadSceneForMapScheme(
@@ -68,22 +72,33 @@ class HereMapMarkerController extends ChangeNotifier {
 
       _configureGestures(controller);
       _focusOnFallback();
+      
 
       await _ensureMarkerImagesLoaded();
+      await showDefaultAddress();
       await restoreMarkers();
 
       // ✅ Get email from AuthSession
       final session = context.read<AuthSessionController>();
-    final email = session.email;
-      if (email != null) {
-        await showDefaultAddress(email);
-      } else {
-        debugPrint("❌ No logged-in email found for default address.");
-      }
+   
     },
   );
 }
 
+void focusOnUserOrDefault() {
+  if (_mapController == null) return;
+
+  final coords = _defaultMarker?.coordinates ?? fallbackCenter;
+
+  _mapController!.camera.lookAtPointWithGeoOrientationAndMeasure(
+    coords,
+    GeoOrientationUpdate(0, 0),
+    MapMeasure(
+      MapMeasureKind.distanceInMeters,
+      900, // 🔥 change from 1200 → forces visual update
+    ),
+  );
+}
   void removeSpMarkers() {
   for (final m in List<MapMarker>.from(_markers)) {
     if (m.metadata?.getString("provider_id") != null) {
@@ -143,11 +158,11 @@ class HereMapMarkerController extends ChangeNotifier {
   // ----------------------------
   // Default Address
   // ----------------------------
-  Future<void> showDefaultAddress(String email) async {
+  Future<void> showDefaultAddress() async {
     if (_mapController == null) return;
     
 
-    await defAddCtrl.fetchAddresses(email);
+    await defAddCtrl.fetchAddresses();
 
     final defaultAddr = defAddCtrl.addresses.firstWhere(
       (a) => a.isDefault == true,
@@ -194,6 +209,16 @@ class HereMapMarkerController extends ChangeNotifier {
   _selectedServiceId = serviceId;
 
   await spAddrCtrl.fetchAddressesByService(serviceId);
+
+  debugPrint("Providers returned: ${spAddrCtrl.addresses.length}");
+
+for (final sp in spAddrCtrl.addresses) {
+  debugPrint(
+    "Provider ${sp.providerId} "
+    "Lat=${sp.latitude} "
+    "Lng=${sp.longitude}",
+  );
+}
 
   for (final sp in spAddrCtrl.addresses) {
     if (sp.latitude == null || sp.longitude == null) continue;

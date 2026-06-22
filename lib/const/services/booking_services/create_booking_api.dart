@@ -2,7 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_application_1/const/services/api_tokens_helper.dart';
+import 'package:flutter_application_1/const/services/auth_muli_part.api.dart';
 import 'package:flutter_application_1/global_util/services/models/client_models/address_client_model.dart';
 import 'package:flutter_application_1/global_util/services/models/service_provider_model.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -24,7 +26,7 @@ class BookingApiResult {
 
 class BookingApiHelper {
   Future<BookingApiResult> submitBooking({
-    required String clientEmail,
+    required String clientId,
     required String title,
     required String notes,
     required DateTime scheduled,
@@ -35,9 +37,9 @@ class BookingApiHelper {
     required double? averagePrice,
     required double negotiatedPrice,
   }) async {
-    final invitedProvidersEmails = selectedProviders
-        .map((sp) => sp.spProfile.emailAddress.trim())
-        .where((email) => email.isNotEmpty)
+    final invitedProviderIds = selectedProviders
+        .map((sp) => sp.spProfile?.id)
+        .whereType<int>()
         .toList();
 
     final baseUrl = dotenv.env['API_BASE_URL'] ?? '';
@@ -57,16 +59,14 @@ class BookingApiHelper {
     // =========================
     request.headers.addAll(await ApiTokensHelper.authHeaders());
 
-    final timeString =
-        "${scheduled.hour.toString().padLeft(2, '0')}:"
+    final timeString = "${scheduled.hour.toString().padLeft(2, '0')}:"
         "${scheduled.minute.toString().padLeft(2, '0')}";
 
-    final dateString =
-        "${scheduled.year.toString().padLeft(4, '0')}-"
+    final dateString = "${scheduled.year.toString().padLeft(4, '0')}-"
         "${scheduled.month.toString().padLeft(2, '0')}-"
         "${scheduled.day.toString().padLeft(2, '0')}";
 
-    request.fields['client'] = clientEmail;
+    request.fields['client'] = clientId.toString();
     request.fields['title'] = title;
     request.fields['notes'] = notes;
     request.fields['requested_date_time'] = timeString;
@@ -76,17 +76,11 @@ class BookingApiHelper {
     request.fields['status'] = "pending";
     request.fields['is_broadcasted'] = "true";
     request.fields['service_required'] = serviceId.toString();
-    request.fields['base_price'] =
-        (averagePrice ?? 0.0).toStringAsFixed(2);
-    request.fields['proposal_price'] =
-        negotiatedPrice.toStringAsFixed(2);
+    request.fields['base_price'] = (averagePrice ?? 0.0).toStringAsFixed(2);
+    request.fields['proposal_price'] = negotiatedPrice.toStringAsFixed(2);
     request.fields['is_negotiated'] = "true";
 
-    for (final email in invitedProvidersEmails) {
-      request.files.add(
-        http.MultipartFile.fromString('invited_providers', email),
-      );
-    }
+    request.fields['invited_providers'] = jsonEncode(invitedProviderIds);
 
     for (final file in bookingImages) {
       if (!await file.exists()) {
@@ -104,10 +98,27 @@ class BookingApiHelper {
       );
     }
 
+    if (kDebugMode) {
+      print(request);
+    }
+
     try {
-      final response = await request.send().timeout(
-        const Duration(seconds: 45),
-      );
+if (kDebugMode) {
+  print("========== BOOKING PAYLOAD ==========");
+  print("FIELDS:");
+  request.fields.forEach((k, v) {
+    print("$k => $v");
+  });
+
+  print("FILES:");
+  for (final f in request.files) {
+    print("${f.field} => ${f.filename}");
+  }
+  print("=====================================");
+}
+
+      final response = await AuthMultipartClient.sendWithRefresh(request)
+    .timeout(const Duration(seconds: 45));
 
       final body = await response.stream.bytesToString();
       final parsed = _extractErrorMessage(body);
@@ -124,8 +135,7 @@ class BookingApiHelper {
       return BookingApiResult(
         success: false,
         statusCode: response.statusCode,
-        message: parsed ??
-            "Request failed (${response.statusCode})",
+        message: parsed ?? "Request failed (${response.statusCode})",
         rawBody: body,
       );
     } catch (e) {

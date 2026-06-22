@@ -45,7 +45,7 @@ class ServicesIcons {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected ? Kolors.kWhite: Kolors.kDark,
+                  color: isSelected ? Kolors.kPrimary: Kolors.kDark,
                 ),
               ),
             ],

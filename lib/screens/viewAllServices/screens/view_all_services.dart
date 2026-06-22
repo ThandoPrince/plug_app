@@ -66,7 +66,7 @@ class _ViewAllServicesState extends State<ViewAllServices> with SingleTickerProv
         leading: const CustomBackButton(),
         title: ReusableText(
           text: AppText.kServices,
-          style: appStyle(18, Kolors.kOffWhite, FontWeight.w700),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         actions: [
           IconButton(

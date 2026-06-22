@@ -12,7 +12,7 @@ class AddressClientCtrl with ChangeNotifier {
   String? get errorMessage => _errorMessage;
 
   /// Fetch all addresses associated with the client
-  Future<void> fetchAddresses(String email) async {
+  Future<void> fetchAddresses() async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();

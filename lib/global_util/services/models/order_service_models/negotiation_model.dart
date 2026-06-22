@@ -1,11 +1,12 @@
 
 import 'package:flutter_application_1/global_util/services/models/order_service_models/negotiation_round_model.dart';
+import 'package:flutter_application_1/global_util/services/models/provider_for_service_model.dart';
 import 'package:flutter_application_1/global_util/services/models/service_provider_model.dart';
 
 class NegotiationModel {
   final int? negotiationId;
   final int? serviceOrderId;
-  final ServiceProviderModel? providerForNegotiation;
+  final ProviderServiceModel? providerForNegotiation;
   final double? basePrice;
   final double? proposedPrice;
   final double? providerResponsePrice;
@@ -44,8 +45,10 @@ class NegotiationModel {
   return NegotiationModel(
     negotiationId: json['negotiation_id'] as int?,
     serviceOrderId: json['service_order'] as int?,
-      providerForNegotiation: json['provider_for_negotiation']?['provider'] != null
-        ? ServiceProviderModel.fromJson(json['provider_for_negotiation']['provider'])
+      providerForNegotiation:
+    json['provider_for_negotiation'] != null
+        ? ProviderServiceModel.fromJson(
+            json['provider_for_negotiation'])
         : null,
     basePrice: tryParseDouble(json['base_price']),
     proposedPrice: tryParseDouble(json['proposed_price']),

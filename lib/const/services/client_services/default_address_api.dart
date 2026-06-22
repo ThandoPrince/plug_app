@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_application_1/global_util/services/controler/auth_session_controller.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
@@ -10,11 +11,13 @@ class DefaultAddressApi {
 
   /// Set default address for a client email
   static Future<void> setDefaultAddress({
-    required String email,
+    
     required int addressId,
   }) async {
+    final id =  AuthSessionController.instance.clientId;
     final url = Uri.parse(
-      '$baseUrl/clientsDB/set-default-address/$email/',
+      
+      '$baseUrl/clientsDB/set-default-address/$id/',
     );
 
     try {

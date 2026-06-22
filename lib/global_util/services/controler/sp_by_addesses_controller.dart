@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_application_1/const/services/sp_by_addresses_api.dart';
+import 'package:flutter_application_1/global_util/services/controler/google_map_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/home_here_map_controller.dart';
 import 'package:flutter_application_1/global_util/services/models/service_provider_model.dart';
 
@@ -44,6 +45,61 @@ class SPByAddressController with ChangeNotifier {
       _errorMessage = "Failed to fetch providers: ${e.toString()}";
       _serviceProviders.clear();
     } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+Future<void> googlefetchFromVisibleMarkers(GoogleMapMarkerController markerCtrl) async {
+    final visibleAddresses = markerCtrl.visibleProviders;
+
+    if (visibleAddresses.isEmpty) {
+      _errorMessage = "No visible providers on map";
+      notifyListeners();
+      return;
+    }
+
+    _isLoading = true;
+    _errorMessage = null;
+    _serviceProviders.clear();
+    notifyListeners();
+
+    try {
+
+      debugPrint(
+  "Google Visible Providers Count: ${visibleAddresses.length}",
+);
+
+for (final provider in visibleAddresses) {
+  debugPrint(
+    "ProviderId: ${provider.providerId}",
+  );
+}
+      // Collect valid provider IDs from the visible list
+      final ids = visibleAddresses
+          .map((addr) => addr.providerId)
+          .where((id) => id != null)
+          .map((id) => id!.toString())
+          .toList();   
+
+          debugPrint("Provider IDs sent to API: $ids");
+
+      // Make a single network request with the extracted IDs
+      final spList = await ServiceProvidersByAddressApi.fetchProvidersByAddresses(
+        ids.map(int.parse).toList(),
+      );
+      debugPrint("API Returned Providers: ${spList.length}");
+debugPrint("API Returned Data: $spList");
+
+      _serviceProviders.addAll(spList);
+    }  catch (e, stackTrace) {
+  debugPrint("========== PROVIDER FETCH ERROR ==========");
+  debugPrint(e.toString());
+  debugPrint(stackTrace.toString());
+
+  _errorMessage = "Failed to fetch providers: ${e.toString()}";
+  _serviceProviders.clear();
+}finally {
       _isLoading = false;
       notifyListeners();
     }

@@ -15,12 +15,12 @@ class AuthSessionController with ChangeNotifier {
   // ======================
   // Memory state
   // ======================
-  String? _email;
+
   int? _clientId;
   String? _accessToken;
   String? _refreshToken;
 
-  String? get email => _email;
+
   int? get clientId => _clientId;
   String? get accessToken => _accessToken;
   String? get refreshToken => _refreshToken;
@@ -32,7 +32,7 @@ class AuthSessionController with ChangeNotifier {
   // ======================
   // Keys
   // ======================
-  static const _kEmail = "auth_email";
+
   static const _kClientId = "auth_client_id";
   static const _kAccess = "auth_access_token";
   static const _kRefresh = "auth_refresh_token";
@@ -41,7 +41,7 @@ class AuthSessionController with ChangeNotifier {
   // Load session on app start
   // ======================
   Future<void> loadSession() async {
-    _email = await _storage.read(key: _kEmail);
+ 
 
     final id = await _storage.read(key: _kClientId);
     _clientId = id != null ? int.tryParse(id) : null;
@@ -57,18 +57,18 @@ class AuthSessionController with ChangeNotifier {
   // ======================
   Future<void> setSession({
     required int clientId,
-    required String email,
+
     required String accessToken,
     required String refreshToken,
   }) async {
     _clientId = clientId;
-    _email = email;
+
     _accessToken = accessToken;
     _refreshToken = refreshToken;
 
     await Future.wait([
       _storage.write(key: _kClientId, value: clientId.toString()),
-      _storage.write(key: _kEmail, value: email),
+ 
       _storage.write(key: _kAccess, value: accessToken),
       _storage.write(key: _kRefresh, value: refreshToken),
     ]);
@@ -80,7 +80,7 @@ class AuthSessionController with ChangeNotifier {
   // Clear session (logout)
   // ======================
   Future<void> clearSession() async {
-    _email = null;
+
     _clientId = null;
     _accessToken = null;
     _refreshToken = null;

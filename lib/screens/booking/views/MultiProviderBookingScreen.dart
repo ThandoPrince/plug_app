@@ -56,11 +56,11 @@ class _MultiProviderBookingScreenState extends State<MultiProviderBookingScreen>
     _selectedCosts = List<CostOfServiceModel>.from(widget.selectedCosts);
 
     Future.microtask(() async {
-      final session = context.read<AuthSessionController>();
-      final email = session.email;
+      
+      
       final defAddCtrl = Provider.of<DefAddController>(context, listen: false);
 
-      await defAddCtrl.fetchAddresses(email.toString());
+      await defAddCtrl.fetchAddresses();
 
       final AddressClientModel? found = defAddCtrl.addresses.isNotEmpty
           ? defAddCtrl.addresses.firstWhere(

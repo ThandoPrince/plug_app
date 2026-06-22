@@ -1,91 +1,82 @@
-import 'package:flutter_application_1/global_util/services/models/cost_of_service_model.dart';
+import 'package:flutter_application_1/global_util/services/models/sp_profile_model.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-import 'sp_address_model.dart';
-import 'sp_profile_model.dart';
-
-
-
 class ServiceProviderModel {
-  
- 
   final double? rating;
   final String? description;
   final String? profileImage;
-  final String fullName;
-  final String idNumber;
-  final String gender;
-  final String dob;
 
-  final SpAddressModel?
-      location; // nullable to handle missing or invalid location
-  final SPProfileModel spProfile;
+  final String? fullName;
+  final String? gender;
+  final String? dob;
+
+  final int? locationId;
+final bool? isActive;
+  final SPProfileModel? spProfile;
+
   
-  final List<CostOfServiceModel>
-      costOfServices; // list of services, not just one
 
   ServiceProviderModel({
-
     this.rating,
     this.description,
-    required this.costOfServices,
+    this.isActive,
     this.profileImage,
-    required this.gender,
-    required this.fullName,
-    required this.idNumber,
-    required this.dob,
-   
-    required this.location,
-    required this.spProfile,
- 
+    this.fullName,
+    this.gender,
+    this.dob,
+    this.locationId,
+    this.spProfile,
+
   });
 
-  factory ServiceProviderModel.fromJson(Map<String, dynamic> json) {
-    return ServiceProviderModel(
-     
+  factory ServiceProviderModel.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return ServiceProviderModel();
 
-      costOfServices: (json['cost_of_services'] as List<dynamic>?)
-              ?.map((e) => CostOfServiceModel.fromJson(e))
-              .toList() ??
-          [],
+    return ServiceProviderModel(
       rating: json['rating'] != null
           ? double.tryParse(json['rating'].toString())
           : null,
-      description: json['sp_description'],
-      profileImage: json['profile_image'],
-      gender: json['gender'],
-      fullName: json['full_name'],
-      idNumber: json['id_number'],
-      dob: json['dob'],
+
+          isActive: json['is_active'] is bool
+          ? json['is_active']
+          : json['is_active']?.toString() == 'true',
+
+      description: json['sp_description']?.toString(),
+      profileImage: json['profile_image']?.toString(),
+      gender: json['gender']?.toString(),
+      fullName: json['full_name']?.toString(),
+      dob: json['dob']?.toString(),
+
+      locationId: json['location'] is int
+          ? json['location']
+          : int.tryParse(json['location']?.toString() ?? ''),
+
+      spProfile: json['sp_profile'] != null
+          ? SPProfileModel.fromJson(json['sp_profile'])
+          : null,
+
       
-      location:
-          (json['location'] != null && json['location'] is Map<String, dynamic>)
-              ? SpAddressModel.fromJson(json['location'])
-              : null,
-      spProfile: SPProfileModel.fromJson(json['sp_profile']),
-     
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-    
-      'gender': gender,
-      'description': description,
-      'full_name': fullName,
-      'id_number': idNumber,
-      'dob': dob,
-      
       'rating': rating,
+      'sp_description': description,
       'profile_image': profileImage,
-      'location': location?.toJson(),
-      'sp_profile': spProfile.toJson(),
-  
+      'full_name': fullName,
+      'gender': gender,
+      'dob': dob,
+      'location': locationId,
+      'is_active': isActive,
+      'sp_profile': spProfile?.toJson(),
+      
     };
   }
-  String get profileImageUrl {
-    final String baseUrl = dotenv.env['MEDIA_BASE_URL'] ?? '';
-    // Replace with your server's IP/domain
+
+  String? get profileImageUrl {
+    final baseUrl = dotenv.env['MEDIA_BASE_URL'];
+    if (baseUrl == null || profileImage == null) return null;
     return "$baseUrl$profileImage";
   }
 }

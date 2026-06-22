@@ -12,7 +12,7 @@ class DefAddController extends ChangeNotifier {
   String? get error => _error;
 
   /// Fetch all addresses for a client
-  Future<void> fetchAddresses(String email) async {
+  Future<void> fetchAddresses() async {
     _isLoading = true;
     _error = null;
     notifyListeners();

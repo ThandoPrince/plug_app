@@ -87,10 +87,9 @@ class _ServiceProvidersByServiceScreenState
 
     setState(() {
       _filteredProviders = _allProviders.where((provider) {
-        final name = provider.fullName.toLowerCase();
-        final email =
-            provider.spProfile.emailAddress.toLowerCase() ?? '';
-        return name.contains(q) || email.contains(q);
+        final name = provider.fullName.toString().toLowerCase();
+        
+        return name.contains(q);
       }).toList();
     });
   }
@@ -111,7 +110,7 @@ class _ServiceProvidersByServiceScreenState
   ),
         title: Text(
           widget.serviceName,
-          style: appStyle(18, Kolors.kOffWhite, FontWeight.w700),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         actions: [
           
@@ -227,7 +226,7 @@ class _ServiceProvidersByServiceScreenState
   void _onProviderTap(ServiceProviderModel provider) {
     context.pushNamed(
       'providerDetails',
-      pathParameters: {'id': provider.spProfile.id.toString()},
+      pathParameters: {'id': provider.spProfile!.id.toString()},
       queryParameters: {'serviceId': widget.serviceId.toString()},
     );
   }
@@ -246,7 +245,7 @@ class _ServiceProvidersByServiceScreenState
 
     try {
       final ids = _selectedProviders
-          .map((p) => p.spProfile.id)
+          .map((p) => p.spProfile!.id)
           .whereType<int>()
           .toList();
 

@@ -4,6 +4,7 @@ import 'package:flutter_application_1/common/widgets/flushbar_service.dart';
 import 'package:flutter_application_1/global_util/services/controler/cost_of_service_byemail_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/cost_of_service_image_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/sp_by_email_controller.dart';
+import 'package:flutter_application_1/global_util/services/controler/sp_rating_controller.dart';
 import 'package:flutter_application_1/global_util/services/models/service_provider_model.dart';
 import 'package:flutter_application_1/screens/View_SP_Profile_Request/widgets/cost_of_service_detail.dart';
 import 'package:flutter_application_1/screens/View_SP_Profile_Request/widgets/spdetailsbody.dart';
@@ -46,6 +47,10 @@ class _ServiceProviderDetailsScreenState
   }
 
   Future<void> _loadData() async {
+
+    await context.read<SPRatingController>()
+      .fetchRatings(widget.id);
+    await spController.fetchProviderByEmail(widget.id);
     await spController.fetchProviderByEmail(widget.id);
 
     if (mounted) {
@@ -127,11 +132,7 @@ class _ServiceProviderDetailsScreenState
   ),
   title: const Text(
     "Service Provider Details",
-    style: TextStyle(
-      fontSize: 18,
-      color: Kolors.kOffWhite,
-      
-    ),
+    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
   ),
 ),
         body: Container(
@@ -148,9 +149,7 @@ class _ServiceProviderDetailsScreenState
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SPDetailsBody(id: widget.id.toString()),
-                const SizedBox(height: 16),
-
-                Consumer<CostOfServiceController>(
+Consumer<CostOfServiceController>(
                   builder: (context, controller, _) {
                     if (controller.isLoading) {
                       return const Center(
@@ -169,6 +168,7 @@ class _ServiceProviderDetailsScreenState
                         ),
                       );
                     }
+                    
 
                     return CostOfServiceCard(
                       costs: controller.costs,
@@ -177,13 +177,148 @@ class _ServiceProviderDetailsScreenState
                   },
                 ),
 
-                const SizedBox(height: 18),
+                const SizedBox(height: 10),
 
                 Consumer<CostOfServiceImageController>(
                   builder: (context, controller, _) {
                     return _buildImageGallerySection(controller);
                   },
                 ),
+
+                const SizedBox(height: 10),
+
+                Consumer<SPRatingController>(
+                  builder: (context, controller, _) {
+                    if (controller.isLoading) {
+                      return const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 16),
+                        child: Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                      );
+                    }
+
+                    if (controller.ratings.isEmpty) {
+  return _buildSectionCard(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _SectionHeader(
+          title: "Ratings & Reviews",
+          subtitle: "Recent customer feedback",
+        ),
+        const SizedBox(height: 12),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.star_outline_rounded, color: Colors.amber, size: 22),
+              const SizedBox(width: 8),
+              Text(
+                "New • No ratings yet",
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+                    return _buildSectionCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const _SectionHeader(
+                            title: "Ratings & Reviews",
+                            subtitle: "Recent customer feedback",
+                          ),
+                          const SizedBox(height: 16),
+                          ...controller.ratings.map(
+                            (rating) => Padding(
+                              padding: const EdgeInsets.only(bottom: 14),
+                              child: Container(
+                                padding: const EdgeInsets.all(14),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade50,
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.star,
+                                          color: Colors.amber,
+                                          size: 18,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          "${rating.score ?? 0}/5",
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    if ((rating.serviceName ?? "").isNotEmpty)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color:
+                                              Kolors.kPrimary.withOpacity(.08),
+                                          borderRadius:
+                                              BorderRadius.circular(20),
+                                        ),
+                                        child: Text(
+                                          rating.serviceName!,
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    if ((rating.review ?? "")
+                                        .trim()
+                                        .isNotEmpty) ...[
+                                      const SizedBox(height: 10),
+                                      Text(
+                                        rating.review!,
+                                        style: const TextStyle(
+                                          color: Colors.black87,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+
+
+
+                
               ],
             ),
           ),

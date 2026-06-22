@@ -25,26 +25,27 @@ class _AuthCreationScreenState extends State<AuthCreationScreen> {
 
     return DoubleBackToExit(
       child: Scaffold(
-        body: Container(
-          width: double.infinity,
-          height: double.infinity,
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Kolors.kPrimary, Kolors.kPrimary, Colors.white],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
-          ),
-          child: SafeArea(
-            child: Column(
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    padding: EdgeInsets.symmetric(horizontal: 35.w),
-                    child: Consumer<ClientAuthProvider>(
-                      builder: (context, provider, child) {
-                        return Column(
+        // ONE Single Consumer wraps everything so State updates propagate everywhere
+        body: Consumer<ClientAuthProvider>(
+          builder: (context, provider, child) {
+            return Container(
+              width: double.infinity,
+              height: double.infinity,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Kolors.kPrimary, Kolors.kPrimary, Colors.white],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+              child: SafeArea(
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        padding: EdgeInsets.symmetric(horizontal: 35.w),
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             SizedBox(height: 50.h),
@@ -96,7 +97,7 @@ class _AuthCreationScreenState extends State<AuthCreationScreen> {
                                   SizedBox(height: 16.h),
                                   _buildTextField(
                                     controller: provider.mobileController,
-                                    hint: "Mobile Number",
+                                    hint: "Mobile Number (072XXX)",
                                     icon: Icons.phone_android_outlined,
                                     type: TextInputType.phone,
                                     errorText: provider.fieldErrors['mobile'],
@@ -110,19 +111,29 @@ class _AuthCreationScreenState extends State<AuthCreationScreen> {
                                     isPasswordVisible: _isPasswordVisible,
                                     onTogglePassword: () {
                                       setState(() {
-                                        _isPasswordVisible =
-                                            !_isPasswordVisible;
+                                        _isPasswordVisible = !_isPasswordVisible;
                                       });
                                     },
                                     errorText: provider.fieldErrors['password'],
                                   ),
-                                  SizedBox(height: 6.h),
-                                  SizedBox(height: 4.h),
+                                  SizedBox(height: 16.h),
+                                  _buildTextField(
+                                    controller: provider.confirmPasswordController,
+                                    hint: "Confirm Password",
+                                    icon: Icons.lock_outline_rounded,
+                                    isPassword: true,
+                                    isPasswordVisible: _isPasswordVisible,
+                                    onTogglePassword: () {
+                                      setState(() {
+                                        _isPasswordVisible = !_isPasswordVisible;
+                                      });
+                                    },
+                                    errorText: provider.fieldErrors['confirmPassword'],
+                                  ),
                                 ],
                               ),
                             ),
 
-                            // --- Non-field / general error display ---
                             // --- Non-field / general error display ---
                             if (provider.error != null) ...[
                               SizedBox(height: 16.h),
@@ -133,53 +144,40 @@ class _AuthCreationScreenState extends State<AuthCreationScreen> {
                                   color: Colors.redAccent.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
-                                child: SingleChildScrollView(
-                                  scrollDirection: Axis.horizontal,
-                                  child: ConstrainedBox(
-                                    constraints: BoxConstraints(
-                                      maxWidth:
-                                          MediaQuery.of(context).size.width -
-                                              70.w,
-                                    ),
-                                    child: Text(provider.error!,
-                                        style: TextStyle(
-                                          color: Colors.redAccent,
-                                          fontSize: 13.sp,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                        softWrap: true,
-                                        overflow: TextOverflow.visible),
+                                child: Text(
+                                  provider.error!,
+                                  style: TextStyle(
+                                    color: Colors.redAccent,
+                                    fontSize: 13.sp,
+                                    fontWeight: FontWeight.w600,
                                   ),
+                                  textAlign: TextAlign.center,
                                 ),
                               ),
                             ],
                           ],
-                        );
-                      },
+                        ),
+                      ),
                     ),
-                  ),
-                ),
 
-                // --- Bottom Actions ---
-                Padding(
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 35.w, vertical: 20.h),
-                  child: Consumer<ClientAuthProvider>(
-                    builder: (context, provider, child) {
-                      return Column(
+                    // --- Bottom Actions (Now safely reads from same consumer) ---
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 35.w, vertical: 20.h),
+                      child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           provider.isLoading
                               ? const Center(
                                   child: CircularProgressIndicator(
-                                      color: primaryColor))
+                                    color: primaryColor,
+                                  ),
+                                )
                               : GradientBtn(
                                   text: "CREATE ACCOUNT",
                                   onTap: () async {
                                     FocusScope.of(context).unfocus();
                                     final success = await provider.register();
 
-                                    // Navigate only on success
                                     if (context.mounted && success) {
                                       context.go(
                                           '/clientDetailsPatch?email=${provider.emailController.text.trim()}');
@@ -215,29 +213,28 @@ class _AuthCreationScreenState extends State<AuthCreationScreen> {
                             ],
                           ),
                         ],
-                      );
-                    },
-                  ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         ),
       ),
     );
   }
 
-  // --- Updated TextFormField ---
   Widget _buildTextField({
-  required TextEditingController controller,
-  required String hint,
-  required IconData icon,
-  bool isPassword = false,
-  bool isPasswordVisible = false,
-  VoidCallback? onTogglePassword,
-  String? errorText,
-  TextInputType type = TextInputType.text,
-}) {
+    required TextEditingController controller,
+    required String hint,
+    required IconData icon,
+    bool isPassword = false,
+    bool isPasswordVisible = false,
+    VoidCallback? onTogglePassword,
+    String? errorText,
+    TextInputType type = TextInputType.text,
+  }) {
     return TextFormField(
       controller: controller,
       obscureText: isPassword ? !isPasswordVisible : false,
@@ -245,25 +242,22 @@ class _AuthCreationScreenState extends State<AuthCreationScreen> {
       style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle:
-            const TextStyle(color: Colors.grey, fontWeight: FontWeight.normal),
+        hintStyle: const TextStyle(color: Colors.grey, fontWeight: FontWeight.normal),
         prefixIcon: Icon(icon, color: Kolors.kPrimary, size: 20),
         filled: true,
         fillColor: Colors.grey.shade50,
         contentPadding: EdgeInsets.symmetric(vertical: 18.h, horizontal: 16.w),
         errorText: errorText,
         suffixIcon: isPassword
-    ? IconButton(
-        icon: Icon(
-          isPasswordVisible
-              ? Icons.visibility_off
-              : Icons.visibility,
-          color: Colors.grey,
-          size: 20,
-        ),
-        onPressed: onTogglePassword,
-      )
-    : null,
+            ? IconButton(
+                icon: Icon(
+                  isPasswordVisible ? Icons.visibility_off : Icons.visibility,
+                  color: Colors.grey,
+                  size: 20,
+                ),
+                onPressed: onTogglePassword,
+              )
+            : null,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,

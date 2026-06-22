@@ -13,8 +13,8 @@ class ShipmentController extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  Future<void> fetchShipmentsByClientEmail(String email) async {
-    _clientEmail = email; // cache it
+  Future<void> fetchShipmentsByClientEmail() async {
+  
     await _fetch();
   }
 
@@ -32,7 +32,7 @@ class ShipmentController extends ChangeNotifier {
 
     try {
       final data =
-          await ShipmentApi.getShipmentsByClientEmail(_clientEmail!);
+          await ShipmentApi.getShipmentsByClientEmail();
 
       _shipments
         ..clear()

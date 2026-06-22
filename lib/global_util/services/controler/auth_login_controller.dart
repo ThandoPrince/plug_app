@@ -44,53 +44,66 @@ class LoginController extends ChangeNotifier {
   StreamSubscription<String>? _firebaseTokenRefreshSubscription;
 
   Future<bool> login() async {
-  _startLoading();
-  _clearAllErrors();
+    _startLoading();
+    _clearAllErrors();
 
-  if (!_validateInputs()) {
-    _stopLoading();
-    return false;
-  }
-
-  try {
-    final result = await _apiHelper.login(
-      identifier: emailController.text.trim().toString(),
-      password: passwordController.text.trim(),
-    );
-
-    if (result.id == null || result.accessToken == null || result.refreshToken == null) {
-  _generalError = "Incomplete login response";
-  return false;
-}
-
-    final clientId = result.id;
-    if (clientId == null) {
-      _generalError = 'Login response missing client id';
+    if (!_validateInputs()) {
+      _stopLoading();
       return false;
     }
 
-    // ✅ SESSION
-    await AuthSessionController.instance.setSession(
-      clientId: clientId,
-      email: result.email.toString(),
-      accessToken: result.accessToken.toString(),
-      refreshToken: result.refreshToken.toString(),
-    );
+    try {
+      final result = await _apiHelper.login(
+        identifier: emailController.text.trim().toString(),
+        password: passwordController.text.trim(),
+      );
 
-    _userData = {
-      "id": clientId,
-      "email": result.email.toString(),
-    };
-    return true;
-  } catch (e) {
-    _generalError = e.toString();
-    return false;
-  } finally {
-    _stopLoading();
+      if (result.id == null ||
+          result.accessToken == null ||
+          result.refreshToken == null) {
+        _generalError = "Incomplete login response";
+        return false;
+      }
+
+      final clientId = result.id;
+      if (clientId == null) {
+        _generalError = 'Login response missing client id';
+        return false;
+      }
+
+      // ✅ SESSION
+      await AuthSessionController.instance.setSession(
+        clientId: clientId,
+       
+        accessToken: result.accessToken.toString(),
+        refreshToken: result.refreshToken.toString(),
+      );
+
+
+
+      await _fetchAndSendPushToken();
+
+      _userData = {
+        "id": clientId,
+        "email": result.email.toString(),
+      };
+      return true;
+    } on ApiException catch (e) {
+      _handleBackendErrors(
+        e.statusCode,
+        e.data,
+      );
+      return false;
+    } catch (e) {
+      _generalError = e.toString();
+      notifyListeners();
+      return false;
+    } finally {
+      _stopLoading();
+    }
   }
-}
 
-  Future<void> _fetchAndSendPushToken(String email) async {
+  Future<void> _fetchAndSendPushToken() async {
     if (!Platform.isAndroid) return;
 
     final deviceInfo = await _getDeviceInfo();
@@ -109,7 +122,7 @@ class LoginController extends ChangeNotifier {
             if (kDebugMode) print("Huawei Push Token: $token");
 
             final result = await _apiHelper.updatePushToken(
-              email: email,
+              
               token: token,
               provider: 'huawei',
               deviceType: deviceInfo['deviceType'],
@@ -154,7 +167,7 @@ class LoginController extends ChangeNotifier {
         if (kDebugMode) print("Firebase Token: $token");
 
         final result = await _apiHelper.updatePushToken(
-          email: email,
+      
           token: token,
           provider: 'firebase',
           deviceType: deviceInfo['deviceType'],
@@ -185,7 +198,7 @@ class LoginController extends ChangeNotifier {
         if (kDebugMode) print("Firebase Token Refreshed: $newToken");
 
         final result = await _apiHelper.updatePushToken(
-          email: email,
+        
           token: newToken,
           provider: 'firebase',
           deviceType: deviceInfo['deviceType'],
@@ -243,21 +256,43 @@ class LoginController extends ChangeNotifier {
   }
 
   bool _validateInputs() {
-    final email = emailController.text.trim();
+    final identifier = emailController.text.trim();
     final password = passwordController.text.trim();
 
-    if (email.isEmpty) _emailError = "Email is required.";
-    if (password.isEmpty) _passwordError = "Password is required.";
+    if (identifier.isEmpty) {
+      _emailError = "Email or mobile number is required.";
+    }
+
+    if (password.isEmpty) {
+      _passwordError = "Password is required.";
+    }
 
     if (_emailError != null || _passwordError != null) {
       notifyListeners();
       return false;
     }
 
-    final emailRegex = RegExp(r"^[\w\-\.]+@([\w\-]+\.)+[\w\-]{2,4}$");
+    final emailRegex = RegExp(r'^[\w\.-]+@([\w\-]+\.)+[\w\-]{2,4}$');
 
-    if (!emailRegex.hasMatch(email)) {
-      _emailError = "Invalid email format.";
+    final mobileRegex = RegExp(r'^(?:\+27|27|0)[6-8][0-9]{8}$');
+
+    final isEmail = identifier.contains('@');
+    final isMobile = RegExp(r'^\+?\d+$').hasMatch(identifier);
+
+    if (isEmail) {
+      if (!emailRegex.hasMatch(identifier)) {
+        _emailError = "Enter a valid email address.";
+        notifyListeners();
+        return false;
+      }
+    } else if (isMobile) {
+      if (!mobileRegex.hasMatch(identifier)) {
+        _emailError = "Enter a valid mobile number.";
+        notifyListeners();
+        return false;
+      }
+    } else {
+      _emailError = "Enter a valid email address or mobile number.";
       notifyListeners();
       return false;
     }
@@ -266,22 +301,57 @@ class LoginController extends ChangeNotifier {
   }
 
   void _handleBackendErrors(int statusCode, dynamic data) {
-    if (statusCode == 400 && data is Map<String, dynamic>) {
-      if (data.containsKey('email')) {
-        _emailError = (data['email'] as List).join("\n");
-      } else if (data.containsKey('password')) {
-        _passwordError = (data['password'] as List).join("\n");
-      } else if (data.containsKey('non_field_errors')) {
-        _generalError = (data['non_field_errors'] as List).join("\n");
-      } else {
-        _generalError = data['error'] ?? "Login failed.";
-      }
-    } else {
-      _generalError = "Unexpected server error. Please try again.";
+  if (data is! Map<String, dynamic>) {
+    _generalError = "Login failed.";
+    notifyListeners();
+    return;
+  }
+
+  final errors = data['errors'];
+
+  if (errors is Map<String, dynamic>) {
+
+    // -------------------------
+    // Field-specific errors
+    // -------------------------
+    if (errors.containsKey('email')) {
+      _emailError = (errors['email'] as List).join('\n');
     }
 
-    notifyListeners();
+    if (errors.containsKey('identifier')) {
+      _emailError = (errors['identifier'] as List).join('\n');
+    }
+
+    if (errors.containsKey('password')) {
+      _passwordError = (errors['password'] as List).join('\n');
+    }
+
+    if (errors.containsKey('non_field_errors')) {
+      _generalError = (errors['non_field_errors'] as List).join('\n');
+    }
+
+    // -------------------------
+    // META handling (NEW)
+    // -------------------------
+    if (errors.containsKey('meta')) {
+      final meta = errors['meta'];
+
+      if (meta is Map<String, dynamic>) {
+        final remainingAttempts = meta['remaining_attempts'];
+
+        if (remainingAttempts != null) {
+          _generalError =
+              "${_generalError ?? 'Invalid credentials.'} "
+              "($remainingAttempts attempts remaining)";
+        }
+      }
+    }
   }
+
+  _generalError ??= data['message'] ?? data['error'] ?? "Login failed.";
+
+  notifyListeners();
+}
 
   void _startLoading() {
     _isLoading = true;

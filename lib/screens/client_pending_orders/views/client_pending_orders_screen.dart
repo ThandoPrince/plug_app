@@ -5,11 +5,11 @@ import 'package:provider/provider.dart';
 import 'package:flutter_application_1/global_util/services/controler/client_pending_orders_ctrl.dart';
 
 class ClientPendingOrdersScreen extends StatefulWidget {
-  final String clientEmail;
+ 
 
   const ClientPendingOrdersScreen({
     super.key,
-    required this.clientEmail,
+    
   });
 
   @override
@@ -26,7 +26,7 @@ class _ClientPendingOrdersScreenState
   void initState() {
     super.initState();
     _controller = ClientPendingOrdersController();
-    _controller.fetchPendingOrders(widget.clientEmail);
+    _controller.fetchPendingOrders();
   }
 
   @override
@@ -83,7 +83,7 @@ class _ClientPendingOrdersScreenState
               // ✅ BODY
               Expanded(
                 child: ClientPendingOrdersBody(
-                  clientEmail: widget.clientEmail,
+                  
                 ),
               ),
             ],

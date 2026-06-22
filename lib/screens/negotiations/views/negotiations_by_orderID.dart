@@ -67,7 +67,7 @@ class _NegotiationsByOrderidScreenState
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text("Negotiations", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text("Negotiations", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,

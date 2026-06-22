@@ -1,5 +1,7 @@
+import 'package:another_flushbar/flushbar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
+import 'package:flutter_application_1/common/widgets/flushbar_service.dart';
 import 'package:flutter_application_1/global_util/services/controler/address_creation_controller.dart';
 import 'package:flutter_application_1/screens/Onboarding/Widgets/back_to_exit_widget.dart';
 import 'package:flutter_application_1/screens/auth/views/registration_success_overlay.dart';
@@ -340,44 +342,45 @@ class AddAddressScreen extends StatelessWidget {
       padding: EdgeInsets.all(25.w),
       child: GradientBtn(
         text: "SAVE ADDRESS",
-        btnColor: (!ctrl.isValidAddress || ctrl.isLoading)
-            ? Colors.grey
-            : primaryColor,
+        btnColor: (!ctrl.isValidAddress || ctrl.isLoading) ? Colors.grey : primaryColor,
         btnHieght: 58.h,
         btnWidth: double.infinity,
         radius: 16,
         onTap: (!ctrl.isValidAddress || ctrl.isLoading)
-    ? null
-    : () async {
-        try {
-          final result = await ctrl.postResidentialAddress(email);
+            ? null
+            : () async {
+                final result = await ctrl.postResidentialAddress(email);
 
-          if (!context.mounted) return;
-          if (result == null) return;
+                if (!context.mounted) return;
 
-          final data = result["data"];
-          if (data == null) return;
+                // If the operation returns null, extract and display the generated string error layout
+                if (result == null) {
+  FlushbarService.error(
+    context,
+    ctrl.error ?? "Failed to add address.",
+  );
+  return;
+}
 
-          final bool isVerified = data["is_verified"] == true;
+                // Proceed with successful state migrations
+                final data = result["data"];
+                if (data == null) return;
 
-          final int addressId =
-              data["address"]?["id"] ?? data["id"] ?? 0;
+                final dynamic rawVerified = data["is_verified"];
+                final bool isVerified = (rawVerified == true || rawVerified.toString().toLowerCase() == 'true');
+                final int addressId = data["id"] ?? (data["address"] is Map ? data["address"]["id"] : data["address"]) ?? 0;
+                final String? unitNumber = data["address"] is Map ? data["address"]["unit_number"] : ctrl.unitNumberController.text;
 
-          final String? unitNumber = data["address"]?["unit_number"];
-
-          if (!isVerified) {
-            _showVerificationDialog(context, addressId, unitNumber);
-          } else {
-            _showSuccessOverlay(context);
-          }
-        } catch (e) {
-          debugPrint("SAVE ADDRESS ERROR: $e");
-        }
-      },
+                if (!isVerified) {
+                  _showVerificationDialog(context, addressId, unitNumber);
+                } else {
+                  FlushbarService.success(context, "Address verified successfully!");
+                  _showSuccessOverlay(context);
+                }
+              },
       ),
     );
   }
-
   // ===============================
   // VERIFICATION DIALOG
   // ===============================
@@ -390,36 +393,69 @@ class AddAddressScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
         ),
-        title: const Text("Verify Address"),
-        content: const Text(
+        titlePadding: EdgeInsets.only(top: 25.h, left: 20.w, right: 20.w),
+        contentPadding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 15.h),
+        actionsPadding: EdgeInsets.only(bottom: 20.h, left: 20.w, right: 20.w),
+        title: Text(
+          "Verify Address",
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 22.sp,
+            fontWeight: FontWeight.w900,
+            color: Colors.black87,
+            letterSpacing: -0.5,
+          ),
+        ),
+        content: Text(
           "Your address is not verified yet.\n\n"
           "Would you like to upload verification documents now?",
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 14.sp,
+            color: Colors.black54,
+            height: 1.4,
+          ),
         ),
         actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _showSuccessOverlay(context);
-            },
-            child: const Text("Maybe Later"),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-
-              // Navigate to verification screen with client_address_id
-              context.go(
-                "/addressVerificationUpload",
-                extra: {
-                  "client_address_id": clientAddressId,
-                  "unit_number": unitNumber,
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              GradientBtn(
+                text: "VERIFY NOW",
+                btnColor: Colors.lightBlueAccent, // Matching your active layout theme
+                btnHieght: 50.h,
+                btnWidth: double.infinity,
+                radius: 12,
+                onTap: () {
+                  Navigator.pop(context);
+                  context.go(
+                    "/addressVerificationUpload",
+                    extra: {
+                      "client_address_id": clientAddressId,
+                      "unit_number": unitNumber,
+                    },
+                  );
                 },
-              );
-            },
-            child: const Text("Verify Now"),
+              ),
+              SizedBox(height: 10.h),
+              GradientBtn(
+  text: "MAYBE LATER",
+  textColor: Colors.black, 
+  btnColor: Colors.grey.shade300,
+  btnHieght: 50.h,
+  btnWidth: double.infinity,
+  radius: 12,
+  onTap: () {
+    Navigator.pop(context);
+    _showSuccessOverlay(context);
+  },
+)
+            ],
           ),
         ],
       ),

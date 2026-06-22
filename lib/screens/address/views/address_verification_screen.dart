@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // Added for haptics
 import 'package:flutter_application_1/screens/Onboarding/Widgets/back_to_exit_widget.dart';
+import 'package:flutter_application_1/screens/auth/views/registration_success_overlay.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_vector_icons/flutter_vector_icons.dart';
 import 'package:go_router/go_router.dart';
@@ -128,6 +129,20 @@ class _AddressVerificationUploadScreenState
                                     file: _idFile,
                                     onTap: () => _pickImage(ImageSource.gallery, true, ctrl),
                                   ),
+                                  SizedBox(height: 40.h),
+
+                                  if (ctrl.error != null)
+  Padding(
+    padding: EdgeInsets.only(bottom: 10.h),
+    child: Text(
+      ctrl.error!,
+      style: TextStyle(
+        color: Colors.red,
+        fontSize: 12.sp,
+        fontWeight: FontWeight.w500,
+      ),
+    ),
+  ),
                                   
                                   SizedBox(height: 40.h),
                                 ],
@@ -155,10 +170,6 @@ class _AddressVerificationUploadScreenState
       padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 10.h),
       child: Row(
         children: [
-          IconButton(
-            onPressed: () => context.pop(),
-            icon: const Icon(Ionicons.chevron_back, color: Colors.white, size: 28),
-          ),
           Text(
             "Account Security",
             style: TextStyle(
@@ -259,34 +270,109 @@ class _AddressVerificationUploadScreenState
     );
   }
 
-  Widget _buildBottomAction(AddressVerificationController ctrl, int id) {
-    bool isReady = _idFile != null && _proofFile != null && !ctrl.isLoading;
+  
 
-    return Container(
-      padding: EdgeInsets.only(left: 25.w, right: 25.w, top: 20.h, bottom: 40.h),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, -5))],
-      ),
-      child: SizedBox(
-        width: double.infinity,
-        height: 56.h,
-        child: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Kolors.kPrimary,
-            foregroundColor: Colors.white,
-            disabledBackgroundColor: Colors.grey.shade200,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18.r)),
-            elevation: isReady ? 4 : 0,
+  Widget _buildBottomAction(AddressVerificationController ctrl, int id) {
+  bool isReady = _idFile != null && _proofFile != null && !ctrl.isLoading;
+
+  return Container(
+    padding: EdgeInsets.only(
+      left: 25.w,
+      right: 25.w,
+      top: 20.h,
+      bottom: 40.h,
+    ),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.05),
+          blurRadius: 20,
+          offset: const Offset(0, -5),
+        )
+      ],
+    ),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          width: double.infinity,
+          height: 56.h,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Kolors.kPrimary,
+              foregroundColor: Colors.white,
+              disabledBackgroundColor: Colors.grey.shade200,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18.r),
+              ),
+              elevation: isReady ? 4 : 0,
+            ),
+            onPressed: !isReady
+                ? null
+                : () async {
+                    HapticFeedback.lightImpact();
+
+                    final success =
+                        await ctrl.submitVerification(context, id);
+
+                    if (success && mounted) {
+                      
+    _showSuccessOverlay(context);
+                    }
+                  },
+            child: ctrl.isLoading
+                ? const SizedBox(
+                    height: 24,
+                    width: 24,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2.5,
+                    ),
+                  )
+                : Text(
+                    "FINISH & SUBMIT",
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1,
+                    ),
+                  ),
           ),
-          onPressed: !isReady ? null : () async {
-            HapticFeedback.lightImpact();
-            final success = await ctrl.submitVerification(id);
-            if (success && mounted) context.go("/entryPoint");
+        ),
+
+        SizedBox(height: 10.h),
+
+        TextButton(
+  onPressed: ctrl.isLoading
+      ? null
+      : () {
+          HapticFeedback.selectionClick();
+          _showSuccessOverlay(context);
+        },
+  child: Text(
+    "Skip for now",
+    style: TextStyle(
+      fontSize: 14.sp,
+      fontWeight: FontWeight.w600,
+      color: Kolors.kBlue,
+    ),
+  ),
+),
+      ],
+    ),
+  );
+}
+
+void _showSuccessOverlay(BuildContext context) {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: false,
+        pageBuilder: (_, __, ___) => RegistrationSuccessOverlay(
+          onCompleted: () {
+            
+            context.go('/entryPoint');
           },
-          child: ctrl.isLoading
-              ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-              : Text("FINISH & SUBMIT", style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold, letterSpacing: 1)),
         ),
       ),
     );

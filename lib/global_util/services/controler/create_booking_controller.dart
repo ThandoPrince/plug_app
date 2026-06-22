@@ -120,18 +120,16 @@ class BookingController with ChangeNotifier {
       return false;
     }
 
-    final email = session.email?.trim();
-    if (email == null || email.isEmpty) {
-      _errorMessage = "Your session has expired. Please log in again.";
-      notifyListeners();
-      return false;
-    }
+    
+    final id = session.clientId;
+    
 
     final invitedProvidersEmails = selectedProviders
-        .map((sp) => sp.spProfile.emailAddress.trim())
-        .where((email) => email.isNotEmpty)
-        .toSet()
-        .toList();
+    .map((sp) => sp.spProfile?.id)
+    .where((id) => id != null)
+    .cast<int>()
+    .toSet()
+    .toList();
 
     if (invitedProvidersEmails.isEmpty) {
       _errorMessage = "Please select at least one provider";
@@ -142,7 +140,7 @@ class BookingController with ChangeNotifier {
     _setLoading(true);
 
     final result = await apiHelper.submitBooking(
-      clientEmail: email,
+      clientId: id.toString(),
       title: title,
       notes: notes,
       scheduled: scheduled,

@@ -31,14 +31,14 @@ class ClientPendingOrdersController extends ChangeNotifier {
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
-  Future<void> fetchPendingOrders(String clientEmail) async {
+  Future<void> fetchPendingOrders() async {
     _isLoading = true;
     _errorMessage = null;
     _safeNotify();
 
     try {
       final orders =
-          await api.fetchPendingOrdersByClientEmail(clientEmail);
+          await api.fetchPendingOrdersByClientEmail();
 
       if (_disposed) return;
 
@@ -53,9 +53,14 @@ class ClientPendingOrdersController extends ChangeNotifier {
     }
   }
 
+  Future<void> refreshPendingOrders(String clientEmail) async {
+  await fetchPendingOrders();
+}
+
   void clearOrders() {
     _pendingOrders = [];
     _errorMessage = null;
     _safeNotify();
   }
 }
+

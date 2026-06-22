@@ -8,12 +8,13 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'reusable_text.dart';
 
 class GradientBtn extends StatelessWidget {
+  final Color textColor;
   const GradientBtn({
     super.key,
     this.onTap,
     this.btnWidth,
     required this.text,
-    this.btnHieght, this.textSize, this.borderColor, this.radius, this.btnColor,
+    this.btnHieght, this.textSize, this.borderColor, this.radius, this.btnColor,  this.textColor = Colors.white,
   });
   final void Function()? onTap;
   final double? btnWidth;

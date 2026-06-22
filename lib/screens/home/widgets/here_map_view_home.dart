@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/global_util/services/controler/address_client_ctrl.dart';
 import 'package:flutter_application_1/global_util/services/controler/home_here_map_controller.dart';
 import 'package:provider/provider.dart';
 import 'package:here_sdk/mapview.dart';
 
 
 class HereMapDemo extends StatefulWidget {
-  final String email;
-  const HereMapDemo({super.key, required this.email});
+
+  const HereMapDemo({super.key});
 
   @override
   State<HereMapDemo> createState() => _HereMapDemoState();
@@ -26,7 +27,17 @@ class _HereMapDemoState extends State<HereMapDemo>
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final mapCtrl = context.read<HereMapMarkerController>();
-      await mapCtrl.showDefaultAddress(widget.email);
+
+
+
+    
+    
+    await mapCtrl.showDefaultAddress();
+
+
+
+      
+      
 
       if (mounted) setState(() => _isLoading = false);
     });
@@ -48,6 +59,8 @@ class _HereMapDemoState extends State<HereMapDemo>
         mapCtrl.onMapCreated(controller, context);
       },
     );
+
+    
   }
 }
 

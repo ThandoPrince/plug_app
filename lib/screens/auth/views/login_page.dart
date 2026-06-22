@@ -18,12 +18,63 @@ class AuthLoginScreen extends StatefulWidget {
 
 class _AuthLoginScreenState extends State<AuthLoginScreen> {
   bool _obscurePassword = true;
+  bool _isPhoneInput = false;
 
   @override
-void dispose() {
-  LoginController.instance.clear();
-  super.dispose();
-}
+  void initState() {
+    super.initState();
+    // Listen to text changes to instantly style or adjust for phone/email differences
+    LoginController.instance.emailController.addListener(_onInputChanged);
+  }
+
+  @override
+  void dispose() {
+    LoginController.instance.emailController.removeListener(_onInputChanged);
+    LoginController.instance.clear();
+    super.dispose();
+  }
+
+  void _onInputChanged() {
+    final text = LoginController.instance.emailController.text.trim();
+    
+    if (text.isEmpty) {
+      if (_isPhoneInput) setState(() => _isPhoneInput = false);
+      return;
+    }
+
+    // Check if user is starting to type a phone number
+    final isDigits = RegExp(r'^[0-9+]+$').hasMatch(text);
+
+    if (isDigits && !_isPhoneInput) {
+      setState(() => _isPhoneInput = true);
+    } else if (!isDigits && _isPhoneInput) {
+      setState(() => _isPhoneInput = false);
+    }
+
+    // Automatically enforce SA +27 formatting variations dynamically
+    if (isDigits) {
+      if (text.startsWith('0') && text.length > 1) {
+        final formatted = '+27${text.substring(1)}';
+        _updateControllerText(formatted);
+      } else if (!text.startsWith('+') && !text.startsWith('27') && text.isNotEmpty) {
+        final formatted = '+27$text';
+        _updateControllerText(formatted);
+      } else if (text.startsWith('27') && text.length > 2) {
+        final formatted = '+$text';
+        _updateControllerText(formatted);
+      }
+    }
+  }
+
+  void _updateControllerText(String formattedText) {
+    final controller = LoginController.instance.emailController;
+    controller.value = TextEditingValue(
+      text: formattedText,
+      selection: TextSelection.fromPosition(
+        TextPosition(offset: formattedText.length),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -90,6 +141,34 @@ void dispose() {
                               if (loginController.generalError != null)
                                 _buildGeneralError(
                                     loginController.generalError!),
+
+                              const SizedBox(height: 10),
+
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(top: 8.0, right: 4.0),
+                                  child: TextButton(
+                                    onPressed: () => context.push('/reset_password'),
+                                    style: TextButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      foregroundColor: Colors.white.withOpacity(0.2),
+                                    ),
+                                    child: Text(
+                                      'Forgot Password?',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 14.sp,
+                                        color: Kolors.kBlue,
+                                        letterSpacing: -0.2,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -120,7 +199,6 @@ void dispose() {
                                           "Welcome back! We are preparing your profile.",
                                     );
 
-                                    // Fetch auth state
                                     await context
                                         .read<GetClientAuthController>()
                                         .loadClientAuth(email);
@@ -130,8 +208,7 @@ void dispose() {
 
                                     if (!mounted) return;
 
-                                    Navigator.of(context)
-                                        .pop(); // dismiss overlay
+                                    Navigator.of(context).pop(); // dismiss overlay
 
                                     final profileState = context
                                         .read<GetClientAuthController>()
@@ -196,13 +273,16 @@ void dispose() {
   Widget _buildEmailField(LoginController controller) {
     return TextFormField(
       controller: controller.emailController,
-      keyboardType: TextInputType.emailAddress,
+      keyboardType: TextInputType.emailAddress, // Better for showing mixed text/keyboard layouts
       style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600),
       decoration: InputDecoration(
-        hintText: "Email Address",
+        hintText: "Email Address or Mobile Number",
         errorText: controller.emailError,
-        prefixIcon:
-            Icon(Icons.email_outlined, color: Kolors.kPrimary, size: 20),
+        prefixIcon: Icon(
+          _isPhoneInput ? Icons.phone_android_outlined : Icons.email_outlined, 
+          color: Kolors.kPrimary, 
+          size: 20,
+        ),
         filled: true,
         fillColor: Colors.grey.shade50,
         contentPadding: EdgeInsets.symmetric(vertical: 18.h, horizontal: 16.w),

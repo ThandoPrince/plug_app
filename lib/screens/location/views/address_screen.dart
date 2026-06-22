@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
+import 'package:flutter_application_1/common/widgets/flushbar_service.dart';
 import 'package:flutter_application_1/global_util/services/controler/address_a_creation_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/address_client_ctrl.dart';
 
@@ -16,8 +18,8 @@ import 'package:flutter_application_1/common/widgets/reusable_text.dart';
 import 'package:go_router/go_router.dart';
 
 class MainAddAddressScreen extends StatelessWidget {
-  final String? clientemail;
-  const MainAddAddressScreen({super.key, required this.clientemail});
+
+  const MainAddAddressScreen({super.key});
 
   static final String kGoogleApiKey = dotenv.env['GOOGLE_API_KEY'] ?? '';
 
@@ -64,7 +66,7 @@ class MainAddAddressScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                    _buildBottomButton(context, ctrl, clientemail.toString(), primaryColor),
+                    _buildBottomButton(context, ctrl, primaryColor),
                   ],
                 );
               },
@@ -335,7 +337,7 @@ class MainAddAddressScreen extends StatelessWidget {
   Widget _buildBottomButton(
     BuildContext context,
     AddressACreationController ctrl,
-    String email,
+ 
     Color primaryColor,
   ) {
     return Container(
@@ -351,31 +353,37 @@ class MainAddAddressScreen extends StatelessWidget {
         onTap: (!ctrl.isValidAddress || ctrl.isLoading)
             ? null
             : () async {
-              email = email.isEmpty ? context.read<AuthSessionController>().email.toString() : email;
-                final result = await ctrl.postResidentialAddress(email);
+              
+                final result = await ctrl.postResidentialAddress();
 
+                if (kDebugMode) {
+                  print("RESULT: $result");
+                }
+print("CTRL ERROR: ${ctrl.error}");
+if (!context.mounted) return;
 
-                if (result == null || !context.mounted) return;
+                if (result == null) {
+  FlushbarService.error(
+    context,
+    ctrl.error ?? "Failed to add address.",
+  );
+  return;
+}
 
                 final data = result["data"];
+                if (data == null) return;
 
-                final bool isVerified = data?["is_verified"] ?? false;
-
-                final int addressId = data?["address"]?["id"] ?? 0;
-
-                final String buildingType =
-                    data?["address"]?["building_type"] ?? "house";
-
-                final String? unitNumber = buildingType == "apartment"
-                    ? data?["address"]?["unit_number"]
-                    : null;
+                final dynamic rawVerified = data["is_verified"];
+                final bool isVerified = (rawVerified == true || rawVerified.toString().toLowerCase() == 'true');
+                final int addressId = data["id"] ?? (data["address"] is Map ? data["address"]["id"] : data["address"]) ?? 0;
+                final String? unitNumber = data["address"] is Map ? data["address"]["unit_number"] : ctrl.unitNumberController.text;
 
              
     final addressCtrl = context.read<AddressClientCtrl>();
     final mapCtrl = context.read<HereMapMarkerController>(); 
 
-    await addressCtrl.fetchAddresses(email.toString());
-    await mapCtrl.showDefaultAddress(email.toString());
+    await addressCtrl.fetchAddresses();
+    await mapCtrl.showDefaultAddress();
 
  
 
@@ -398,49 +406,84 @@ class MainAddAddressScreen extends StatelessWidget {
   // ===============================
 
   void _showVerificationDialog(
-    BuildContext context,
-    int clientAddressId,
-    String? unitNumber,
-  ) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+  BuildContext context,
+  int clientAddressId,
+  String? unitNumber,
+) {
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (dialogContext) => AlertDialog(
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      titlePadding: EdgeInsets.only(top: 25.h, left: 20.w, right: 20.w),
+      contentPadding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 15.h),
+      actionsPadding: EdgeInsets.only(bottom: 20.h, left: 20.w, right: 20.w),
+      title: Text(
+        "Verify Address",
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontSize: 22.sp,
+          fontWeight: FontWeight.w900,
+          color: Colors.black87,
+          letterSpacing: -0.5,
         ),
-        title: const Text("Verify Address"),
-        content: const Text(
-          "Your address is not verified yet.\n\n"
-          "Would you like to upload verification documents now?",
+      ),
+      content: Text(
+        "Your address is not verified yet.\n\n"
+        "Would you like to upload verification documents now?",
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontSize: 14.sp,
+          color: Colors.black54,
+          height: 1.4,
         ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop(); // close dialog
-    context.pop();  
-             
-            },
-            child: const Text("Maybe Later"),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
+      ),
+      actions: [
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            GradientBtn(
+              text: "VERIFY NOW",
+              btnColor: Colors.lightBlueAccent,
+              btnHieght: 50.h,
+              btnWidth: double.infinity,
+              radius: 12,
+              onTap: () {
+                Navigator.of(dialogContext).pop();
 
-              
-              context.push(
+                if (!context.mounted) return;
+
+context.push(
   "/addressVerification",
   extra: {
     "client_address_id": clientAddressId,
     "unit_number": unitNumber,
   },
 );
-            },
-            child: const Text("Verify Now"),
-          ),
-        ],
-      ),
-    );
-  }
+              },
+            ),
+            SizedBox(height: 10.h),
+            GradientBtn(
+              text: "MAYBE LATER",
+              textColor: Colors.black,
+              btnColor: Colors.grey.shade300,
+              btnHieght: 50.h,
+              btnWidth: double.infinity,
+              radius: 12,
+              onTap: () {
+                Navigator.of(dialogContext).pop();
+              },
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+}
 
 // ===============================
 // SUCCESS OVERLAY

@@ -122,7 +122,7 @@ class _ProviderListWidgetState extends State<ProviderListWidget> {
                           // 🌟 Use primary color for the avatar background
                           backgroundColor: Kolors.kDark,
                           child: Text(
-                            _getInitials(provider.fullName),
+                            _getInitials(provider.fullName.toString().toUpperCase()),
                             style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
@@ -137,7 +137,7 @@ class _ProviderListWidgetState extends State<ProviderListWidget> {
                             children: [
                               // Provider Name
                               Text(
-                                provider.fullName,
+                                provider.fullName.toString().toUpperCase(),
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
@@ -147,23 +147,7 @@ class _ProviderListWidgetState extends State<ProviderListWidget> {
                               ),
                               const SizedBox(height: 6),
                               // Email
-                              Row(
-                                children: [
-                                  const Icon(Icons.email,
-                                      size: 16, color: Colors.grey),
-                                  const SizedBox(width: 6),
-                                  Flexible(
-                                    child: Text(
-                                      provider.spProfile.emailAddress,
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.black87,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                             
                               // Phone Number
                               
                             ],

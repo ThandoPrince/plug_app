@@ -57,14 +57,12 @@ class MultiProviderBookingBody extends StatefulWidget {
 
 class _MultiProviderBookingBodyState extends State<MultiProviderBookingBody> {
   final List<File> _selectedImages = [];
-
-  final Color hintColor = Colors.grey.shade500;
-  final Color borderColor = Colors.grey.shade400;
+  final Color hintColor = Colors.grey.shade400;
+  final Color borderColor = Colors.grey.shade200;
 
   @override
   void initState() {
     super.initState();
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
       widget.onImagesChanged(_selectedImages);
     });
@@ -83,7 +81,6 @@ class _MultiProviderBookingBodyState extends State<MultiProviderBookingBody> {
     );
 
     final avg = totalBasePrice / relevantCosts.length;
-
     return double.parse(avg.toStringAsFixed(2));
   }
 
@@ -130,9 +127,9 @@ class _MultiProviderBookingBodyState extends State<MultiProviderBookingBody> {
   }
 
   void _openProviderDetails(ServiceProviderModel provider) {
-    final providerEmail = provider.spProfile.id;
+    final providerEmail = provider.spProfile?.id;
 
-    if (providerEmail == null ) {
+    if (providerEmail == null) {
       FlushbarService.error(
         context,
         "This provider does not have a valid email address.",
@@ -153,13 +150,14 @@ class _MultiProviderBookingBodyState extends State<MultiProviderBookingBody> {
 
   Widget _buildSectionTitle(String title, {Color? color}) {
     return Padding(
-      padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
+      padding: const EdgeInsets.only(top: 14.0, bottom: 8.0),
       child: Text(
         title,
         style: TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: 16,
-          color: color ?? Kolors.kDark,
+          fontWeight: FontWeight.w700,
+          fontSize: 14,
+          letterSpacing: 0.3,
+          color: color ?? Kolors.kDark.withOpacity(0.85),
         ),
       ),
     );
@@ -172,12 +170,13 @@ class _MultiProviderBookingBodyState extends State<MultiProviderBookingBody> {
     return InputDecoration(
       labelText: label,
       hintText: hint,
-      labelStyle: const TextStyle(color: Kolors.kDark),
+      labelStyle: TextStyle(color: Kolors.kDark.withOpacity(0.6), fontSize: 14),
+      hintStyle: TextStyle(color: hintColor, fontSize: 14),
       floatingLabelStyle: const TextStyle(
-        color: Kolors.kDark,
-        fontWeight: FontWeight.bold,
+        color: Kolors.kPrimary,
+        fontWeight: FontWeight.w600,
       ),
-      fillColor: Colors.white,
+      fillColor: const Color(0xFFF9FAFB),
       filled: true,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
@@ -185,15 +184,15 @@ class _MultiProviderBookingBodyState extends State<MultiProviderBookingBody> {
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: borderColor, width: 1.0),
+        borderSide: BorderSide(color: borderColor),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Kolors.kDark, width: 2.0),
+        borderSide: const BorderSide(color: Kolors.kPrimary, width: 1.5),
       ),
       contentPadding: const EdgeInsets.symmetric(
         horizontal: 16,
-        vertical: 12,
+        vertical: 14,
       ),
     );
   }
@@ -209,45 +208,48 @@ class _MultiProviderBookingBodyState extends State<MultiProviderBookingBody> {
     return GestureDetector(
       onTap: _dismissKeyboard,
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildSectionTitle("Booking Title"),
             TextField(
               controller: widget.titleController,
+              style: const TextStyle(fontSize: 15, color: Kolors.kDark),
               decoration: _buildInputDecoration(
                 label: "Title",
                 hint: "i.e. Fix my kitchen sink",
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
 
-            _buildSectionTitle("Required Date and Time"),
+            _buildSectionTitle("Required Date & Time"),
             Row(
               children: [
                 Expanded(
                   child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
                     onTap: () {
                       _dismissKeyboard();
                       widget.onPickDate();
                     },
                     child: InputDecorator(
                       decoration: _buildInputDecoration(label: '').copyWith(
-                        prefixIcon: Icon(
-                          Icons.calendar_today,
-                          color: Kolors.kDark.withOpacity(0.7),
+                        prefixIcon: const Icon(
+                          Icons.calendar_today_rounded,
+                          color: Kolors.kPrimary,
+                          size: 18,
                         ),
                       ),
                       child: Text(
                         widget.selectedDate != null
-                            ? DateFormat('dd MMM yyyy')
-                                .format(widget.selectedDate!)
+                            ? DateFormat('dd MMM yyyy').format(widget.selectedDate!)
                             : 'Pick Date',
                         style: TextStyle(
-                          color: widget.selectedDate != null
-                              ? Colors.black
-                              : hintColor,
+                          fontSize: 14,
+                          fontWeight: widget.selectedDate != null ? FontWeight.w500 : FontWeight.normal,
+                          color: widget.selectedDate != null ? Kolors.kDark : Colors.grey.shade500,
                         ),
                       ),
                     ),
@@ -256,16 +258,17 @@ class _MultiProviderBookingBodyState extends State<MultiProviderBookingBody> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
                     onTap: () {
                       _dismissKeyboard();
                       widget.onPickTime();
                     },
                     child: InputDecorator(
                       decoration: _buildInputDecoration(label: '').copyWith(
-                        labelStyle: const TextStyle(color: Kolors.kDark),
-                        prefixIcon: Icon(
-                          Icons.access_time,
-                          color: Kolors.kDark.withOpacity(0.7),
+                        prefixIcon: const Icon(
+                          Icons.access_time_rounded,
+                          color: Kolors.kPrimary,
+                          size: 18,
                         ),
                       ),
                       child: Text(
@@ -273,9 +276,9 @@ class _MultiProviderBookingBodyState extends State<MultiProviderBookingBody> {
                             ? widget.selectedTime!.format(context)
                             : 'Pick Time',
                         style: TextStyle(
-                          color: widget.selectedTime != null
-                              ? Colors.black
-                              : hintColor,
+                          fontSize: 14,
+                          fontWeight: widget.selectedTime != null ? FontWeight.w500 : FontWeight.normal,
+                          color: widget.selectedTime != null ? Kolors.kDark : Colors.grey.shade500,
                         ),
                       ),
                     ),
@@ -283,27 +286,27 @@ class _MultiProviderBookingBodyState extends State<MultiProviderBookingBody> {
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
 
-            _buildSectionTitle("Potential Service Providers ($providerCount)"),
+            _buildSectionTitle("Selected Service Providers ($providerCount)"),
             Container(
-              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
+                color: const Color(0xFFF9FAFB),
+                borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: borderColor),
               ),
               height: providerCount > 0
-                  ? (providerCount > 3 ? 3 : providerCount) * 55.0 + 10
-                  : 50.0,
+                  ? (providerCount > 3 ? 3.2 : providerCount) * 64.0 + 8
+                  : 70.0,
               child: providerCount == 0
                   ? Center(
                       child: Text(
                         "No providers selected.",
-                        style: TextStyle(color: hintColor),
+                        style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
                       ),
                     )
                   : ListView.builder(
+                      padding: const EdgeInsets.all(8),
                       itemCount: providerCount,
                       itemBuilder: (_, i) {
                         final provider = widget.selectedProviders[i];
@@ -311,63 +314,72 @@ class _MultiProviderBookingBodyState extends State<MultiProviderBookingBody> {
                         return Padding(
                           padding: const EdgeInsets.symmetric(vertical: 4.0),
                           child: Material(
-                            color: Colors.transparent,
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                            elevation: 0.5,
+                            shadowColor: Colors.black12,
                             child: InkWell(
                               borderRadius: BorderRadius.circular(10),
                               onTap: widget.isSubmitting
                                   ? null
                                   : () => _openProviderDetails(provider),
                               child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 6,
-                                ),
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                 decoration: BoxDecoration(
-                                  color: Colors.grey.shade50,
                                   borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: Colors.grey.shade100),
                                 ),
                                 child: Row(
                                   children: [
-                                    const Icon(
-                                      Icons.person_pin,
-                                      size: 20,
-                                      color: Kolors.kDark,
+                                    CircleAvatar(
+                                      radius: 16,
+                                      backgroundColor: Kolors.kPrimary.withOpacity(0.1),
+                                      child: const Icon(
+                                        Icons.person_rounded,
+                                        size: 16,
+                                        color: Kolors.kPrimary,
+                                      ),
                                     ),
-                                    const SizedBox(width: 8),
+                                    const SizedBox(width: 12),
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
+                                        crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            provider.fullName,
+                                            provider.fullName.toString().toUpperCase(),
                                             style: const TextStyle(
-                                              fontWeight: FontWeight.w500,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 13,
+                                              color: Kolors.kDark,
                                             ),
                                             overflow: TextOverflow.ellipsis,
                                           ),
-                                          const SizedBox(height: 2),
                                           Text(
-                                            "Tap to view details",
+                                            "Tap to view profile details",
                                             style: TextStyle(
-                                              fontSize: 12,
-                                              color: Colors.grey.shade600,
+                                              fontSize: 11,
+                                              color: Colors.grey.shade500,
                                             ),
                                           ),
                                         ],
                                       ),
                                     ),
                                     Icon(
-                                      Icons.chevron_right,
-                                      color: Colors.grey.shade600,
+                                      Icons.chevron_right_rounded,
+                                      color: Colors.grey.shade400,
+                                      size: 20,
                                     ),
+                                    const SizedBox(width: 4),
                                     IconButton(
+                                      constraints: const BoxConstraints(),
+                                      padding: EdgeInsets.zero,
                                       onPressed: widget.isSubmitting
                                           ? null
                                           : () => widget.onRemoveProvider(i),
-                                      icon: const Icon(
-                                        Icons.close,
-                                        color: Colors.red,
+                                      icon: Icon(
+                                        Icons.remove_circle_outline_rounded,
+                                        color: Colors.red.shade400,
+                                        size: 20,
                                       ),
                                       tooltip: "Remove provider",
                                     ),
@@ -380,7 +392,7 @@ class _MultiProviderBookingBodyState extends State<MultiProviderBookingBody> {
                       },
                     ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
 
             if (widget.defaultAddress != null)
               Column(
@@ -389,85 +401,101 @@ class _MultiProviderBookingBodyState extends State<MultiProviderBookingBody> {
                   _buildSectionTitle("Delivery Address"),
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: const Color(0xFFF9FAFB),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: borderColor),
                     ),
-                    child: Text(
-                      widget.defaultAddress!.address.formattedAddress ??
-                          'Address not available',
-                      style: const TextStyle(fontSize: 14),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.location_on_rounded, color: Kolors.kPrimary, size: 20),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            widget.defaultAddress!.address.formattedAddress ??
+                                'Address not available',
+                            style: const TextStyle(fontSize: 14, color: Kolors.kDark, height: 1.3),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton.icon(
                       onPressed: () {
-                        final session = context.read<AuthSessionController>();
-                        final email = session.email;
-
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                LocationScreen(email: email.toString()),
-                          ),
+                          MaterialPageRoute(builder: (_) => LocationScreen()),
                         );
                       },
-                      icon: const Icon(Icons.edit_location_alt, size: 18),
-                      label: const Text("Change Address"),
+                      icon: const Icon(Icons.edit_location_alt_rounded, size: 16),
+                      label: const Text("Change Address", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                       style: TextButton.styleFrom(
-                        foregroundColor: Kolors.kDark,
+                        foregroundColor: Kolors.kPrimary,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
                       ),
                     ),
                   ),
                 ],
               ),
-            const SizedBox(height: 12),
 
-            if (averagePrice != null ||
-                (firstProviderCost != null && firstProviderCost.negotiable))
+            if (averagePrice != null || (firstProviderCost != null && firstProviderCost.negotiable))
               Padding(
-                padding: const EdgeInsets.only(bottom: 20.0),
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Kolors.kPrimary.withOpacity(0.3),
-                    ),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: Kolors.kPrimary.withOpacity(0.15)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Kolors.kPrimary.withOpacity(0.04),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      )
+                    ]
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (averagePrice != null)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 12.0),
-                          child: Text(
-                            "Indicative Price: R ${averagePrice!.toStringAsFixed(2)}",
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 16,
-                              color: Kolors.kDark,
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              "Indicative Price",
+                              style: TextStyle(color: Kolors.kDark.withOpacity(0.6), fontSize: 14),
                             ),
-                          ),
+                            Text(
+                              "R ${averagePrice!.toStringAsFixed(2)}",
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 18,
+                                color: Kolors.kPrimary,
+                              ),
+                            ),
+                          ],
                         ),
-                      if (firstProviderCost != null &&
-                          firstProviderCost.negotiable)
-                        TextField(
-                          controller: widget.negotiatedPriceController,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          decoration: _buildInputDecoration(
-                            label: "Propose your price",
-                          ).copyWith(
-                            prefixText: "R ",
-                            prefixStyle: const TextStyle(
-                              fontWeight: FontWeight.bold,
+                      if (averagePrice != null && firstProviderCost != null && firstProviderCost.negotiable)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8.0),
+                          child: Divider(height: 1, color: Color(0xFFE5E7EB)),
+                        ),
+                      if (firstProviderCost != null && firstProviderCost.negotiable)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4.0),
+                          child: TextField(
+                            controller: widget.negotiatedPriceController,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            style: const TextStyle(fontWeight: FontWeight.bold, color: Kolors.kDark),
+                            decoration: _buildInputDecoration(
+                              label: "Propose your price (Optional)",
+                            ).copyWith(
+                              prefixText: "R ",
+                              prefixStyle: const TextStyle(fontWeight: FontWeight.bold, color: Kolors.kDark),
                             ),
                           ),
                         ),
@@ -479,71 +507,82 @@ class _MultiProviderBookingBodyState extends State<MultiProviderBookingBody> {
             _buildSectionTitle("Additional Notes / Description"),
             TextField(
               controller: widget.notesController,
+              style: const TextStyle(fontSize: 14, color: Kolors.kDark),
               decoration: _buildInputDecoration(
                 label: "Notes on the service required",
               ),
               maxLines: 4,
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
 
-            _buildSectionTitle("Upload Photos (max 5)"),
+            _buildSectionTitle("Upload Photos (Max 5)"),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Column(
                   children: [
-                    IconButton(
-                      icon: const Icon(Icons.photo_library, size: 30),
-                      onPressed: () => _pickImage(ImageSource.gallery),
-                      color: Kolors.kDark,
+                    _buildIconButton(
+                      icon: Icons.photo_library_rounded,
                       tooltip: 'Gallery',
+                      onTap: () => _pickImage(ImageSource.gallery),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.camera_alt, size: 30),
-                      onPressed: () => _pickImage(ImageSource.camera),
-                      color: Kolors.kDark,
+                    const SizedBox(height: 10),
+                    _buildIconButton(
+                      icon: Icons.camera_alt_rounded,
                       tooltip: 'Camera',
+                      onTap: () => _pickImage(ImageSource.camera),
                     ),
                   ],
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 16),
                 Expanded(
-                  child: SizedBox(
-                    height: 100,
+                  child: Container(
+                    height: 94,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF9FAFB),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: borderColor),
+                    ),
                     child: _selectedImages.isEmpty
                         ? Center(
-                            child: Text(
-                              "Please add images regarding the service you require.",
-                              style: TextStyle(color: hintColor),
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Text(
+                                "Please add images regarding\nthe service you require.",
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: Colors.grey.shade400, fontSize: 12, height: 1.3),
+                              ),
                             ),
                           )
                         : ListView.builder(
                             scrollDirection: Axis.horizontal,
+                            padding: const EdgeInsets.all(8),
                             itemCount: _selectedImages.length,
                             itemBuilder: (_, i) => Padding(
-                              padding: const EdgeInsets.only(right: 8.0),
+                              padding: const EdgeInsets.only(right: 10.0),
                               child: Stack(
+                                clipBehavior: Clip.none,
                                 children: [
                                   ClipRRect(
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(8),
                                     child: Image.file(
                                       _selectedImages[i],
-                                      width: 100,
-                                      height: 100,
+                                      width: 78,
+                                      height: 78,
                                       fit: BoxFit.cover,
                                     ),
                                   ),
                                   Positioned(
-                                    top: 0,
-                                    right: 0,
+                                    top: -4,
+                                    right: -4,
                                     child: GestureDetector(
                                       onTap: () => _removeImage(i),
                                       child: CircleAvatar(
-                                        radius: 12,
+                                        radius: 10,
                                         backgroundColor: Colors.red.shade600,
                                         child: const Icon(
-                                          Icons.close,
-                                          size: 14,
+                                          Icons.close_rounded,
+                                          size: 12,
                                           color: Colors.white,
                                         ),
                                       ),
@@ -557,50 +596,74 @@ class _MultiProviderBookingBodyState extends State<MultiProviderBookingBody> {
                 ),
               ],
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 32),
 
             SizedBox(
               width: double.infinity,
-              height: 50,
+              height: 52,
               child: ElevatedButton.icon(
                 onPressed: widget.isSubmitting || widget.selectedProviders.isEmpty
                     ? null
                     : widget.onSubmitBooking,
                 icon: widget.isSubmitting
                     ? const SizedBox(
-                        width: 18,
-                        height: 18,
+                        width: 20,
+                        height: 20,
                         child: CircularProgressIndicator(
-                          strokeWidth: 2,
+                          strokeWidth: 2.5,
                           color: Colors.white,
                         ),
                       )
-                    : const Icon(Icons.send),
+                    : const Icon(Icons.send_rounded, size: 18),
                 label: Text(
                   widget.isSubmitting
-                      ? "Submitting..."
+                      ? "Submitting Requests..."
                       : widget.selectedProviders.isEmpty
                           ? "Select at least one provider"
                           : "Send Booking Requests",
                   style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.2,
                   ),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Kolors.kPrimary,
                   foregroundColor: Kolors.kWhite,
-                  disabledBackgroundColor:
-                      Kolors.kPrimary.withOpacity(0.6),
-                  disabledForegroundColor: Colors.white,
+                  disabledBackgroundColor: Kolors.kPrimary.withOpacity(0.55),
+                  disabledForegroundColor: Colors.white70,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(14),
                   ),
-                  elevation: 5,
+                  elevation: 2,
+                  shadowColor: Kolors.kPrimary.withOpacity(0.3),
                 ),
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIconButton({
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: BorderSide(color: borderColor),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: onTap,
+        child: Container(
+          width: 42,
+          height: 42,
+          child: Icon(icon, size: 20, color: Kolors.kPrimary),
         ),
       ),
     );

@@ -6,19 +6,18 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
 class ClientPendingOrdersApi {
-  static final String _baseUrl =
-      dotenv.env['API_BASE_URL'] ?? '';
+  static final String _baseUrl = dotenv.env['API_BASE_URL'] ?? '';
 
   /// Fetch pending orders for a client by email
-  Future<List<OrderServiceModel>> fetchPendingOrdersByClientEmail(String email) async {
-    final url = Uri.parse('$_baseUrl/bookings/client_active_orders/$email/');
+  Future<List<OrderServiceModel>> fetchPendingOrdersByClientEmail() async {
+    final id =  AuthSessionController.instance.clientId;
+    final url = Uri.parse('$_baseUrl/bookings/client_active_orders/$id/');
 
     final response = await http.get(
       url,
       headers: {
         "Content-Type": "application/json",
-        "Authorization":
-            "Bearer ${AuthSessionController.instance.accessToken}",
+        "Authorization": "Bearer ${AuthSessionController.instance.accessToken}",
       },
     );
 

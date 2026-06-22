@@ -93,7 +93,7 @@ class _SPDetailsBodyState extends State<SPDetailsBody> {
                         const SizedBox(
                             height: 80), // Space for overlapping image
                         Text(
-                          provider.fullName,
+                          provider.fullName.toString().toUpperCase(),
                           style: const TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.w900,
@@ -131,12 +131,11 @@ class _SPDetailsBodyState extends State<SPDetailsBody> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _infoTile(Icons.alternate_email_rounded, "Email",
-                                  provider.spProfile.emailAddress),
+                              
                               _infoTile(Icons.person_outline_rounded, "Gender",
-                                  provider.gender),
+                                  provider.gender.toString()),
                               _infoTile(Icons.cake_outlined, "Birthday",
-                                  provider.dob),
+                                  provider.dob.toString()),
 
                               const SizedBox(height: 20),
                               const Text(

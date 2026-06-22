@@ -90,7 +90,7 @@ void initState() {
   ),
                 title: const Text(
                   "Active Session",
-                  style: TextStyle(fontWeight: FontWeight.w900),
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                 ),
                 centerTitle: true,
                 backgroundColor: Kolors.kPrimary,

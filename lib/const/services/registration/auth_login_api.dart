@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter_application_1/global_util/services/controler/auth_session_controller.dart';
 import 'package:flutter_application_1/global_util/services/models/client_models/client_login_response_model.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
@@ -8,33 +9,35 @@ class AuthLoginApi {
 
   /// ---------------- LOGIN ----------------
     Future<ClientLoginResponse> login({
-    required String identifier,
-    required String password,
-  }) async {
-    final uri = Uri.parse('$baseUrl/clientsDB/login/');
+  required String identifier,
+  required String password,
+}) async {
+  final uri = Uri.parse('$baseUrl/clientsDB/login/');
 
-    final response = await http.post(
-      uri,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        "identifier": identifier.toLowerCase().trim(),
-        "password": password,
-      }),
-    );
+  final response = await http.post(
+    uri,
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({
+      "identifier": identifier.toLowerCase().trim(),
+      "password": password,
+    }),
+  );
 
-    final data = jsonDecode(response.body);
-    final decoded = jsonDecode(response.body);
+  final data = jsonDecode(response.body);
 
-    if (response.statusCode == 200) {
-      return ClientLoginResponse.fromJson(decoded['data']);
-    }
-
-    throw Exception(data['error'] ?? data['message'] ?? "Login failed");
+  if (response.statusCode == 200) {
+    return ClientLoginResponse.fromJson(data['data']);
   }
+
+  throw ApiException(
+    statusCode: response.statusCode,
+    data: data,
+  );
+}
 
   /// ---------------- PUSH TOKEN REGISTER ----------------
   Future<Map<String, dynamic>> updatePushToken({
-    required String email,
+
     required String token,
     required String provider,
     String? deviceType,
@@ -42,6 +45,7 @@ class AuthLoginApi {
     String? osVersion,
     String? appVersion,
   }) async {
+    final authToken = AuthSessionController.instance.accessToken;
     final uri = Uri.parse(
       '$baseUrl/client_devices/register-device-token/',
     );
@@ -49,9 +53,11 @@ class AuthLoginApi {
     try {
       final response = await http.post(
         uri,
-        headers: {'Content-Type': 'application/json'},
+        headers: {'Content-Type': 'application/json',
+        'Authorization': 'Bearer $authToken',
+        },
         body: jsonEncode({
-          "email": email.toLowerCase(),
+          
           "push_token": token,
           "device_type": deviceType,
           "device_name": deviceName,
@@ -86,4 +92,14 @@ class AuthLoginApi {
       };
     }
   }
+}
+
+class ApiException implements Exception {
+  final int statusCode;
+  final dynamic data;
+
+  ApiException({
+    required this.statusCode,
+    required this.data,
+  });
 }

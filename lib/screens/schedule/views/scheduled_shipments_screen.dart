@@ -25,10 +25,10 @@ class _ScheduledShipmentsScreenState extends State<ScheduledShipmentsScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final session = context.read<AuthSessionController>();
-    final email = session.email;
+    
       context
           .read<ShipmentController>()
-          .fetchShipmentsByClientEmail(email.toString());
+          .fetchShipmentsByClientEmail();
     });
   }
 

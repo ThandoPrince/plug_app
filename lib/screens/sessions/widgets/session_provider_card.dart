@@ -19,7 +19,7 @@ class SessionProviderCard extends StatelessWidget {
           _header("Service Provider"),
           const Divider(height: 24),
           _detailItem(Icons.person_outline, "Name", provider.fullName),
-          _detailItem(Icons.email_outlined, "Email", provider.spProfile.emailAddress),
+        
           _detailItem(Icons.star_outline, "Rating", provider.rating.toString()),
         ],
       ),

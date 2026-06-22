@@ -23,6 +23,7 @@ class NegotationByOrderIDController with ChangeNotifier {
 
     try {
       _negotiation = await NegotiationByOrderidApi.fetchNegotiationByOrderID(orderID);
+      
     } catch (e) {
       _errorMessage = e.toString();
       _negotiation = null;

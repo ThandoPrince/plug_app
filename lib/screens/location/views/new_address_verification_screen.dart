@@ -161,11 +161,7 @@ class _AddressVerificationScreenState
           ),
           Text(
             "Account Security",
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18.sp,
-              fontWeight: FontWeight.w600,
-            ),
+           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
         ],
       ),
@@ -279,14 +275,23 @@ class _AddressVerificationScreenState
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18.r)),
             elevation: isReady ? 4 : 0,
           ),
-          onPressed: !isReady ? null : () async {
-            HapticFeedback.lightImpact();
-            final success = await ctrl.submitVerification(id);
-            if (success && mounted) {
-  context.pop(); 
-  context.pop(true); 
-}
-          },
+          onPressed: !isReady
+    ? null
+    : () async {
+        HapticFeedback.lightImpact();
+
+        final success =
+            await ctrl.submitVerification(context, id);
+
+        if (!context.mounted || !success) return;
+
+        // wait ONE frame only (not 500ms)
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (context.mounted && Navigator.of(context).canPop()) {
+            context.pop(true);
+          }
+        });
+      },
           child: ctrl.isLoading
               ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
               : Text("FINISH & SUBMIT", style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold, letterSpacing: 1)),

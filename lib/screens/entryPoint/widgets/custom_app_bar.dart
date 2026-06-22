@@ -7,8 +7,8 @@ import 'package:flutter_application_1/screens/entryPoint/widgets/location_widget
 
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
-  final String email;
-  const CustomAppBar({super.key, required this.email});
+ 
+  const CustomAppBar({super.key});
 
   @override
   Widget build(BuildContext context) {

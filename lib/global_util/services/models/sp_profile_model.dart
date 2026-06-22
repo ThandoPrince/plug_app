@@ -1,33 +1,35 @@
-
-
-// List<SPProfileModel> spProfileModelFromJson(String str) =>
-//     List<SPProfileModel>.from(json.decode(str).map((x) => SPProfileModel.fromJson(x)));
-
-// String spProfileModelToJson(List<SPProfileModel> data) =>
-//     json.encode(List<dynamic>.from(data.map((x) => x.toJson())));
-
 class SPProfileModel {
-  final String emailAddress;
-  int? id;
-
+  final int? id;
+  final String? isProfileCompleted;
+  final bool? isActive;
 
   SPProfileModel({
-    required this.emailAddress,
     this.id,
-
+    this.isProfileCompleted,
+    this.isActive,
   });
 
-  factory SPProfileModel.fromJson(Map<String, dynamic> json) {
-    return SPProfileModel(
-      emailAddress: json['email_address'],
-      id: json['id'],
+  factory SPProfileModel.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return SPProfileModel();
 
+    return SPProfileModel(
+      id: json['id'] is int
+          ? json['id']
+          : int.tryParse(json['id']?.toString() ?? ''),
+
+      isProfileCompleted: json['is_profile_completed']?.toString(),
+
+      isActive: json['is_active'] is bool
+          ? json['is_active']
+          : json['is_active']?.toString() == 'true',
     );
   }
 
-  Map<String, dynamic> toJson() => {
-        'email_address': emailAddress,
-        'id': id,
-
-      };
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'is_profile_completed': isProfileCompleted,
+      'is_active': isActive,
+    };
+  }
 }

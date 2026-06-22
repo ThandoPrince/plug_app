@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_application_1/global_util/services/controler/auth_session_controller.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
@@ -13,10 +14,11 @@ class ClientCompletedServicesApi {
   // FETCH RATINGS BY CLIENT
   // =========================
   static Future<List<RatingModel>> fetchRatingsByClientEmail(
-    String email,
+    
   ) async {
+    final id =  AuthSessionController.instance.clientId;
     final url = Uri.parse(
-      '$baseUrl/bookings/get_ratings/by_client_email/$email/',
+      '$baseUrl/bookings/get_ratings/by_client_email/$id/',
     );
 
     try {
@@ -26,6 +28,13 @@ class ClientCompletedServicesApi {
       );
 
       if (kDebugMode) {
+          print("========== CLIENT RATINGS API ==========");
+  print("URL: $url");
+  print("STATUS CODE: ${response.statusCode}");
+  print("HEADERS: ${response.headers}");
+  print("RAW BODY: ${response.body}");
+  print("BODY TYPE: ${response.body.runtimeType}");
+  print("========================================");
         print("Client Ratings HTTP: ${response.statusCode}");
         print("Response: ${response.body}");
       }

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
@@ -24,27 +25,44 @@ class ServiceProviderByEmailApi {
   // FETCH PROVIDER BY EMAIL
   // =========================
   static Future<ServiceProviderModel> fetchProviderByEmail(
-    int id,
-  ) async {
-    final url = Uri.parse('$baseUrl/service_providers/$id/');
+  int id,
+) async {
+  final url = Uri.parse('$baseUrl/service_providers/$id/');
 
-    try {
-      final response = await http.get(
-        url,
-        headers: _headers(),
-      );
+  final response = await http.get(
+    url,
+    headers: _headers(),
+  );
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return ServiceProviderModel.fromJson(data);
+  if (response.statusCode == 200) {
+    final data = json.decode(response.body);
+    if (kDebugMode) {
+      print(response.body);
+      print(json.decode(response.body).runtimeType);
+    }
+
+    
+
+    if (data is List) {
+      if (data.isEmpty) {
+        throw Exception('Provider not found');
       }
 
-      throw Exception(
-        'Failed to load service provider: '
-        '${response.statusCode} ${response.body}',
+      return ServiceProviderModel.fromJson(
+        data.first as Map<String, dynamic>,
       );
-    } catch (e) {
-      throw Exception('Error fetching service provider: $e');
     }
+
+    if (data is Map<String, dynamic>) {
+      return ServiceProviderModel.fromJson(data);
+    }
+
+    throw Exception('Unexpected response format');
   }
+
+  throw Exception(
+    'Failed to load service provider: '
+    '${response.statusCode} ${response.body}',
+  );
+}
 }

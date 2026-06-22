@@ -141,7 +141,7 @@ void dispose() {
   // =============================
   // POST ADDRESS
   // =============================
- Future<Map<String, dynamic>?> postResidentialAddress(String email) async {
+Future<Map<String, dynamic>?> postResidentialAddress() async {
   if (!isValidAddress) {
     error = "Please select a complete street address.";
     notifyListeners();
@@ -180,30 +180,40 @@ void dispose() {
 
     final response = await AddressCreationHelper.addClientAddress(
       data: payload,
-      email: email,
+     
     );
 
     debugPrint("========== ADDRESS RESPONSE ==========");
     debugPrint("Status Code: ${response.statusCode}");
     debugPrint("Raw Body: ${response.body}");
 
-    Map<String, dynamic>? decodedBody;
-
-    if (response.body.isNotEmpty) {
-      decodedBody = jsonDecode(response.body);
+    if (response.body.isEmpty) {
+      error = "Empty response from server.";
+      return null;
     }
 
-    
+    final Map<String, dynamic> decodedBody =
+        jsonDecode(response.body);
 
-    error = decodedBody?['error'] ??
-        decodedBody?['detail'] ??
-        "Failed to add address";
+    final bool success = decodedBody["success"] == true;
 
-    return null;
+    if (!success) {
+      error = decodedBody["message"] ??
+          decodedBody["detail"] ??
+          "Failed to add address";
+
+      return null;
+    }
+
+    // ✅ SUCCESS PATH
+    error = null;
+    return decodedBody;
+
   } catch (e, stack) {
     debugPrint("========== EXCEPTION ==========");
     debugPrint(e.toString());
     debugPrint(stack.toString());
+
     error = "An unexpected error occurred.";
     return null;
   } finally {

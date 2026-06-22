@@ -25,7 +25,7 @@ class ProviderServiceModel {
   // Convert to JSON for backend
   Map<String, dynamic> toJson() {
     return {
-      "provider": provider.spProfile.emailAddress, // use email as unique identifier
+    // use email as unique identifier
       "service": service.serviceId,
     };
   }

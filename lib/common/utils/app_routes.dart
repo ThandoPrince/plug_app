@@ -15,6 +15,7 @@ import 'package:flutter_application_1/screens/entryPoint/views/entry_point.dart'
 import 'package:flutter_application_1/screens/location/views/location_screen.dart';
 import 'package:flutter_application_1/screens/location/views/new_address_verification_screen.dart';
 import 'package:flutter_application_1/screens/notifications/views/notifications_screen.dart';
+import 'package:flutter_application_1/screens/reset_password/views/reset_password_screen.dart';
 import 'package:flutter_application_1/screens/splash/spash_screen.dart';
 import 'package:flutter_application_1/screens/viewAllServices/screens/view_all_services.dart';
 import 'package:flutter_application_1/screens/view_all_sp_service/views/viewSp_AssService.dart';
@@ -110,6 +111,11 @@ GoRoute(
 ),
 
 GoRoute(
+  path: '/reset_password',
+  builder: (context, state) => const ResetPasswordScreen(),
+),
+
+GoRoute(
   path: '/provider-details/:id',
   name: 'providerDetails',
   builder: (context, state) {
@@ -142,8 +148,8 @@ GoRoute(
 GoRoute(
   path: '/main_addaddress',
   builder: (context, state) {
-    final email = state.uri.queryParameters['email'];
-    return MainAddAddressScreen(clientemail: email);
+    
+    return MainAddAddressScreen();
   },
 ),
     GoRoute(
@@ -154,12 +160,14 @@ GoRoute(
         GoRoute(
       path: '/location',
       builder: (context, state) {
-        final email = state.uri.queryParameters['email'] ?? '';
-        return LocationScreen(email: email);
+        
+        return LocationScreen();
       },
     ),
 
   ],
+
+  
 );
 
 GoRouter get router => _router;

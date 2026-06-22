@@ -54,10 +54,7 @@ class _ClientQrCheckinContentState extends State<ClientQrCheckinContent> {
           elevation: 0,
           title: const Text(
             "Service Check-in",
-            style: TextStyle(
-              fontWeight: FontWeight.w900,
-              color: Colors.white,
-            ),
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
           centerTitle: true,
           iconTheme: const IconThemeData(color: Colors.white),
@@ -65,8 +62,8 @@ class _ClientQrCheckinContentState extends State<ClientQrCheckinContent> {
         body: Consumer<ClientCheckinController>(
           builder: (context, controller, _) {
             return Container(
-              width: double.infinity,
-              height: double.infinity,
+                width: double.infinity,
+                height: double.infinity,
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   colors: [

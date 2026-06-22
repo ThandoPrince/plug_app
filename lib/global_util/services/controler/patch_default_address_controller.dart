@@ -12,11 +12,11 @@ class PatchDefaultAddressController with ChangeNotifier {
   
 
   /// Set selected address as default
-  Future<void> setDefault(int addressId, String email) async {
+  Future<void> setDefault(int addressId) async {
     isLoading = true;
     notifyListeners();
 
-    final success = await apiHelper.setDefaultAddress(addressId: addressId, email: email);
+    final success = await apiHelper.setDefaultAddress(addressId: addressId);
 
     if (success) {
       // Optionally update local state if you have a list of addresses

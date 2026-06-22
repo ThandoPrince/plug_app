@@ -46,7 +46,7 @@ class SpashScreen extends StatefulWidget {
 class _SpashScreenState extends State<SpashScreen> {
   bool _hasStarted = false;
   String? _errorMessage;
-  String _statusText = 'Starting app...';
+  
 
   @override
   void initState() {
@@ -62,7 +62,7 @@ class _SpashScreenState extends State<SpashScreen> {
   void _updateStatus(String message) {
     if (!mounted) return;
     setState(() {
-      _statusText = message;
+      
     });
   }
 
@@ -75,7 +75,7 @@ class _SpashScreenState extends State<SpashScreen> {
       final hasOpenedBefore = Storage().getBool('firstOpen') ?? false;
       final auth = AuthSessionController.instance;
       final isLoggedIn =
-          auth.email != null && auth.email!.trim().isNotEmpty;
+          auth.clientId;
 
       if (!mounted) return;
 
@@ -83,7 +83,7 @@ class _SpashScreenState extends State<SpashScreen> {
         Storage().setBool('firstOpen', true);
         if (!mounted) return;
         context.go('/welcome');
-      } else if (isLoggedIn) {
+      } else if (isLoggedIn ==true) {
         context.go('/login');
       } else {
         context.go('/login');
@@ -100,41 +100,41 @@ class _SpashScreenState extends State<SpashScreen> {
   }
 
   Future<void> _initializeApp() async {
-    _updateStatus('Loading local storage...');
+    
     await GetStorage.init();
 
-    _updateStatus('Restoring session...');
+    
     await AuthSessionController.instance.loadSession();
 
-    _updateStatus('Checking device services...');
+    
     await _detectHuawei();
 
     if (!isHuaweiDevice) {
-      _updateStatus('Initializing Firebase...');
+      
       await _initializeFirebase();
 
       fcm.FirebaseMessaging.onBackgroundMessage(firebaseBackgroundHandler);
 
-      _updateStatus('Requesting Firebase permission...');
+      
       await _requestFirebasePermission();
     }
 
-    _updateStatus('Loading environment...');
+    
     final envLoaded = await _safeLoadEnv();
     if (!envLoaded) {
       throw Exception("Environment loading failed");
     }
 
-    _updateStatus('Initializing HERE SDK...');
+    
     await _initializeHERESDK();
 
-    _updateStatus('Initializing notifications...');
+    
     await PushNotificationService.instance.initialize();
 
-    _updateStatus('Requesting notification permission...');
+    
     await _requestNotificationPermission();
 
-    _updateStatus('Ready...');
+    
   }
 
   /// Detects if the device relies on Huawei Mobile Services (HMS)
@@ -309,7 +309,7 @@ class _SpashScreenState extends State<SpashScreen> {
                     onPressed: () {
                       setState(() {
                         _errorMessage = null;
-                        _statusText = 'Retrying...';
+                        
                       });
                       _bootstrap();
                     },
@@ -340,19 +340,7 @@ class _SpashScreenState extends State<SpashScreen> {
                 valueColor: AlwaysStoppedAnimation(Colors.black),
               ),
             ),
-            SizedBox(height: 20.h),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24.w),
-              child: Text(
-                _statusText,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 16.sp,
-                  fontStyle: FontStyle.italic,
-                  color: Colors.black87,
-                ),
-              ),
-            ),
+            
           ],
         ),
       ),

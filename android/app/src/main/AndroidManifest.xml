@@ -1,7 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.plug_1431.flutter_application_1">
 
-
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
@@ -14,18 +13,16 @@
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"/>
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO"/>
 
-
     <application
         android:label="Plug"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
 
-        <!-- Huawei App ID -->
         <meta-data
-            android:name="com.huawei.hms.client.appid"
-            android:value="appid=114790013"/>
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${mapsApiKey}"/>
+ 
 
-        <!-- Flutter activity -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -45,11 +42,8 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-
         </activity>
 
-
-        <!-- Firebase Messaging Service -->
         <service
             android:name="io.flutter.plugins.firebase.messaging.FlutterFirebaseMessagingService"
             android:exported="false">
@@ -58,8 +52,6 @@
             </intent-filter>
         </service>
 
-
-        <!-- Huawei Push Service -->
         <service
             android:name="com.huawei.hms.push.HmsMessageService"
             android:exported="false">
@@ -68,21 +60,15 @@
             </intent-filter>
         </service>
 
-
-        <!-- Required Flutter Metadata -->
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
-
     </application>
 
-
-    <!-- Required for Flutter text processing -->
     <queries>
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
     </queries>
-
 </manifest>

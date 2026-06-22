@@ -7,8 +7,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 
 class ClientRatingsScreen extends StatefulWidget {
-  final String clientEmail;
-  const ClientRatingsScreen({Key? key, required this.clientEmail}) : super(key: key);
+  
+  const ClientRatingsScreen({Key? key}) : super(key: key);
 
   @override
   State<ClientRatingsScreen> createState() => _ClientRatingsScreenState();
@@ -18,7 +18,7 @@ class _ClientRatingsScreenState extends State<ClientRatingsScreen> {
   @override
   void initState() {
     super.initState();
-    context.read<ClientRatingsController>().fetchRatings(widget.clientEmail);
+    context.read<ClientRatingsController>().fetchRatings();
   }
 
   @override

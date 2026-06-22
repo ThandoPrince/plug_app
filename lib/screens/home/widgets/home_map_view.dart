@@ -1,55 +1,72 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/global_util/services/models/client_models/client_address_model.dart';
+import 'package:flutter_application_1/global_util/services/controler/google_map_controller.dart';
+import 'package:provider/provider.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-class HomeMapView extends StatefulWidget {
-  final List<ClientAddressModel> savedAddresses;
 
-  const HomeMapView({super.key, required this.savedAddresses});
+
+class GoogleMapDemo extends StatefulWidget {
+  const GoogleMapDemo({super.key});
 
   @override
-  State<HomeMapView> createState() => _HomeMapViewState();
+  State<GoogleMapDemo> createState() => _GoogleMapDemoState();
 }
 
-class _HomeMapViewState extends State<HomeMapView> {
-  final Set<Marker> _markers = {};
+class _GoogleMapDemoState extends State<GoogleMapDemo>
+    with AutomaticKeepAliveClientMixin<GoogleMapDemo> {
+  
+  bool _isLoading = true;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final mapCtrl = context.read<GoogleMapMarkerController>();
+      
+      // Load initial default marker configuration data
+      await mapCtrl.showDefaultAddress();
 
-    for (var addr in widget.savedAddresses) {
-      if (addr.latitude != null && addr.longitude != null) {
-        _markers.add(
-          Marker(
-            markerId: MarkerId('address_${_markers.length}'),
-            position: LatLng(addr.latitude!, addr.longitude!),
-            infoWindow: InfoWindow(
-              title: 'Saved Address',
-              snippet: addr.formattedAddress ?? '',
-            ),
-          ),
-        );
+      if (mounted) {
+        setState(() => _isLoading = false);
       }
-    }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Preserves state across tab/viewport changes
+    
+    final mapCtrl = context.watch<GoogleMapMarkerController>();
+
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     return GoogleMap(
-      onMapCreated: (controller) {
-        // no assignment if you don't use controller yet
-      },
+      key: const PageStorageKey('googleMap'), // Keeps the map sub-hierarchy alive
       initialCameraPosition: CameraPosition(
-        target: widget.savedAddresses.isNotEmpty
-            ? LatLng(widget.savedAddresses.first.latitude ?? 0.0, widget.savedAddresses.first.longitude ?? 0.0)
-            : const LatLng(0.0, 0.0),
+        target: GoogleMapMarkerController.fallbackCenter,
         zoom: 14.0,
       ),
-      markers: _markers,
-      myLocationEnabled: true,
-      myLocationButtonEnabled: true,
-      mapType: MapType.normal,
+      onCameraMoveStarted: () {
+  context.read<GoogleMapMarkerController>().unlockClientAnchor();
+},
+onCameraIdle: () {
+  context.read<GoogleMapMarkerController>().lockClientAnchor();
+  
+},
+
+      markers: mapCtrl.markers, // Automatically renders default + provider marker updates
+      onMapCreated: (GoogleMapController controller) {
+        mapCtrl.onMapCreated(controller, context);
+      },
+      // Hides default stock UI elements to keep layout clean for your overlay widgets
+      zoomControlsEnabled: true,
+      mapToolbarEnabled: false,
+      myLocationButtonEnabled: false,
     );
   }
 }

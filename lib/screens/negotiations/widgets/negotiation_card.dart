@@ -55,11 +55,11 @@ class NegotiationCard extends StatelessWidget {
     final date = _formatDate(negotiation.createdAt);
 
     // Full URL for profile image
-    final profilePath = negotiation.providerForNegotiation?.profileImage;
+    final profilePath = negotiation.providerForNegotiation?.provider.profileImage;
     final String coreUrl = dotenv.env['MEDIA_BASE_URL'] ?? '';
     final profileUrl = profilePath != null ? "$coreUrl$profilePath" : null;
 
-    final fullName = negotiation.providerForNegotiation?.fullName;
+    final fullName = negotiation.providerForNegotiation?.provider.fullName;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -110,7 +110,7 @@ class NegotiationCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    "Ratings ⭐: ${negotiation.providerForNegotiation?.rating ?? 'N/A'}",
+                    "Ratings ⭐: ${negotiation.providerForNegotiation?.provider.rating ?? 'N/A'}",
                     style: const TextStyle(fontSize: 14, color: Colors.grey),
                   ),
                 ],

@@ -1,23 +1,17 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
-import 'package:device_info_plus/device_info_plus.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/const/services/backend_error_handler.dart';
 import 'package:flutter_application_1/const/services/registration/address_creation_helper.dart';
-import 'package:flutter_application_1/global_util/services/controler/auth_session_controller.dart';
-import 'package:flutter_application_1/main.dart';
-import 'package:flutter_application_1/screens/splash/spash_screen.dart';
 import 'package:flutter_google_places_hoc081098/google_maps_webservice_places.dart';
-import 'package:huawei_push/huawei_push.dart';
-import 'package:package_info_plus/package_info_plus.dart';
+
 
 class AddressCreationController with ChangeNotifier {
   bool isLoading = false;
   String? error;
-
+  ApiError? apiError;
   String buildingType = "house";
 
   final TextEditingController unitNumberController = TextEditingController();
@@ -104,27 +98,21 @@ class AddressCreationController with ChangeNotifier {
       if (types.contains('street_number')) {
         streetNumberController.text = component.longName;
       }
-
       if (types.contains('route')) {
         routeController.text = component.longName;
       }
-
       if (types.contains('locality')) {
         cityController.text = component.longName;
       }
-
       if (types.contains('administrative_area_level_1')) {
         stateController.text = component.longName;
       }
-
       if (types.contains('country')) {
         countryController.text = component.longName;
       }
-
       if (types.contains('postal_code')) {
         postalCodeController.text = component.longName;
       }
-
       if (types.contains('sublocality') && cityController.text.isEmpty) {
         cityController.text = component.longName;
       }
@@ -191,30 +179,40 @@ class AddressCreationController with ChangeNotifier {
 
       final response = await AddressCreationHelper.addClientAddress(
         data: payload,
-        email: email,
+        
       );
 
       debugPrint("========== ADDRESS RESPONSE ==========");
       debugPrint("Status Code: ${response.statusCode}");
       debugPrint("Raw Body: ${response.body}");
 
+      // Replace your existing response parsing section with this:
       Map<String, dynamic>? decodedBody;
       if (response.body.isNotEmpty) {
         decodedBody = jsonDecode(response.body);
       }
 
-      
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        if (decodedBody != null && decodedBody['success'] == true) {
+          return decodedBody;
+        }
+      }
 
-      error = decodedBody?['error'] ??
-          decodedBody?['detail'] ??
-          "Failed to add address";
+      // Handle structural Django Rest Framework validation maps gracefully
+     if (decodedBody != null) {
+  apiError = _parseError(decodedBody);
 
-      return null;
-    } catch (e, stack) {
-      debugPrint("========== EXCEPTION ==========");
-      debugPrint(e.toString());
-      debugPrint(stack.toString());
-      error = "An unexpected error occurred.";
+  error = apiError?.general ??
+    (apiError!.fieldErrors.isNotEmpty
+        ? apiError!.fieldErrors.values.first
+        : "Failed to process request.");
+
+  debugPrint("GENERAL ERROR: ${apiError?.general}");
+  debugPrint("FIELD ERRORS: ${apiError?.fieldErrors}");
+} else {
+  error = "Failed to add address (Status: ${response.statusCode})";
+}
+
       return null;
     } finally {
       isLoading = false;
@@ -222,155 +220,61 @@ class AddressCreationController with ChangeNotifier {
     }
   }
 
-  Future<void> _fetchAndSendPushToken(String email) async {
-    if (!Platform.isAndroid) return;
 
-    final deviceInfo = await _getDeviceInfo();
-    final appVersion = await _getAppVersion();
 
-    try {
-      if (isHuaweiDevice) {
-        if (kDebugMode) {
-          print("Huawei device detected → using Huawei Push");
-        }
+ 
+ApiError _parseError(Map<String, dynamic> json) {
+  String? general;
+  final Map<String, String> fieldErrors = {};
 
-        await _huaweiTokenSubscription?.cancel();
+  // ---- GLOBAL ERRORS
+  if (json.containsKey("non_field_errors")) {
+    final v = json["non_field_errors"];
+    if (v is List && v.isNotEmpty) {
+      general = v.first.toString();
+    } else {
+      general = v.toString();
+    }
+  }
 
-        _huaweiTokenSubscription = Push.getTokenStream.listen(
-          (String token) async {
-            if (token.isEmpty) return;
+  if (json.containsKey("detail")) {
+    general ??= json["detail"].toString();
+  }
 
-            if (kDebugMode) {
-              print("Huawei Push Token: $token");
-            }
+  if (json.containsKey("message")) {
+    general ??= json["message"].toString();
+  }
 
-            final response = await AddressCreationHelper.updatePushToken(
-              email: email,
-              token: token,
-              provider: 'huawei',
-              deviceType: deviceInfo['deviceType'],
-              deviceName: deviceInfo['deviceName'],
-              osVersion: deviceInfo['osVersion'],
-              appVersion: appVersion,
-            );
+  if (json.containsKey("error")) {
+    general ??= json["error"].toString();
+  }
 
-            if (kDebugMode) {
-              print("Huawei push token response: ${response.statusCode} ${response.body}");
-            }
-          },
-          onError: (e) {
-            if (kDebugMode) {
-              print("Huawei token stream error: $e");
-            }
-          },
-        );
+  // ---- FIELD ERRORS (FLATTEN ALL LEVELS)
+  json.forEach((key, value) {
+    if (value is List && value.isNotEmpty) {
+      fieldErrors[key] = value.first.toString();
+    }
 
-        Push.getToken("HCM");
-        return;
-      }
-
-      if (kDebugMode) {
-        print("Google device detected → using Firebase");
-      }
-
-      await FirebaseMessaging.instance.requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
-
-      final token = await FirebaseMessaging.instance.getToken();
-
-      if (token != null && token.isNotEmpty) {
-        if (kDebugMode) {
-          print("Firebase Token: $token");
-        }
-
-        final response = await AddressCreationHelper.updatePushToken(
-          email: email,
-          token: token,
-          provider: 'firebase',
-          deviceType: deviceInfo['deviceType'],
-          deviceName: deviceInfo['deviceName'],
-          osVersion: deviceInfo['osVersion'],
-          appVersion: appVersion,
-        );
-
-        if (kDebugMode) {
-          print("Firebase push token response: ${response.statusCode} ${response.body}");
-        }
-      } else {
-        if (kDebugMode) {
-          print("Firebase token is null or empty");
-        }
-      }
-
-      await _firebaseTokenRefreshSubscription?.cancel();
-      _firebaseTokenRefreshSubscription =
-          FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
-        if (kDebugMode) {
-          print("Firebase Token Refreshed: $newToken");
-        }
-
-        final response = await AddressCreationHelper.updatePushToken(
-          email: email,
-          token: newToken,
-          provider: 'firebase',
-          deviceType: deviceInfo['deviceType'],
-          deviceName: deviceInfo['deviceName'],
-          osVersion: deviceInfo['osVersion'],
-          appVersion: appVersion,
-        );
-
-        if (kDebugMode) {
-          print("Firebase refreshed token response: ${response.statusCode} ${response.body}");
+    if (value is Map) {
+      value.forEach((k, v) {
+        if (v is List && v.isNotEmpty) {
+          fieldErrors[k] = v.first.toString();
+        } else {
+          fieldErrors[k] = v.toString();
         }
       });
-    } catch (e) {
-      if (kDebugMode) {
-        print("Push token error: $e");
-      }
     }
-  }
+  });
 
-  Future<Map<String, String>> _getDeviceInfo() async {
-    String deviceType = Platform.isAndroid ? 'android' : 'ios';
-    String deviceName = '';
-    String osVersion = '';
-
-    try {
-      final deviceInfoPlugin = DeviceInfoPlugin();
-
-      if (Platform.isAndroid) {
-        final androidInfo = await deviceInfoPlugin.androidInfo;
-        deviceName = androidInfo.model;
-        osVersion = androidInfo.version.release;
-      } else if (Platform.isIOS) {
-        final iosInfo = await deviceInfoPlugin.iosInfo;
-        deviceName = iosInfo.name;
-        osVersion = iosInfo.systemVersion;
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print("Device info error: $e");
-      }
-    }
-
-    return {
-      'deviceType': deviceType,
-      'deviceName': deviceName,
-      'osVersion': osVersion,
-    };
-  }
-
-  Future<String> _getAppVersion() async {
-    try {
-      return (await PackageInfo.fromPlatform()).version;
-    } catch (e) {
-      if (kDebugMode) {
-        print("App version error: $e");
-      }
-      return '';
-    }
-  }
+  return ApiError(
+    general: general,
+    fieldErrors: fieldErrors,
+  );
 }
+  
+
+  
+}
+extension FirstOrNullExtension<E> on Iterable<E> {
+  E? get firstOrNull => isEmpty ? null : first;
+} 

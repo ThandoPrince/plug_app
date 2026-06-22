@@ -8,8 +8,8 @@ import 'package:intl/intl.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
 
 class ClientPendingOrdersBody extends StatelessWidget {
-   final String clientEmail;
-  const ClientPendingOrdersBody({super.key, required this.clientEmail});
+  
+  const ClientPendingOrdersBody({super.key, });
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +37,7 @@ class ClientPendingOrdersBody extends StatelessWidget {
           content = RefreshIndicator(
             color: Theme.of(context).colorScheme.primary,
             onRefresh: () =>
-                controller.fetchPendingOrders(clientEmail),
+                controller.fetchPendingOrders(),
             child: ListView.builder(
               padding: const EdgeInsets.symmetric(vertical: 8.0),
               itemCount: controller.pendingOrders.length,

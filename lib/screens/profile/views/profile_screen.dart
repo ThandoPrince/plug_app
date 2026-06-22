@@ -17,11 +17,14 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 class Profile extends StatefulWidget {
-  final String email;
+
+
+  
+  
 
   const Profile({
     super.key,
-    required this.email,
+    
   });
 
   @override
@@ -42,7 +45,7 @@ class _ProfileState extends State<Profile> {
     _addressCtrl = AddressClientCtrl();
    final clientId =  AuthSessionController.instance.clientId;
     _profileCtrl.fetchClientByEmail(clientId!);
-    _addressCtrl.fetchAddresses(widget.email);
+    _addressCtrl.fetchAddresses();
   }
 
   @override
@@ -347,7 +350,7 @@ class _ProfileState extends State<Profile> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => LocationScreen(email: widget.email),
+                            builder: (_) => LocationScreen(),
                           ),
                         );
                       },

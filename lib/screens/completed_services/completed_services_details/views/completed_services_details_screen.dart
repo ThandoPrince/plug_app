@@ -145,7 +145,7 @@ class ClientRatingDetailsScreen extends StatelessWidget {
     final controller = context.read<CostOfServiceController>();
 
     final int id = rating.session!.shipment!.serviceOrdered!
-        .providerForService!.provider.spProfile.id!;
+        .providerForService!.provider.spProfile!.id!;
 
     await controller.fetchCostsByEmailsAndService(
       [id],

@@ -15,7 +15,7 @@ class ServiceProvidersByAddressApi {
     int addressId,
   ) async {
     final url = Uri.parse(
-      '$baseUrl/service_providersDB/sps_by_live_location/$addressId/',
+      '$baseUrl/service_providerDB/sps_by_live_location/$addressId/',
     );
 
     return _fetchProviders(url);
@@ -32,7 +32,7 @@ class ServiceProvidersByAddressApi {
     final idsQuery = addressIds.join(',');
 
     final url = Uri.parse(
-      '$baseUrl/service_providersDB/sps_by_live_location/?ids=$idsQuery',
+      '$baseUrl/service_providerDB/sps_by_live_location/?ids=$idsQuery',
     );
 
     return _fetchProviders(url);
