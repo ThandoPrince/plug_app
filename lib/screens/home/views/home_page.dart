@@ -79,7 +79,7 @@ class _HomePageState extends State<HomePage> {
                       child: RefreshIndicator(
                         key: _refreshKey,
                         onRefresh: _refresh,
-                        color: Kolors.kBlue,
+                        color: Kolors.kPrimary,
                         backgroundColor: Colors.white,
                         child: SingleChildScrollView(
                           physics: const ScrollDownOnlyPhysics(),

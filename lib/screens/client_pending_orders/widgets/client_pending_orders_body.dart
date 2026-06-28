@@ -8,95 +8,104 @@ import 'package:intl/intl.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
 
 class ClientPendingOrdersBody extends StatelessWidget {
+  final ClientPendingOrdersController controller;
   
-  const ClientPendingOrdersBody({super.key, });
+  const ClientPendingOrdersBody({super.key, required this.controller});
 
   @override
-  Widget build(BuildContext context) {
-    return Consumer<ClientPendingOrdersController>(
-      builder: (context, controller, child) {
-        Widget content;
+Widget build(BuildContext context) {
+  Widget content;
 
-        if (controller.isLoading) {
-          content = const Center(child: CircularProgressIndicator());
-        } else if (controller.errorMessage != null) {
-          content = _buildStateWidget(
-            icon: Icons.cloud_off_outlined,
-            message:
-                "Failed to load orders: ${controller.errorMessage!}. Pull down to retry.",
-            context: context,
-          );
-        } else if (controller.pendingOrders.isEmpty) {
-          content = _buildStateWidget(
-            icon: Icons.assignment_turned_in_outlined,
-            message:
-                "You have no outstanding pending requests. Great job! 🎉",
-            context: context,
-          );
-        } else {
-          content = RefreshIndicator(
-            color: Theme.of(context).colorScheme.primary,
-            onRefresh: () =>
-                controller.fetchPendingOrders(),
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(vertical: 8.0),
-              itemCount: controller.pendingOrders.length,
-              itemBuilder: (context, index) {
-                final order = controller.pendingOrders[index];
-                return _buildOrderItemCard(context, order);
-              },
-            ),
-          );
-        }
-
-        // Wrap everything in a Container
-        return Container(
-          padding: const EdgeInsets.all(12.0),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Kolors.kPrimary,Kolors.kPrimary, Kolors.kSecondaryLight],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
-          ),
-          child: content,
-        );
-      },
+  if (controller.isLoading) {
+    content = const Center(
+      child: CircularProgressIndicator(color: Colors.white),
     );
-  }
-
-  Widget _buildStateWidget({
-    required IconData icon,
-    required String message,
-    required BuildContext context,
-  }) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[
-          Icon(icon,
-              size: 80,
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.6)),
-          const SizedBox(height: 16),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              message,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 18,
-                color: Theme.of(context)
-                    .textTheme
-                    .bodyLarge
-                    ?.color
-                    ?.withOpacity(0.7),
-              ),
-            ),
-          ),
-        ],
+  } else if (controller.errorMessage != null) {
+    content = _buildStateView(
+      icon: Icons.cloud_off_outlined,
+      title: "Failed to load orders",
+      subtitle: controller.errorMessage!,
+    );
+  } else if (controller.pendingOrders.isEmpty) {
+    content = _buildStateView(
+      icon: Icons.assignment_turned_in_outlined,
+      title: "No Pending Orders",
+      subtitle: "You have no outstanding requests right now 🎉",
+    );
+  } else {
+    content = RefreshIndicator(
+      color: Kolors.kPrimary,
+      onRefresh: () => controller.fetchPendingOrders(forceRefresh: true),
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(vertical: 8.0),
+        itemCount: controller.pendingOrders.length,
+        itemBuilder: (context, index) {
+          final order = controller.pendingOrders[index];
+          return _buildOrderItemCard(context, order);
+        },
       ),
     );
   }
+
+  return Container(
+    padding: const EdgeInsets.all(12.0),
+    decoration: const BoxDecoration(
+      gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [ Kolors.kPrimary,
+                  Kolors.kPrimary,
+                  Kolors.kSecondaryLight], // Deep brand gradient
+                  ),
+    ),
+    child: content,
+  );
+}
+
+  Widget _buildStateView({
+  required IconData icon,
+  required String title,
+  required String subtitle,
+}) {
+  return RefreshIndicator(
+    onRefresh: () async {},
+    child: ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [
+        const SizedBox(height: 120),
+        Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 100,
+              color: Colors.white.withOpacity(0.6),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              subtitle,
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.8),
+                fontSize: 14,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+}
 
   Widget _buildOrderItemCard(BuildContext context, OrderServiceModel order) {
     final status = order.status?.toLowerCase() ?? 'pending';

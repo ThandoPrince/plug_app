@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
 import 'package:flutter_application_1/common/widgets/app_style.dart';
+import 'package:flutter_application_1/screens/Onboarding/terms_of_use/views/privacy_policy_screen.dart';
+import 'package:flutter_application_1/screens/Onboarding/terms_of_use/views/terms_of_use_screen.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_vector_icons/flutter_vector_icons.dart';
 
@@ -110,6 +112,54 @@ Future<dynamic> showHelpCenterBottomSheet(BuildContext context) {
                   onPressed: () {},
                   child: const Text('Visit Full Help Center',style: TextStyle(fontSize: 16.0, color: Colors.black)),
                 ),
+                const SizedBox(height: 20),
+
+const Text(
+  'Legal',
+  style: TextStyle(
+    fontSize: 16.0,
+    fontWeight: FontWeight.bold,
+    color: Colors.black,
+  ),
+),
+
+ListTile(
+  contentPadding: EdgeInsets.zero,
+  leading: const Icon(Icons.privacy_tip_outlined, color: Colors.black),
+  title: const Text(
+    'Privacy Policy',
+    style: TextStyle(color: Colors.black),
+  ),
+  trailing: const Icon(Icons.keyboard_arrow_right, color: Colors.black),
+  onTap: () {
+    Navigator.pop(context);
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const PrivacyPolicyScreen(),
+      ),
+    );
+  },
+),
+
+ListTile(
+  contentPadding: EdgeInsets.zero,
+  leading: const Icon(Icons.description_outlined, color: Colors.black),
+  title: const Text(
+    'Terms of Use',
+    style: TextStyle(color: Colors.black),
+  ),
+  trailing: const Icon(Icons.keyboard_arrow_right, color: Colors.black),
+  onTap: () {
+    Navigator.pop(context);
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const TermsOfUseScreen(),
+      ),
+    );
+  },
+),
               ],
             ),
           ),

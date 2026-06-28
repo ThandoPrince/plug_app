@@ -61,7 +61,9 @@ class _AddressVerificationUploadScreenState
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [Kolors.kPrimary, Color(0xFF1A1A1A)], // Deep brand gradient
+                    colors: [ Kolors.kPrimary,
+                  Kolors.kPrimary,
+                  Kolors.kSecondaryLight], // Deep brand gradient
                   ),
                 ),
                 child: SafeArea(

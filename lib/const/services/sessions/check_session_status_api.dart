@@ -1,26 +1,44 @@
 import 'dart:convert';
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
+import 'package:flutter_application_1/global_util/services/api_client.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
-
-import 'package:flutter_application_1/const/services/api_tokens_helper.dart';
 
 class CheckSessionStatusApi {
   static final String baseUrl = dotenv.env['API_BASE_URL'] ?? '';
 
+  static const Duration _timeout = Duration(seconds: 10);
+
+  // =========================
+  // FETCH SESSION STATUS (BOOLEAN SAFE)
+  // =========================
   static Future<bool> isSessionCompleted(int sessionId) async {
     final url = Uri.parse(
       '$baseUrl/bookings/sessions/$sessionId/check_status/',
     );
 
     try {
-      final response = await http.get(
-        url,
-        headers: await ApiTokensHelper.authHeaders(),
-      );
+      final response = await ApiClient.instance.request((token) async {
+        return await http
+            .get(
+              url,
+              headers: {
+                "Content-Type": "application/json",
+                if (token != null) "Authorization": "Bearer $token",
+              },
+            )
+            .timeout(_timeout);
+      }).timeout(_timeout);
 
       if (kDebugMode) {
-        print('🔥 HTTP ${response.statusCode}: ${response.body}');
+        print("========== SESSION STATUS ==========");
+        print("URL: $url");
+        print("STATUS: ${response.statusCode}");
+        print("BODY: ${response.body}");
+        print("====================================");
       }
 
       if (response.statusCode != 200) {
@@ -40,9 +58,10 @@ class CheckSessionStatusApi {
       }
 
       return status.toLowerCase() == 'completed';
+
     } catch (e) {
       if (kDebugMode) {
-        print('CheckSessionStatusApi error: $e');
+        print("CheckSessionStatusApi error: $e");
       }
       return false;
     }

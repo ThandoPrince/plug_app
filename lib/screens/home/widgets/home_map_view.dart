@@ -24,10 +24,7 @@ class _GoogleMapDemoState extends State<GoogleMapDemo>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final mapCtrl = context.read<GoogleMapMarkerController>();
-      
-      // Load initial default marker configuration data
-      await mapCtrl.showDefaultAddress();
+
 
       if (mounted) {
         setState(() => _isLoading = false);
@@ -39,7 +36,7 @@ class _GoogleMapDemoState extends State<GoogleMapDemo>
   Widget build(BuildContext context) {
     super.build(context); // Preserves state across tab/viewport changes
     
-    final mapCtrl = context.watch<GoogleMapMarkerController>();
+    final mapCtrl = context.read<GoogleMapMarkerController>();
 
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -61,8 +58,13 @@ onCameraIdle: () {
 
       markers: mapCtrl.markers, // Automatically renders default + provider marker updates
       onMapCreated: (GoogleMapController controller) {
-        mapCtrl.onMapCreated(controller, context);
-      },
+  final mapCtrl = context.read<GoogleMapMarkerController>();
+
+  mapCtrl.onMapCreated(controller, context);
+
+  // ✅ safe single trigger
+  mapCtrl.showDefaultAddress();
+},
       // Hides default stock UI elements to keep layout clean for your overlay widgets
       zoomControlsEnabled: true,
       mapToolbarEnabled: false,

@@ -1,13 +1,20 @@
 import 'dart:convert';
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
+import 'package:flutter_application_1/global_util/services/api_client.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
-
-import 'package:flutter_application_1/const/services/api_tokens_helper.dart';
 
 class CheckClientRatingApi {
   static final String baseUrl = dotenv.env['API_BASE_URL'] ?? '';
 
+  static const Duration _timeout = Duration(seconds: 10);
+
+  // =========================
+  // CHECK IF CLIENT HAS RATED SESSION
+  // =========================
   static Future<bool> hasClientRatedSession({
     required String clientEmail,
     required int sessionId,
@@ -17,14 +24,24 @@ class CheckClientRatingApi {
     );
 
     try {
-      final response = await http.get(
-        url,
-        headers: await ApiTokensHelper.authHeaders(),
-      );
+      final response = await ApiClient.instance.request((token) async {
+        return await http
+            .get(
+              url,
+              headers: {
+                "Content-Type": "application/json",
+                if (token != null) "Authorization": "Bearer $token",
+              },
+            )
+            .timeout(_timeout);
+      }).timeout(_timeout);
 
       if (kDebugMode) {
-        print('Rating Check HTTP ${response.statusCode}');
-        print('Response: ${response.body}');
+        print("========== CLIENT RATING CHECK ==========");
+        print("URL: $url");
+        print("STATUS: ${response.statusCode}");
+        print("BODY: ${response.body}");
+        print("=========================================");
       }
 
       if (response.statusCode != 200) {
@@ -38,9 +55,10 @@ class CheckClientRatingApi {
       }
 
       return decoded.isNotEmpty;
+
     } catch (e) {
       if (kDebugMode) {
-        print('CheckClientRatingApi error: $e');
+        print("CheckClientRatingApi error: $e");
       }
       return false;
     }

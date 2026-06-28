@@ -5,12 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:flutter_application_1/global_util/services/controler/client_pending_orders_ctrl.dart';
 
 class ClientPendingOrdersScreen extends StatefulWidget {
- 
-
-  const ClientPendingOrdersScreen({
-    super.key,
-    
-  });
+  const ClientPendingOrdersScreen({super.key});
 
   @override
   State<ClientPendingOrdersScreen> createState() =>
@@ -19,20 +14,17 @@ class ClientPendingOrdersScreen extends StatefulWidget {
 
 class _ClientPendingOrdersScreenState
     extends State<ClientPendingOrdersScreen> {
-  late final ClientPendingOrdersController _controller;
   bool _showHeader = true;
 
   @override
   void initState() {
     super.initState();
-    _controller = ClientPendingOrdersController();
-    _controller.fetchPendingOrders();
-  }
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context
+          .read<ClientPendingOrdersController>()
+          .fetchPendingOrders();
+    });
   }
 
   void _onScroll(ScrollNotification notification) {
@@ -47,47 +39,45 @@ class _ClientPendingOrdersScreenState
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider.value(
-      value: _controller,
-      child: Scaffold(
-        backgroundColor: Kolors.kPrimary,
-        body: NotificationListener<ScrollNotification>(
-          onNotification: (notification) {
-            _onScroll(notification);
-            return false;
-          },
-          child: Column(
-            children: [
-              // ✅ COLLAPSING HEADER
-              SafeArea(
-                bottom: false,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 220),
-                  curve: Curves.easeOut,
-                  height: _showHeader ? 56 : 0,
-                  child: Center(
-                    child: Text(
-                      'My Pending Orders',
-                      style: TextStyle(
-                        color: Colors.white,
-                        
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0.5,
-                      ),
+    final controller = context.watch<ClientPendingOrdersController>();
+
+    return Scaffold(
+      backgroundColor: Kolors.kPrimary,
+      body: NotificationListener<ScrollNotification>(
+        onNotification: (notification) {
+          _onScroll(notification);
+          return false;
+        },
+        child: Column(
+          children: [
+            // HEADER
+            SafeArea(
+              bottom: false,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOut,
+                height: _showHeader ? 56 : 0,
+                child: const Center(
+                  child: Text(
+                    'My Pending Orders',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.5,
                     ),
                   ),
                 ),
               ),
+            ),
 
-              // ✅ BODY
-              Expanded(
-                child: ClientPendingOrdersBody(
-                  
-                ),
+            // BODY
+            Expanded(
+              child: ClientPendingOrdersBody(
+                controller: controller,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

@@ -10,18 +10,6 @@ class ClientPendingOrdersController extends ChangeNotifier {
 
   bool _disposed = false;
 
-  @override
-  void dispose() {
-    _disposed = true;
-    super.dispose();
-  }
-
-  void _safeNotify() {
-    if (!_disposed) {
-      notifyListeners();
-    }
-  }
-
   List<OrderServiceModel> _pendingOrders = [];
   List<OrderServiceModel> get pendingOrders => _pendingOrders;
 
@@ -31,36 +19,64 @@ class ClientPendingOrdersController extends ChangeNotifier {
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
-  Future<void> fetchPendingOrders() async {
+  bool _hasFetched = false;
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
+  void _safeNotify() {
+    if (!_disposed) notifyListeners();
+  }
+
+  // ───────────────────────────── CORE FETCH ─────────────────────────────
+
+  Future<void> fetchPendingOrders({bool forceRefresh = false}) async {
+    if (_disposed) return;
+
+    // 🔒 prevent duplicate calls
+    if (_isLoading) return;
+
+    // 🔥 cache guard
+    if (_hasFetched && !forceRefresh) return;
+
     _isLoading = true;
     _errorMessage = null;
     _safeNotify();
 
     try {
-      final orders =
-          await api.fetchPendingOrdersByClientEmail();
+      final orders = await api.fetchPendingOrdersByClientEmail();
 
       if (_disposed) return;
 
       _pendingOrders = orders;
+      _hasFetched = true;
     } catch (e) {
       if (_disposed) return;
       _errorMessage = e.toString();
     } finally {
       if (_disposed) return;
+
       _isLoading = false;
       _safeNotify();
     }
   }
 
-  Future<void> refreshPendingOrders(String clientEmail) async {
-  await fetchPendingOrders();
-}
+  // ───────────────────────────── REFRESH ─────────────────────────────
+
+  Future<void> refreshPendingOrders() async {
+    
+    await fetchPendingOrders(forceRefresh: true);
+  }
+
+  // ───────────────────────────── CLEAR ─────────────────────────────
 
   void clearOrders() {
     _pendingOrders = [];
+    _hasFetched = false;
     _errorMessage = null;
     _safeNotify();
   }
 }
-

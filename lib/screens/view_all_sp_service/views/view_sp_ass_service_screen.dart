@@ -1,7 +1,7 @@
 import 'package:another_flushbar/flushbar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
-import 'package:flutter_application_1/common/widgets/app_style.dart';
+
 import 'package:flutter_application_1/common/widgets/flushbar_service.dart';
 import 'package:flutter_application_1/screens/booking/views/MultiProviderBookingScreen.dart';
 import 'package:go_router/go_router.dart';
@@ -125,10 +125,12 @@ class _ServiceProvidersByServiceScreenState
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Kolors.kPrimary, Colors.white],
-          ),
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [ Kolors.kPrimary,
+                  Kolors.kPrimary,
+                  Kolors.kSecondaryLight], // Deep brand gradient
+                  ),
         ),
         child: Column(
           children: [
@@ -188,39 +190,107 @@ class _ServiceProvidersByServiceScreenState
 
   // ================= PROVIDERS =================
   Widget _buildProvidersList() {
-    return FutureBuilder<List<ServiceProviderModel>>(
-      future: _futureProviders,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(color: Kolors.kDark),
-          );
-        }
-
-        if (snapshot.hasError) {
-          return const Center(child: Text("Failed to load providers"));
-        }
-
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const Center(child: Text("No providers found"));
-        }
-
-        // cache once
-        if (_allProviders.isEmpty) {
-          _allProviders = snapshot.data!;
-          _filteredProviders = _allProviders;
-        }
-
-        return ProviderListWidget(
-          providers: _filteredProviders,
-          onSelectionChanged: (selected) {
-            _selectedProviders = selected;
-          },
-          onProviderTap: _onProviderTap,
+  return FutureBuilder<List<ServiceProviderModel>>(
+    future: _futureProviders,
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return const Center(
+          child: CircularProgressIndicator(color: Colors.white),
         );
-      },
-    );
-  }
+      }
+
+      if (snapshot.hasError) {
+        return _buildProviderState(
+          icon: Icons.cloud_off_outlined,
+          title: "Failed to load providers",
+          subtitle: "Please check your connection and try again",
+        );
+      }
+
+      if (!snapshot.hasData || snapshot.data!.isEmpty) {
+        return _buildProviderState(
+          icon: Icons.people_outline,
+          title: "No Providers Found",
+          subtitle: "There are currently no service providers available./n Or no providers are available in your area.",
+        );
+      }
+
+      // cache once
+      if (_allProviders.isEmpty) {
+        _allProviders = snapshot.data!;
+        _filteredProviders = _allProviders;
+      }
+
+      return ProviderListWidget(
+        providers: _filteredProviders,
+        onSelectionChanged: (selected) {
+          _selectedProviders = selected;
+        },
+        onProviderTap: _onProviderTap,
+      );
+    },
+  );
+}
+
+Widget _buildProviderState({
+  required IconData icon,
+  required String title,
+  required String subtitle,
+}) {
+  return ListView(
+    physics: const AlwaysScrollableScrollPhysics(),
+    children: [
+      const SizedBox(height: 120),
+      Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            icon,
+            size: 100,
+            color: Colors.white.withOpacity(0.6),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 10),
+
+          // 👇 split into clean lines instead of \n
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              children: [
+                Text(
+                  "There are currently no service providers available.",
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.8),
+                    fontSize: 14,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  "Try again later or change your location.",
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.8),
+                    fontSize: 14,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ],
+  );
+}
 
   // ================= ACTIONS =================
   void _onProviderTap(ServiceProviderModel provider) {

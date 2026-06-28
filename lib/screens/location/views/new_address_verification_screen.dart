@@ -60,7 +60,9 @@ class _AddressVerificationScreenState
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [Kolors.kPrimary, Color(0xFF1A1A1A)], //
+                    colors: [ Kolors.kPrimary,
+                  Kolors.kPrimary,
+                  Kolors.kSecondaryLight], // Deep brand gradient
                   ),
                 ),
                 child: SafeArea(

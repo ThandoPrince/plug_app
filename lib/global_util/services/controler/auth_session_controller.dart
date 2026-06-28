@@ -15,11 +15,13 @@ class AuthSessionController with ChangeNotifier {
   // ======================
   // Memory state
   // ======================
+    Future<String?>? _refreshFuture;
 
   int? _clientId;
   String? _accessToken;
   String? _refreshToken;
-
+bool _loggedOut = false;
+bool get loggedOut => _loggedOut;
 
   int? get clientId => _clientId;
   String? get accessToken => _accessToken;
@@ -52,6 +54,20 @@ class AuthSessionController with ChangeNotifier {
     notifyListeners();
   }
 
+  void resetLogoutFlag() {
+  _loggedOut = false;
+}
+
+Future<String?> getValidAccessToken() async {
+  final token = accessToken;
+  if (token == null) return null;
+
+  // optional: decode JWT expiry check here
+
+  final newToken = await refreshAccessToken();
+  return newToken ?? token;
+}
+
   // ======================
   // Save session
   // ======================
@@ -80,45 +96,101 @@ class AuthSessionController with ChangeNotifier {
   // Clear session (logout)
   // ======================
   Future<void> clearSession() async {
+  _clientId = null;
+  _accessToken = null;
+  _refreshToken = null;
 
-    _clientId = null;
-    _accessToken = null;
-    _refreshToken = null;
+  _loggedOut = true;
 
-    await _storage.deleteAll();
-    notifyListeners();
-  }
+  await _storage.deleteAll();
+  notifyListeners();
+}
 
   Future<String?> refreshAccessToken() async {
-  if (_refreshToken == null) return null;
-
-   final String baseUrl = dotenv.env['API_BASE_URL'] ?? '';
-
-  final url = Uri.parse("$baseUrl/client/token/refresh/");
-
-  final response = await http.post(
-    url,
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: jsonEncode({
-      "refresh": _refreshToken,
-    }),
-  );
-
-  if (response.statusCode == 200) {
-    final data = jsonDecode(response.body);
-
-    _accessToken = data["access"];
-
-    await _storage.write(key: _kAccess, value: _accessToken);
-
-    notifyListeners();
-    return _accessToken;
+  if (_refreshFuture != null) {
+    debugPrint("Refresh already in progress. Waiting...");
+    return await _refreshFuture;
   }
 
-  // refresh token is invalid → force logout
-  await clearSession();
-  return null;
+  _refreshFuture = _performRefresh();
+
+  try {
+    return await _refreshFuture;
+  } finally {
+    _refreshFuture = null;
+  }
+}
+
+Future<String?> _performRefresh() async {
+  if (_refreshToken == null) {
+    return null;
+  }
+
+  try {
+    debugPrint("Refreshing access token...");
+
+    final String baseUrl =
+        dotenv.env['API_BASE_URL'] ?? '';
+
+    final url = Uri.parse(
+      "$baseUrl/client/token/refresh/",
+    );
+
+    final response = await http.post(
+      url,
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: jsonEncode({
+        "refresh": _refreshToken,
+      }),
+    );
+
+    debugPrint(
+      "Refresh response: ${response.statusCode}",
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+
+      _accessToken = data["access"];
+
+      if (data["refresh"] != null) {
+        _refreshToken = data["refresh"];
+
+        await _storage.write(
+          key: _kRefresh,
+          value: _refreshToken,
+        );
+      }
+
+      await _storage.write(
+        key: _kAccess,
+        value: _accessToken,
+      );
+
+      notifyListeners();
+
+      debugPrint("Token refresh successful");
+
+      return _accessToken;
+    }
+
+    debugPrint(
+      "Refresh failed: ${response.body}",
+    );
+
+    await clearSession();
+
+    return null;
+  } catch (e) {
+    debugPrint(
+      "Refresh exception: $e",
+    );
+
+    await clearSession();
+
+    return null;
+  }
 }
 }

@@ -47,10 +47,12 @@ class ClientRatingDetailsScreen extends StatelessWidget {
         width: MediaQuery.of(context).size.width,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Kolors.kPrimary, Kolors.kPrimary, Kolors.kSecondaryLight],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [ Kolors.kPrimary,
+                  Kolors.kPrimary,
+                  Kolors.kSecondaryLight], // Deep brand gradient
+                  ),
         ),
         child: SafeArea(
           child: SingleChildScrollView(

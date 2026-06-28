@@ -1,16 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
+import 'package:flutter_application_1/global_util/services/controler/get_client_shipment_ctrl.dart';
+import 'package:flutter_application_1/global_util/services/controler/google_shipment_route_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/session_by_shipment_ctrl.dart';
 import 'package:flutter_application_1/global_util/services/controler/shipment_route_controller.dart';
 import 'package:flutter_application_1/global_util/services/models/order_service_models/shipment_model.dart';
+import 'package:flutter_application_1/screens/client_pending_orders_details/views/client_pending_orders_details_screen.dart';
 import 'package:flutter_application_1/screens/session_confirmation/views/session_confirmation_screen.dart';
 import 'package:flutter_application_1/screens/sessions/views/session_screen.dart';
 import 'package:flutter_application_1/screens/track_shipment/views/track_service_screen.dart';
 import 'package:provider/provider.dart';
 
 class ShipmentScheduleCard extends StatelessWidget {
+  final ShipmentController shipmentController;
+
   final Shipment shipment;
-  const ShipmentScheduleCard({super.key, required this.shipment});
+  
+  const ShipmentScheduleCard({super.key, required this.shipment, required this.shipmentController});
 
   String _cleanProviderName(String rawName) {
     return rawName.split('-').first.trim();
@@ -46,12 +52,13 @@ class ShipmentScheduleCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        order?.title?.toUpperCase() ?? 'Service Request',
+                        order?.title?.toUpperCase() ?? 'SERVICE REQUEST',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w900,
                           color: Colors.blueGrey.shade900,
                           letterSpacing: -0.5,
+                           // optional visual cue
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -108,14 +115,18 @@ class ShipmentScheduleCard extends StatelessWidget {
                 onPressed: () async {
   final orderStatus = shipment.serviceOrdered?.status ?? '';
   final shipmentStatus = shipment.shipmentStatus.toLowerCase();
+  final session =
+    shipmentController.sessionForShipment(
+      shipment.shipmentId,
+    );
 
   /// 🚀 1. IN TRANSIT or ARRIVED → TRACK ROUTE
-  if (shipmentStatus == 'in_transit' || shipmentStatus == 'arrived') {
+  if (shipmentStatus == 'in_transit' || shipmentStatus == 'arrived' || shipmentStatus == 'rescheduled') {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => ChangeNotifierProvider(
-          create: (_) => ShipmentRouteController(shipment: shipment),
+          create: (_) => GoogleShipmentRouteController(shipment: shipment, shipmentController: shipmentController),
           child: TrackServiceScreen(shipment: shipment),
         ),
       ),
@@ -140,7 +151,7 @@ class ShipmentScheduleCard extends StatelessWidget {
   await sessionController.fetchSession(shipment.shipmentId.toString());
   if (!context.mounted) return;
 
-  final session = sessionController.session;
+  
   if (session != null && session.sessionStatus == 'in_session') {
     Navigator.push(
       context,
@@ -180,43 +191,66 @@ class ShipmentScheduleCard extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailRow(IconData icon, String text, String label) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Kolors.kPrimary.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(icon, size: 20, color: Kolors.kPrimary),
+  Widget _buildDetailRow(
+  IconData icon,
+  String text,
+  String label, {
+  VoidCallback? onTap,
+}) {
+  final rowContent = Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Kolors.kPrimary.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(10),
         ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label,
-                  style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.blueGrey.shade300,
-                      fontWeight: FontWeight.bold)),
-              Text(
-                text,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                    fontSize: 15,
-                    color: Colors.blueGrey.shade700,
-                    fontWeight: FontWeight.w600),
+        child: Icon(icon, size: 20, color: Kolors.kDark),
+      ),
+      const SizedBox(width: 14),
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.blueGrey.shade300,
+                fontWeight: FontWeight.bold,
               ),
-            ],
-          ),
+            ),
+            Text(
+              text,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 15,
+                color: Colors.blueGrey.shade700,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
-      ],
-    );
-  }
+      ),
+    ],
+  );
+
+  if (onTap == null) return rowContent;
+
+  return Material(
+    color: Colors.transparent,
+    child: InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: rowContent,
+      ),
+    ),
+  );
+}
 }
 
 class StatusChip extends StatelessWidget {
@@ -239,6 +273,8 @@ class StatusChip extends StatelessWidget {
         color = Colors.blue;
       case 'in_session':
         color = Colors.purple;
+        case 'rescheduled':
+        color = Colors.yellow;
       
         break;
       default:

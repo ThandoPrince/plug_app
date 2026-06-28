@@ -40,7 +40,7 @@ class NegotationByOrderIDController with ChangeNotifier {
     notifyListeners();
 
     try {
-      _negotiations = await NegotiationByOrderidApi.fetchAllNegotiations(orderID);
+      _negotiations = await NegotiationByOrderidApi.fetchNegotiationByOrderID(orderID);
     } catch (e) {
       _errorMessage = e.toString();
       _negotiations = null;

@@ -1,9 +1,14 @@
 import 'dart:ui';
+import 'package:another_flushbar/flushbar_helper.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/global_util/services/models/order_service_models/ratings_model.dart';
-import 'package:flutter_application_1/screens/completed_services/completed_services_details/views/completed_services_details_screen.dart';
+import 'package:flutter_application_1/common/widgets/custom_button.dart';
+import 'package:flutter_application_1/const/services/registration/logout_api.dart';
+import 'package:flutter_application_1/global_util/services/controler/client_profile_by_email_ctrl.dart';
+import 'package:flutter_application_1/global_util/services/controler/logout_controller.dart';
+
 import 'package:flutter_application_1/screens/completed_services/views/completed_services_screen.dart';
 import 'package:flutter_application_1/screens/home/views/google_home_page.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
 import 'package:flutter_vector_icons/flutter_vector_icons.dart';
@@ -33,12 +38,24 @@ class _EntryPointState extends State<EntryPoint> {
   bool _isHmsPresent = false;
   bool _checkingHardware = true;
 
-  @override
-  void initState() {
-    super.initState();
-    _pageController = PageController();
-    _checkHardwarePlatform();
-  }
+
+ @override
+void initState() {
+  super.initState();
+
+  _pageController = PageController();
+  _checkHardwarePlatform();
+
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    final clientId = AuthSessionController.instance.clientId;
+
+    if (clientId != null) {
+      context
+          .read<ClientProfileController>()
+          .fetchClientByEmail(clientId);
+    }
+  });
+}
 
   /// Evaluates device runtime to detect Huawei Mobile Services availability
   Future<void> _checkHardwarePlatform() async {
@@ -46,9 +63,9 @@ class _EntryPointState extends State<EntryPoint> {
       // Replace with your preferred HMS check plugin code if available, e.g.:
       // final int result = await HmsApiAvailability().isHMSAvailable();
       // _isHmsPresent = (result == 0);
-      
+
       // Fallback placeholder logic for runtime branching setup
-      _isHmsPresent = false; 
+      _isHmsPresent = false;
     } catch (_) {
       _isHmsPresent = false;
     } finally {
@@ -61,8 +78,149 @@ class _EntryPointState extends State<EntryPoint> {
   @override
   void dispose() {
     _pageController.dispose();
+  
     super.dispose();
   }
+
+  void _goToPage(int index) {
+  if (!_pageController.hasClients) return;
+
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (!_pageController.hasClients) return;
+
+    final current = _pageController.page?.round() ?? 0;
+    if (current == index) return;
+
+    _pageController.jumpToPage(index);
+  });
+}
+
+  void _confirmLogout() async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 30),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 28,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.2),
+                  ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.logout_rounded,
+                      size: 48,
+                      color: Colors.redAccent,
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      "Logout",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      "Are you sure you want to logout?",
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 28),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: GradientBtn(
+                            text: "Cancel",
+                            btnColor: Colors.grey.shade200,
+                            textColor: Colors.black,
+                            btnHieght: 50,
+                            btnWidth: double.infinity,
+                            radius: 14,
+                            onTap: () {
+                              Navigator.of(dialogContext).pop();
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Kolors.kPrimary,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                            ),
+                            onPressed: () async {
+                              Navigator.of(dialogContext).pop();
+
+                              await _logout();
+
+                              if (!context.mounted) return;
+                            },
+                            child: const Text(
+                              "Logout",
+                              style: TextStyle(
+                                color: Kolors.kOffWhite,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _logout() async {
+  final logoutController = LogoutController();
+
+  try {
+    Provider.of<TabIndexNotifier>(context, listen: false).reset();
+
+    await logoutController.logout();
+
+    if (!mounted) return;
+
+    // Clear session AFTER API call (or inside API if you prefer)
+    await AuthSessionController.instance.clearSession();
+
+    context.go('/login');
+
+    debugPrint("Client logged out successfully");
+  } catch (e) {
+    debugPrint("Logout failed: $e");
+
+    if (!mounted) return;
+
+    FlushbarHelper.createError(
+      message: "Logout failed. Please try again.",
+    ).show(context);
+  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -117,7 +275,9 @@ class _EntryPointState extends State<EntryPoint> {
                 physics: isHome
                     ? const NeverScrollableScrollPhysics()
                     : const BouncingScrollPhysics(),
-                onPageChanged: tabNotifier.setIndex,
+                onPageChanged: (index) {
+  tabNotifier.setIndex(index);
+},
                 children: pages,
               ),
               bottomNavigationBar: _buildBottomNav(tabNotifier),
@@ -129,105 +289,158 @@ class _EntryPointState extends State<EntryPoint> {
   }
 
   /// Drawer
-  Widget _buildDrawer(BuildContext context, TabIndexNotifier tabNotifier) {
-    return Drawer(
-      backgroundColor: Kolors.kPrimary.withOpacity(0.95),
-      child: Column(
-        children: [
-          Container(
-            height: 200,
-            child: Stack(
-              children: [
-                Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Kolors.kPrimary, Kolors.kSecondaryLight],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                  ),
-                ),
-                Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  child: ClipRRect(
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                      child: Container(
-                        height: 70,
-                        color: Colors.white.withOpacity(0.1),
+ Widget _buildDrawer(BuildContext context, TabIndexNotifier tabNotifier) {
+  return Consumer<ClientProfileController>(
+    builder: (context, profileCtrl, _) {
+      final profile = profileCtrl.clientProfile;
+
+      return Drawer(
+        backgroundColor: Kolors.kPrimary.withOpacity(0.95),
+        child: Column(
+          children: [
+
+            /// ================= HEADER =================
+            Container(
+              height: 200,
+              child: Stack(
+                children: [
+                  Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Kolors.kPrimary, Kolors.kSecondaryLight],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
                     ),
                   ),
-                ),
-                SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        CircleAvatar(
-                          radius: 35,
-                          backgroundColor: Colors.white.withOpacity(0.2),
-                          child: const Icon(Ionicons.person, size: 35, color: Colors.white),
-                        ),
-                        const Spacer(),
-                        Text(
-                          'The Plug Menu',
-                          style: appStyle(18, Colors.white, FontWeight.bold),
-                        ),
-                        Text(
-                          "My Plug",
-                          style: appStyle(12, Colors.white70, FontWeight.normal),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+
+                  SafeArea(
+  child: Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+    child: InkWell(
+      onTap: () {
+  Navigator.pop(context);
+  _goToPage(3);
+},
+      child: SizedBox(
+        width: double.infinity,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+
+            CircleAvatar(
+              radius: 35,
+              backgroundColor: Colors.white24,
+              backgroundImage:
+                  (profile?.profilePic?.isNotEmpty ?? false)
+                      ? NetworkImage(profile!.profilePic!)
+                      : null,
+              child: (profile?.profilePic?.isEmpty ?? true)
+                  ? const Icon(
+                      Ionicons.person,
+                      color: Colors.white,
+                      size: 35,
+                    )
+                  : null,
             ),
-          ),
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.only(top: 10),
-              decoration: BoxDecoration(
-                color: Kolors.kPrimary.withOpacity(0.1),
+
+            const SizedBox(height: 16),
+
+            Text(
+              profile == null
+                  ? "Loading..."
+                  : "${profile.firstName ?? ''} ${profile.lastName ?? ''}"
+                      .trim(),
+              style: appStyle(18, Colors.white, FontWeight.bold),
+              overflow: TextOverflow.ellipsis,
+            ),
+
+            const SizedBox(height: 4),
+
+            Text(
+              profile?.clientProfile?.emailAddress ?? "No email",
+              style: appStyle(12, Colors.white70, FontWeight.normal),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    ),
+  ),
+)
+                ],
               ),
+            ),
+
+            /// ================= MENU =================
+            Expanded(
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 10),
                 children: [
+
+                  // _buildDrawerTile(
+                  //   icon: Icons.check_circle_outline,
+                  //   title: 'Completed Services',
+                  //   onTap: () {
+                  //     Navigator.pop(context);
+                  //     Navigator.push(
+                  //       context,
+                  //       MaterialPageRoute(
+                  //         builder: (_) => const ClientRatingsScreen(),
+                  //       ),
+                  //     );
+                  //   },
+                  // ),
+
+                  const Divider(color: Colors.white24),
+
                   _buildDrawerTile(
                     icon: Icons.history_rounded,
                     title: 'Service History',
                     onTap: () {
-
                       Navigator.pop(context);
                       Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ClientRatingsScreen(),
-      ),
-    );
-                      // Handled by client screen architecture routing parameters
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ClientRatingsScreen(),
+                        ),
+                      );
                     },
                   ),
+
+                  const Divider(color: Colors.white24),
+
                 ],
               ),
             ),
-          ),
-          const Divider(color: Colors.white24, height: 1),
-          _buildDrawerTile(
-            icon: Icons.logout_rounded,
-            title: 'Logout',
-            onTap: () {},
-            color: Colors.redAccent,
-          ),
-          const SizedBox(height: 20),
-        ],
-      ),
-    );
-  }
+
+            /// ================= FOOTER =================
+            const Divider(color: Colors.white24, height: 1),
+
+            _buildDrawerTile(
+              icon: Icons.logout_rounded,
+              title: 'Logout',
+              onTap: _confirmLogout,
+              color: Colors.redAccent,
+            ),
+
+            const SizedBox(height: 10),
+
+            const Text(
+              "App Version 1.0.0",
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 12,
+              ),
+            ),
+
+            const SizedBox(height: 20),
+          ],
+        ),
+      );
+    },
+  );
+}
 
   Widget _buildDrawerTile({
     required IconData icon,
@@ -251,7 +464,7 @@ class _EntryPointState extends State<EntryPoint> {
     return ClipRRect(
       borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
         child: Container(
           color: Colors.transparent,
           child: SafeArea(
@@ -272,15 +485,12 @@ class _EntryPointState extends State<EntryPoint> {
                 GButton(icon: Icons.calendar_month_outlined, text: 'Schedule'),
                 GButton(icon: Ionicons.person_outline, text: 'Profile'),
               ],
-              selectedIndex: tabNotifier.index,
+              selectedIndex: _pageController.hasClients
+    ? (_pageController.page?.round() ?? 0)
+    : tabNotifier.index,
               onTabChange: (index) {
-                tabNotifier.setIndex(index);
-                _pageController.animateToPage(
-                  index,
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                );
-              },
+  _goToPage(index);
+},
             ),
           ),
         ),

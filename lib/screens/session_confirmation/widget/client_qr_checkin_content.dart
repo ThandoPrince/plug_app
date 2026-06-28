@@ -1,12 +1,14 @@
 import 'package:another_flushbar/flushbar_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
+import 'package:flutter_application_1/common/widgets/custom_button.dart';
 import 'package:flutter_application_1/global_util/services/controler/confirm_session_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/update_final_price_controller.dart';
 import 'package:flutter_application_1/screens/schedule/widgets/go_to_schedule_helper.dart';
 import 'package:flutter_application_1/screens/session_confirmation/views/session_confirmation_screen.dart';
 import 'package:flutter_application_1/screens/session_confirmation/widget/detail_row.dart';
 import 'package:flutter_application_1/screens/session_confirmation/widget/ticket_divider.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
@@ -66,14 +68,12 @@ class _ClientQrCheckinContentState extends State<ClientQrCheckinContent> {
                 height: double.infinity,
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [
-                    Kolors.kPrimary,
-                    Kolors.kPrimary,
-                    Kolors.kSecondaryLight,
-                  ],
-                  begin: Alignment.topRight,
-                  end: Alignment.bottomLeft,
-                ),
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [ Kolors.kPrimary,
+                  Kolors.kPrimary,
+                  Kolors.kSecondaryLight], // Deep brand gradient
+                  ),
               ),
               child: SafeArea(
                 child: _buildContent(context, controller),
@@ -267,23 +267,76 @@ class _ClientQrCheckinContentState extends State<ClientQrCheckinContent> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Confirm Price Update'),
-          content: Text(
-            'Proceed with updating the final price to '
-            'R ${newPrice.toStringAsFixed(2)}?\n\n'
-            'Payment Type: $_paymentTypeLabel',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('No'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('Yes, update'),
-            ),
-          ],
-        );
+  backgroundColor: Colors.white,
+  surfaceTintColor: Colors.transparent,
+  shape: RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(20),
+  ),
+  title: const Text(
+    "Confirm Price Update",
+    textAlign: TextAlign.center,
+    style: TextStyle(
+      fontSize: 22,
+      fontWeight: FontWeight.bold,
+    ),
+  ),
+  content: RichText(
+  textAlign: TextAlign.center,
+  text: TextSpan(
+    style: TextStyle(
+      color: Colors.black87,
+      fontSize: 14.sp,
+      height: 1.5,
+    ),
+    children: [
+      const TextSpan(
+        text: 'Proceed with updating the final price to\n\n',
+      ),
+      TextSpan(
+        text: 'R ${newPrice.toStringAsFixed(2)}',
+        style: TextStyle(
+          color: Kolors.kPrimary,
+          fontWeight: FontWeight.bold,
+          fontSize: 18.sp,
+        ),
+      ),
+      TextSpan(
+        text: '\n\nPayment Type: $_paymentTypeLabel',
+      ),
+    ],
+  ),
+),
+  actions: [
+    Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        GradientBtn(
+          text: "YES, UPDATE",
+          btnColor: Kolors.kPrimary,
+          textColor: Kolors.kWhite,
+          btnHieght: 50.h,
+          btnWidth: double.infinity,
+          radius: 12,
+          onTap: () {
+            Navigator.of(dialogContext).pop(true);
+          },
+        ),
+        SizedBox(height: 10.h),
+        GradientBtn(
+          text: "CANCEL",
+          btnColor: Colors.grey.shade300,
+          textColor: Colors.black,
+          btnHieght: 50.h,
+          btnWidth: double.infinity,
+          radius: 12,
+          onTap: () {
+            Navigator.of(dialogContext).pop(false);
+          },
+        ),
+      ],
+    ),
+  ],
+);
       },
     );
 
@@ -348,12 +401,20 @@ class _EditFinalPriceDialogState extends State<_EditFinalPriceDialog> {
   late final TextEditingController _textController;
 
   @override
-  void initState() {
-    super.initState();
-    _textController = TextEditingController(
-      text: widget.initialPrice.toStringAsFixed(2),
+void initState() {
+  super.initState();
+
+  _textController = TextEditingController(
+    text: widget.initialPrice.toStringAsFixed(2),
+  );
+
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    _textController.selection = TextSelection(
+      baseOffset: 0,
+      extentOffset: _textController.text.length,
     );
-  }
+  });
+}
 
   @override
   void dispose() {
@@ -379,29 +440,84 @@ class _EditFinalPriceDialogState extends State<_EditFinalPriceDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Edit Final Price'),
-      content: TextField(
+  backgroundColor: Colors.white,
+  surfaceTintColor: Colors.transparent,
+  shape: RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(20),
+  ),
+  title: const Text(
+    "Edit Final Price",
+    textAlign: TextAlign.center,
+    style: TextStyle(
+      fontSize: 22,
+      fontWeight: FontWeight.bold,
+    ),
+  ),
+  content: Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      const Text(
+        "Enter the final agreed price.",
+        textAlign: TextAlign.center,
+      ),
+      SizedBox(height: 16.h),
+      TextField(
         controller: _textController,
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        keyboardType: const TextInputType.numberWithOptions(
+          decimal: true,
+        ),
         autofocus: true,
-        decoration: const InputDecoration(
-          labelText: 'Final price',
-          prefixText: 'R ',
-          border: OutlineInputBorder(),
+        decoration: InputDecoration(
+          labelText: "Final Price",
+          prefixText: "R ",
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(
+              color: Colors.grey.shade400,
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(
+              color: Kolors.kPrimary,
+              width: 2,
+            ),
+          ),
         ),
         onSubmitted: (_) => _submit(),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+    ],
+  ),
+  actions: [
+    Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        GradientBtn(
+          text: "CONTINUE",
+          btnColor: Kolors.kPrimary,
+          textColor: Kolors.kWhite,
+          btnHieght: 50.h,
+          btnWidth: double.infinity,
+          radius: 12,
+          onTap: _submit,
         ),
-        ElevatedButton(
-          onPressed: _submit,
-          child: const Text('Continue'),
+        SizedBox(height: 10.h),
+        GradientBtn(
+          text: "CANCEL",
+          btnColor: Colors.grey.shade300,
+          textColor: Colors.black,
+          btnHieght: 50.h,
+          btnWidth: double.infinity,
+          radius: 12,
+          onTap: () => Navigator.of(context).pop(),
         ),
       ],
-    );
+    ),
+  ],
+);
   }
 }
 

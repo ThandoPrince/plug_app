@@ -1,13 +1,17 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
+import 'package:flutter_application_1/global_util/services/api_client.dart';
+import 'package:flutter_application_1/global_util/services/models/order_service_models/shipment_route_model.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
-import 'package:flutter_application_1/global_util/services/models/order_service_models/shipment_route_model.dart';
-import 'package:flutter_application_1/const/services/api_tokens_helper.dart';
-
 class ShipmentRouteApi {
   static final String _baseUrl = dotenv.env['API_BASE_URL'] ?? '';
+
+  static const Duration _timeout = Duration(seconds: 15);
 
   // =========================
   // FETCH ROUTES BY SHIPMENT
@@ -20,39 +24,57 @@ class ShipmentRouteApi {
     );
 
     try {
-      final response = await http.get(
-        uri,
-        headers: await ApiTokensHelper.authHeaders(),
-      );
+      final response = await ApiClient.instance.request((token) async {
+        return await http
+            .get(
+              uri,
+              headers: {
+                "Content-Type": "application/json",
+                if (token != null)
+                  "Authorization": "Bearer $token",
+              },
+            )
+            .timeout(_timeout);
+      }).timeout(_timeout);
 
       if (kDebugMode) {
-        print("Shipment Routes HTTP: ${response.statusCode}");
-        print("Response: ${response.body}");
+        print("========== SHIPMENT ROUTES ==========");
+        print("URL: $uri");
+        print("STATUS: ${response.statusCode}");
+        print("BODY: ${response.body}");
+        print("=====================================");
+      }
+
+      if (response.statusCode == 404) {
+        return [];
       }
 
       if (response.statusCode != 200) {
         throw Exception(
-          'Failed to load shipment routes: ${response.body}',
+          _extractError(response),
         );
       }
 
       final decoded = jsonDecode(response.body);
 
       if (decoded is! List) {
-        throw Exception('Invalid routes response format');
+        throw Exception(
+          "Invalid shipment routes response.",
+        );
       }
 
-      return decoded.map((item) {
-        if (item is! Map<String, dynamic>) {
-          throw Exception('Invalid route item format');
-        }
-        return ShipmentRouteModel.fromJson(item);
-      }).toList();
-    } catch (e) {
-      if (kDebugMode) {
-        print('ShipmentRouteApi error (fetch): $e');
-      }
-      throw Exception('Error fetching shipment routes: $e');
+      return decoded
+          .whereType<Map<String, dynamic>>()
+          .map(ShipmentRouteModel.fromJson)
+          .toList();
+    } on TimeoutException {
+      throw Exception(
+        "Server timeout. Please try again.",
+      );
+    } on SocketException {
+      throw Exception(
+        "Server unreachable. Check your internet connection.",
+      );
     }
   }
 
@@ -68,35 +90,70 @@ class ShipmentRouteApi {
     );
 
     try {
-      final response = await http.post(
-        uri,
-        headers: await ApiTokensHelper.authHeaders(),
-        body: jsonEncode(payload),
-      );
+      final response = await ApiClient.instance.request((token) async {
+        return await http
+            .post(
+              uri,
+              headers: {
+                "Content-Type": "application/json",
+                if (token != null)
+                  "Authorization": "Bearer $token",
+              },
+              body: jsonEncode(payload),
+            )
+            .timeout(_timeout);
+      }).timeout(_timeout);
 
       if (kDebugMode) {
-        print("Create Route HTTP: ${response.statusCode}");
-        print("Response: ${response.body}");
+        print("========== CREATE SHIPMENT ROUTE ==========");
+        print("URL: $uri");
+        print("PAYLOAD: ${jsonEncode(payload)}");
+        print("STATUS: ${response.statusCode}");
+        print("BODY: ${response.body}");
+        print("===========================================");
       }
 
       if (response.statusCode != 201) {
         throw Exception(
-          'Failed to create shipment route: ${response.body}',
+          _extractError(response),
         );
       }
 
       final decoded = jsonDecode(response.body);
 
       if (decoded is! Map<String, dynamic>) {
-        throw Exception('Invalid route creation response format');
+        throw Exception(
+          "Invalid route creation response.",
+        );
       }
 
       return ShipmentRouteModel.fromJson(decoded);
-    } catch (e) {
-      if (kDebugMode) {
-        print('ShipmentRouteApi error (create): $e');
-      }
-      throw Exception('Error creating shipment route: $e');
+    } on TimeoutException {
+      throw Exception(
+        "Server timeout. Please try again.",
+      );
+    } on SocketException {
+      throw Exception(
+        "Server unreachable. Check your internet connection.",
+      );
     }
+  }
+
+  // =========================
+  // ERROR PARSER
+  // =========================
+  static String _extractError(http.Response response) {
+    try {
+      final decoded = jsonDecode(response.body);
+
+      if (decoded is Map<String, dynamic>) {
+        return decoded["message"] ??
+            decoded["error"] ??
+            decoded["detail"] ??
+            "Request failed.";
+      }
+    } catch (_) {}
+
+    return "Request failed (${response.statusCode}).";
   }
 }

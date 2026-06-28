@@ -58,6 +58,7 @@ dependencies:
   package_info_plus: ^8.3.1
   huawei_push: ^6.14.0+300
   http_certificate_pinning: ^3.0.1
+  web_socket_channel: ^3.0.3
   
 
 
@@ -66,6 +67,7 @@ dependencies:
 dev_dependencies:
   flutter_gen_runner: ^5.10.0
   build_runner: ^2.0.0
+  flutter_native_splash: ^2.4.6
   
   flutter_test:
     sdk: flutter
@@ -73,12 +75,19 @@ dev_dependencies:
 
 flutter_launcher_icons:
   android: true
-  ios: false
+  ios: true
   image_path: "assets/icons/plug_icon.png"
   adaptive_icon_foreground: "assets/icons/plug_icon_foreground.png"
   adaptive_icon_background: "#0F172A"
   min_sdk_android: 21
- 
+  
+flutter_native_splash:
+  background_image: assets/icons/splash_background_gradient.jpeg
+  image: assets/icons/plug_icon.png
+
+  android_12:
+    color: "#3EC5FF"
+    image: assets/icons/plug_icon.png
 
 flutter:
   uses-material-design: true
@@ -87,6 +96,7 @@ flutter:
 
     - assets/icons/plug_splash.png
     - assets/icons/plug_icon.png
+    - assets/icons/splash_background_gradient.jpeg
     - assets/icons/plug_icon_foreground.png
     - assets/images/Welcome_slider_1.jpeg
     - assets/images/welcome_1_image.gif

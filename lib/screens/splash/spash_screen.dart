@@ -83,10 +83,10 @@ class _SpashScreenState extends State<SpashScreen> {
         Storage().setBool('firstOpen', true);
         if (!mounted) return;
         context.go('/welcome');
-      } else if (isLoggedIn ==true) {
+      } else if (isLoggedIn == null) {
         context.go('/login');
       } else {
-        context.go('/login');
+        context.go('/entryPoint');
       }
     } catch (e, st) {
       debugPrint("❌ Splash initialization failed: $e\n$st");
@@ -332,14 +332,7 @@ class _SpashScreenState extends State<SpashScreen> {
               height: 100.h,
               child: Image.asset('assets/icons/plug_icon.png'),
             ),
-            SizedBox(height: 20.h),
-            const SizedBox(
-              height: 20,
-              width: 30,
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation(Colors.black),
-              ),
-            ),
+            
             
           ],
         ),

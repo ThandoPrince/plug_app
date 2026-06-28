@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
-import 'package:flutter_application_1/global_util/services/controler/rating_navigation_controller.dart';
+import 'package:flutter_application_1/global_util/services/controler/get_client_shipment_ctrl.dart';
 import 'package:flutter_application_1/global_util/services/controler/session_location_ping_controller.dart';
 import 'package:flutter_application_1/global_util/services/models/order_service_models/session_model.dart';
 import 'package:flutter_application_1/screens/ratings/views/ratings_screen.dart';
@@ -14,7 +14,10 @@ import 'package:provider/provider.dart';
 class SessionScreen extends StatefulWidget {
   final SessionModel session;
 
-  const SessionScreen({super.key, required this.session});
+  const SessionScreen({
+    super.key,
+    required this.session,
+  });
 
   @override
   State<SessionScreen> createState() => _SessionScreenState();
@@ -23,50 +26,54 @@ class SessionScreen extends StatefulWidget {
 class _SessionScreenState extends State<SessionScreen> {
   late ClientSessionLocationPingController controller;
 
+  late ShipmentController shipmentController;
+  late VoidCallback shipmentListener;
+
+  bool _navigated = false;
+
   @override
- @override
-void initState() {
-  super.initState();
+  void initState() {
+    super.initState();
 
-  RatingNavigationController.reset();
+    controller = context.read<ClientSessionLocationPingController>();
 
-  
-  controller = Provider.of<ClientSessionLocationPingController>(context, listen: false);
-  controller.initSession(
-  id: widget.session.sessionId!,
-  backendCheckinTime: widget.session.checkinTime,
-);
-
-
-  // Rating callback
-  RatingNavigationController.onRatingAvailable = () {
-    if (!mounted) return;
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (_) => RatingScreen(
-          sessionId: widget.session.sessionId!,
-          clientEmail: widget.session.shipment!.serviceOrdered!.client!,
-        ),
-      ),
+    controller.initSession(
+      id: widget.session.sessionId!,
+      backendCheckinTime: widget.session.checkinTime,
     );
-  };
 
-  RatingNavigationController.checkImmediately(
-    clientEmail: widget.session.shipment!.serviceOrdered!.client.toString(),
-    sessionId: widget.session.sessionId!,
+    shipmentController = context.read<ShipmentController>();
+
+    shipmentListener = () {
+  if (!mounted || _navigated) return;
+
+  if (shipmentController.completedSessionShipmentId !=
+      widget.session.shipment!.shipmentId) {
+    return;
+  }
+
+  _navigated = true;
+
+  // shipmentController.clearCompletedSessionEvent();
+
+  Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(
+      builder: (_) => RatingScreen(
+        sessionId: widget.session.sessionId!,
+        clientEmail:
+            widget.session.shipment!.serviceOrdered!.client!,
+      ),
+    ),
   );
+};
 
-  RatingNavigationController.startPolling(
-    clientEmail: widget.session.shipment!.serviceOrdered!.client.toString(),
-    sessionId: widget.session.sessionId!,
-  );
-}
-
+    shipmentController.addListener(shipmentListener);
+  }
 
   @override
   void dispose() {
-   
-    RatingNavigationController.dispose();
+    shipmentController.removeListener(shipmentListener);
     super.dispose();
   }
 
@@ -78,25 +85,26 @@ void initState() {
         builder: (context, controller, child) {
           return WillPopScope(
             onWillPop: () async {
-    goToSchedule(context);
-    return false; // stop default pop
-  },
+              goToSchedule(context);
+              return false;
+            },
             child: Scaffold(
               backgroundColor: const Color(0xFFF8F9FA),
               appBar: AppBar(
-                leading: IconButton(
-    icon: const Icon(Icons.arrow_back),
-    onPressed: () => goToSchedule(context),
-  ),
+                backgroundColor: Kolors.kPrimary,
+                elevation: 0,
+                centerTitle: true,
                 title: const Text(
                   "Active Session",
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-                centerTitle: true,
-                backgroundColor: Kolors.kPrimary,
-                
-                
-                elevation: 0,
+                leading: IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: () => goToSchedule(context),
+                ),
               ),
               body: Stack(
                 children: [
@@ -114,12 +122,15 @@ void initState() {
                       return Container(
                         decoration: const BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [Kolors.kPrimary,Kolors.kPrimary, Colors.white],
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [ Kolors.kPrimary,
+                  Kolors.kPrimary,
+                  Kolors.kSecondaryLight], // Deep brand gradient
+                  ),
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(32),
                           ),
-                          borderRadius:
-                              BorderRadius.vertical(top: Radius.circular(32)),
                         ),
                         child: SingleChildScrollView(
                           controller: scrollController,
@@ -128,7 +139,8 @@ void initState() {
                             vertical: 24,
                           ),
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                            crossAxisAlignment:
+                                CrossAxisAlignment.start,
                             children: [
                               Container(
                                 width: 40,
@@ -161,7 +173,9 @@ void initState() {
                                 ),
                                 const SizedBox(height: 16),
                               ],
-                              SessionDetailsCard(session: widget.session),
+                              SessionDetailsCard(
+                                session: widget.session,
+                              ),
                               const SizedBox(height: 24),
                               _buildGeofenceStatus(controller),
                               const SizedBox(height: 30),
@@ -194,7 +208,7 @@ void initState() {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withOpacity(.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -205,7 +219,6 @@ void initState() {
           Icon(
             inside ? Icons.check_circle : Icons.warning,
             color: inside ? Colors.green : Colors.red,
-            size: 20,
           ),
           const SizedBox(width: 12),
           Text(

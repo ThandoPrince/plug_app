@@ -22,19 +22,20 @@ class _ViewAllServicesState extends State<ViewAllServices> with SingleTickerProv
   late final TextEditingController _searchController;
 
   @override
-  void initState() {
-    super.initState();
-    _searchController = TextEditingController();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<ServiceController>(context, listen: false).fetchServices();
-    });
+void initState() {
+  super.initState();
 
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-  }
+  _searchController = TextEditingController();
 
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    context.read<ServiceController>().fetchServices();
+  });
+
+  _controller = AnimationController(
+    duration: const Duration(milliseconds: 300),
+    vsync: this,
+  );
+}
   @override
   void dispose() {
     _controller.dispose();
@@ -79,10 +80,12 @@ class _ViewAllServicesState extends State<ViewAllServices> with SingleTickerProv
       body: Container(
          decoration: const BoxDecoration(
     gradient: LinearGradient(
-      colors: [Kolors.kPrimary, Kolors.kOffWhite], // light orange to darker orange
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-    ),
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [ Kolors.kPrimary,
+                  Kolors.kPrimary,
+                  Kolors.kSecondaryLight], // Deep brand gradient
+                  ),
   ),
         child: Column(
           children: [

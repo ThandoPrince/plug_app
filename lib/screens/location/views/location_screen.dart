@@ -24,21 +24,24 @@ class _LocationScreenState extends State<LocationScreen> {
   void initState() {
     super.initState();
     Future.microtask(() {
-      final session = context.read<AuthSessionController>();
+     
 
-      Provider.of<AddressClientCtrl>(context, listen: false).fetchAddresses();
+      Future.microtask(() {
+  context.read<AddressClientCtrl>().fetchAddresses();
+});
     });
   }
 
   void _patchDefaultAddress(int addressId) async {
     final patchController = context.read<PatchDefaultAddressController>();
-    final session = context.read<AuthSessionController>();
+    
     final addressCtrl = context.read<AddressClientCtrl>();
     final mapCtrl = context.read<HereMapMarkerController>();
     final googleMapCtrl = context.read<GoogleMapMarkerController>();
 
     await patchController.setDefault(addressId);
-    await addressCtrl.fetchAddresses();
+    addressCtrl.resetCache();
+await addressCtrl.refresh();
     await mapCtrl.showDefaultAddress();
     await googleMapCtrl.showDefaultAddress();
     FlushbarService.success(
@@ -61,7 +64,7 @@ class _LocationScreenState extends State<LocationScreen> {
           "My Addresses",
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        backgroundColor: Colors.transparent,
+        backgroundColor: Kolors.kPrimary,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
@@ -86,25 +89,30 @@ class _LocationScreenState extends State<LocationScreen> {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Kolors.kPrimary, Kolors.kPrimary, Kolors.kSecondaryLight],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [ Kolors.kPrimary,
+                  Kolors.kPrimary,
+                  Kolors.kSecondaryLight], // Deep brand gradient
+                  ),
         ),
         child: SafeArea(
-          child: AddressListView(
-            selectedAddressId: selectedAddressId,
-            onSelect: (id) {
-              setState(() {
-                // Toggle selection: if already selected, unselect
-                if (selectedAddressId == id) {
-                  selectedAddressId = null;
-                } else {
-                  selectedAddressId = id;
-                }
-              });
-            },
-          ),
+          child: RefreshIndicator(
+  color: Kolors.kPrimary,
+  onRefresh: () => context.read<AddressClientCtrl>().refresh(),
+  child: AddressListView(
+    selectedAddressId: selectedAddressId,
+    onSelect: (id) {
+      setState(() {
+        if (selectedAddressId == id) {
+          selectedAddressId = null;
+        } else {
+          selectedAddressId = id;
+        }
+      });
+    },
+  ),
+),
         ),
       ),
     );

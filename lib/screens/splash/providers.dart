@@ -1,17 +1,26 @@
+
 import 'package:flutter_application_1/global_util/services/controler/address_a_creation_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/cancel_order_controller.dart';
+import 'package:flutter_application_1/global_util/services/controler/cancel_shipment_controller.dart';
+import 'package:flutter_application_1/global_util/services/controler/client_profile_update_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/completed_service_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/cost_of_service_byemail_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/cost_of_service_image_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/get_client_auth_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/google_map_controller.dart';
+import 'package:flutter_application_1/global_util/services/controler/logout_controller.dart';
+import 'package:flutter_application_1/global_util/services/controler/negotiation_badge_store_controller.dart';
+import 'package:flutter_application_1/global_util/services/controler/negotiation_realtime_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/patch_default_address_controller.dart';
+import 'package:flutter_application_1/global_util/services/controler/reject_negociation_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/reset_password_controller.dart';
+import 'package:flutter_application_1/global_util/services/controler/shipment_reshedule_controler.dart';
 import 'package:flutter_application_1/global_util/services/controler/sp_rating_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/update_final_price_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/update_order_service_controller.dart';
 import 'package:flutter_application_1/screens/Onboarding/controllers/onboarding_notifiers.dart';
 import 'package:flutter_application_1/screens/entryPoint/controller/bottom_tab_notifier.dart';
+import 'package:flutter_application_1/screens/entryPoint/controller/tab_lifecycle_controller.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
 import 'package:flutter_application_1/global_util/services/controler/address_client_ctrl.dart';
@@ -52,7 +61,11 @@ import 'package:flutter_application_1/global_util/services/controler/sp_profile_
 
 List<SingleChildWidget> appProviders = [
   ChangeNotifierProvider(create: (_) => OnboardingNotifier()),
+  ChangeNotifierProvider(create: (_) => ShipmentRescheduleController()),
+  ChangeNotifierProvider(create: (_) => NegotiationBadgeStore()),
   ChangeNotifierProvider(create: (_) => TabIndexNotifier()),
+  ChangeNotifierProvider(create: (_) => LogoutController()),
+  ChangeNotifierProvider(create: (_) => TabLifecycleController()),
   ChangeNotifierProvider(create: (_) => GetClientAuthController()),
   ChangeNotifierProvider(create: (_) => CostOfServiceController()),
   ChangeNotifierProvider(create: (_) => DrawerNotifier()),
@@ -66,7 +79,11 @@ List<SingleChildWidget> appProviders = [
   ChangeNotifierProvider(create: (_) => DefAddController()),
   ChangeNotifierProvider(create: (_) => ServiceProviderByEmailController()),
   ChangeNotifierProvider(create: (_) => AddressController()),
+  ChangeNotifierProvider(
+  create: (_) => NegotiationRealtimeController(),
+),
   ChangeNotifierProvider(create: (_) => SpAddressController()),
+  ChangeNotifierProvider(create: (_) => ShipmentCancelController()),
   ChangeNotifierProvider(create: (_) => ServiceController()..fetchServices()),
   ChangeNotifierProvider(create: (_) => ServiceProviderController()),
   ChangeNotifierProvider(create: (_) => CancelOrderController()),
@@ -144,6 +161,7 @@ defAddCtrl: DefAddController(),
 spAddrCtrl: SpAddressControllerByID()
 
   )),
+  ChangeNotifierProvider(create: (_) => RejectNegotiationController()),
   ChangeNotifierProvider(create: (_) => AddressACreationController()),
   ChangeNotifierProvider(create: (_) => SPRatingController()),
   ChangeNotifierProvider(create: (_) => AddressClientCtrl()),
@@ -151,5 +169,6 @@ spAddrCtrl: SpAddressControllerByID()
   ChangeNotifierProvider(create: (_) => ClientCheckinController()),
   ChangeNotifierProvider(create: (_) => SessionByShipmentController()),
   ChangeNotifierProvider(create: (_) => ClientSessionLocationPingController()),
+  ChangeNotifierProvider(create: (_) => ClientProfileUpdateController ()),
   ChangeNotifierProvider(create: (_) => RatingController()),
 ];

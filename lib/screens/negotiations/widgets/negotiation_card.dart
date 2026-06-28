@@ -1,12 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+
 import 'package:flutter_application_1/common/utils/kcolors.dart';
 import 'package:flutter_application_1/global_util/services/models/order_service_models/negotiation_model.dart';
+import 'package:flutter_application_1/global_util/services/controler/negotiation_badge_store_controller.dart';
 
 class NegotiationCard extends StatelessWidget {
   final NegotiationModel negotiation;
-  const NegotiationCard({super.key, required this.negotiation});
+
+  const NegotiationCard({
+    super.key,
+    required this.negotiation,
+  });
 
   String _formatDate(DateTime? dt) =>
       dt != null ? DateFormat('dd MMM yyyy').format(dt) : 'N/A';
@@ -18,108 +25,120 @@ class NegotiationCard extends StatelessWidget {
     return (parts[0][0] + parts[1][0]).toUpperCase();
   }
 
-  void _showFullImage(BuildContext context, String imageUrl) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => Scaffold(
-          backgroundColor: Colors.black,
-          appBar: AppBar(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-          ),
-          body: Center(
-            child: InteractiveViewer(
-              child: Image.network(
-                imageUrl,
-                fit: BoxFit.contain,
-                loadingBuilder: (context, child, progress) {
-                  if (progress == null) return child;
-                  return const Center(child: CircularProgressIndicator());
-                },
-                errorBuilder: (ctx, err, stack) => const Icon(
-                  Icons.broken_image,
-                  color: Colors.white,
-                  size: 50,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final date = _formatDate(negotiation.createdAt);
 
-    // Full URL for profile image
-    final profilePath = negotiation.providerForNegotiation?.provider.profileImage;
+    final profilePath =
+        negotiation.providerForNegotiation?.provider.profileImage;
+
     final String coreUrl = dotenv.env['MEDIA_BASE_URL'] ?? '';
-    final profileUrl = profilePath != null ? "$coreUrl$profilePath" : null;
+    final profileUrl =
+        profilePath != null ? "$coreUrl$profilePath" : null;
 
-    final fullName = negotiation.providerForNegotiation?.provider.fullName;
+    final fullName =
+        negotiation.providerForNegotiation?.provider.fullName;
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      elevation: 3,
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    final negotiationId = negotiation.negotiationId;
+
+    return Consumer<NegotiationBadgeStore>(
+      builder: (context, store, _) {
+        final isUnread = negotiationId != null &&
+            store.isUnread(negotiationId);
+
+        return Stack(
           children: [
-            GestureDetector(
-              onTap: profileUrl != null
-                  ? () => _showFullImage(context, profileUrl)
-                  : null,
-              child: CircleAvatar(
-                radius: 20,
-                backgroundColor: Colors.grey.shade300,
-                backgroundImage:
-                    profileUrl != null ? NetworkImage(profileUrl) : null,
-                child: profileUrl == null
-                    ? Text(
-                        _getInitials(fullName),
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, color: Kolors.kDark),
-                      )
-                    : null,
+            Card(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 3,
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 20,
+                      backgroundColor: Colors.grey.shade300,
+                      backgroundImage: profileUrl != null
+                          ? NetworkImage(profileUrl)
+                          : null,
+                      child: profileUrl == null
+                          ? Text(
+                              _getInitials(fullName),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Kolors.kDark,
+                              ),
+                            )
+                          : null,
+                    ),
+                    const SizedBox(width: 12),
+
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            fullName ?? "Unknown Provider",
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+
+                          Text(
+                            "Status: ${negotiation.status ?? 'Pending'}",
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey,
+                            ),
+                          ),
+
+                          const SizedBox(height: 4),
+
+                          Text(
+                            "Proposed: R${negotiation.proposedPrice?.toStringAsFixed(2) ?? 'N/A'}",
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    Text(
+                      date,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    fullName ?? "Unknown Provider",
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 16),
+
+            // 🔴 BADGE (NEW)
+            if (isUnread)
+              Positioned(
+                right: 20,
+                top: 10,
+                child: Container(
+                  width: 10,
+                  height: 10,
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    "Status: ${negotiation.status ?? 'Pending'}",
-                    style: const TextStyle(fontSize: 14, color: Colors.grey),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    "Proposed: R${negotiation.proposedPrice?.toStringAsFixed(2) ?? 'N/A'}",
-                    style: const TextStyle(fontSize: 14, color: Colors.grey),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    "Ratings ⭐: ${negotiation.providerForNegotiation?.provider.rating ?? 'N/A'}",
-                    style: const TextStyle(fontSize: 14, color: Colors.grey),
-                  ),
-                ],
+                ),
               ),
-            ),
-            Text(date, style: const TextStyle(fontSize: 12, color: Colors.grey)),
           ],
-        ),
-      ),
+        );
+      },
     );
   }
 }

@@ -21,7 +21,7 @@ class ClientProfileController with ChangeNotifier {
     notifyListeners();
 
     try {
-      _clientProfile = await ClientProfileApi.fetchClientProfileByEmail(id);
+      _clientProfile = await ClientProfileApi.fetchClientProfile();
     } catch (e) {
       _errorMessage = e.toString();
       _clientProfile = null;
@@ -38,7 +38,7 @@ class ClientProfileController with ChangeNotifier {
     notifyListeners();
 
     try {
-      _clientProfiles = await ClientProfileApi.fetchClientProfile();
+      _clientProfiles = await ClientProfileApi.fetchAllClients();
     } catch (e) {
       _errorMessage = e.toString();
       _clientProfiles = null;

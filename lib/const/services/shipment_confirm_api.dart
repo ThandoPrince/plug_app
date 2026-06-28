@@ -1,16 +1,35 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
+import 'dart:async';
+import 'dart:io';
 
-import 'package:flutter_application_1/const/services/api_tokens_helper.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_application_1/global_util/services/api_client.dart';
+import 'package:http/http.dart' as http;
 
 class ShipmentConfirmApi {
   final String baseUrl;
 
   ShipmentConfirmApi({required this.baseUrl});
 
+  static const Duration _timeout = Duration(seconds: 15);
+
   // =========================
-  // CONFIRM SHIPMENT
+  // ERROR HANDLER
+  // =========================
+  Exception _handleError(Object e) {
+    if (e is TimeoutException) {
+      return Exception("Server timeout. Please try again.");
+    }
+
+    if (e is SocketException) {
+      return Exception("Server unreachable. Check your internet connection.");
+    }
+
+    return Exception("Unexpected error occurred.");
+  }
+
+  // =========================
+  // CONFIRM SHIPMENT (POST - NO RETRY)
   // =========================
   Future<Map<String, dynamic>> confirmShipment(int shipmentId) async {
     final url = Uri.parse(
@@ -18,41 +37,41 @@ class ShipmentConfirmApi {
     );
 
     try {
+      final response = await ApiClient.instance.request((token) async {
+        return await http
+            .post(
+              url,
+              headers: {
+                "Content-Type": "application/json",
+                if (token != null) "Authorization": "Bearer $token",
+              },
+            )
+            .timeout(_timeout);
+      }).timeout(_timeout);
+
       if (kDebugMode) {
-        print("POST: $url");
+        print("========== CONFIRM SHIPMENT ==========");
+        print("URL: $url");
+        print("STATUS: ${response.statusCode}");
+        print("BODY: ${response.body}");
+        print("======================================");
       }
 
-      final response = await http.post(
-        url,
-        headers: await ApiTokensHelper.authHeaders(),
-      );
-
-      if (kDebugMode) {
-        print("Status: ${response.statusCode}");
-        print("Response: ${response.body}");
+      // Accept both 200 and 201 (common REST behavior)
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw Exception("Server error (${response.statusCode}).");
       }
 
-      // =========================
-      // STATUS CHECK FIRST
-      // =========================
-      if (response.statusCode != 200) {
-        throw Exception(
-          'HTTP ${response.statusCode}: ${response.body}',
-        );
-      }
-
-      // =========================
-      // SAFE JSON PARSE
-      // =========================
       final decoded = jsonDecode(response.body);
 
       if (decoded is! Map<String, dynamic>) {
-        throw Exception('Invalid response format');
+        throw Exception("Invalid response format.");
       }
 
       return decoded;
+
     } catch (e) {
-      throw Exception('ShipmentConfirmApi error: $e');
+      throw _handleError(e);
     }
   }
 }

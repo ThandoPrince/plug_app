@@ -1,47 +1,92 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/const/services/booking_services/client_shipment_api.dart';
+import 'package:flutter_application_1/const/services/sessions/session_by_shipment_api.dart';
+import 'package:flutter_application_1/global_util/services/models/order_service_models/session_model.dart';
 import 'package:flutter_application_1/global_util/services/models/order_service_models/shipment_model.dart';
 
 class ShipmentController extends ChangeNotifier {
   final List<Shipment> _shipments = [];
+
   bool _isLoading = false;
   String? _error;
-  String? _clientEmail; // <- store once
+int? _completedSessionShipmentId;
+int? _completedSessionId;
+
+int? get completedSessionShipmentId => _completedSessionShipmentId;
+int? get completedSessionId => _completedSessionId;
+  bool _hasFetched = false;
+  String? _clientEmail;
 
   List<Shipment> get shipments => _shipments;
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  Future<void> fetchShipmentsByClientEmail() async {
-  
+
+
+  final Map<int, SessionModel> _sessions = {};
+
+SessionModel? sessionForShipment(int shipmentId) {
+  return _sessions[shipmentId];
+}
+
+void sessionCompleted({
+  required int shipmentId,
+  required int sessionId,
+}) {
+  _completedSessionShipmentId = shipmentId;
+  _completedSessionId = sessionId;
+
+  notifyListeners();
+}
+
+Future<void> onSessionCreated({
+  required int shipmentId,
+}) async {
+  final session =
+      await SessionApi.getSessionByShipment(
+        shipmentId.toString(),
+      );
+
+  if (session == null) return;
+
+  setSession(
+    shipmentId,
+    session,
+  );
+}
+
+void setSession(int shipmentId, SessionModel session) {
+  _sessions[shipmentId] = session;
+  notifyListeners();
+}
+
+  Future<void> fetchShipmentsByClientEmail({bool forceRefresh = false}) async {
+    if (_isLoading) return;
+
+    if (_hasFetched && !forceRefresh) return;
+
     await _fetch();
+    _hasFetched = true;
   }
 
   Future<void> refresh() async {
-    if (_clientEmail == null) return;
-    await _fetch();
+    await _fetch(forceRefresh: true);
   }
 
-  
-
-  Future<void> _fetch() async {
+  Future<void> _fetch({bool forceRefresh = false}) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      final data =
-          await ShipmentApi.getShipmentsByClientEmail();
+      final data = await ShipmentApi.getShipmentsByClientEmail();
 
       _shipments
         ..clear()
         ..addAll(data);
     } catch (e) {
       _error = e.toString();
-      if (kDebugMode) {
-        print('❌ ShipmentController error: $e');
-      }
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -50,7 +95,7 @@ class ShipmentController extends ChangeNotifier {
 
   void clear() {
     _shipments.clear();
-    _error = null;
+    _hasFetched = false;
     notifyListeners();
   }
 }

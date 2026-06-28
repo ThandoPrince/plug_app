@@ -21,7 +21,7 @@ class ConfirmServiceButton extends StatelessWidget {
         onPressed: onConfirm,
         child: const Text(
           "Confirm Arrival",
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Kolors.kOffWhite),
         ),
       ),
     );

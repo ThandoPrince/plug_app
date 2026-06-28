@@ -22,11 +22,12 @@ class _OnboardingScreenOneState extends State<OnboardingScreenOne> {
         width: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            // Adjusted stops to make the top primary color pop more before fading to white
-            colors: [backgroundColor1, backgroundColor1, backgroundColor2],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [ Kolors.kPrimary,
+                  Kolors.kPrimary,
+                  Kolors.kSecondaryLight], // Deep brand gradient
+                  ),
         ),
         child: SafeArea(
           child: Padding(

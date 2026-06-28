@@ -9,6 +9,7 @@ import 'package:flutter_application_1/global_util/services/models/service_provid
 import 'package:flutter_application_1/screens/View_SP_Profile_Request/widgets/cost_of_service_detail.dart';
 import 'package:flutter_application_1/screens/View_SP_Profile_Request/widgets/spdetailsbody.dart';
 import 'package:flutter_application_1/screens/booking/views/MultiProviderBookingScreen.dart';
+import 'package:flutter_application_1/screens/profile/widgets/full_screen_image_viewer.dart';
 import 'package:provider/provider.dart';
 
 class ServiceProviderScreen extends StatefulWidget {
@@ -138,10 +139,12 @@ class _ServiceProviderScreenScreenState
         body: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [Kolors.kPrimary, Kolors.kOffWhite],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [ Kolors.kPrimary,
+                  Kolors.kPrimary,
+                  Kolors.kSecondaryLight], // Deep brand gradient
+                  ),
           ),
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -496,52 +499,67 @@ class _ServiceImageCard extends StatelessWidget {
         ],
       ),
       clipBehavior: Clip.antiAlias,
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: imageUrl != null && imageUrl!.trim().isNotEmpty
-                ? Image.network(
-                    imageUrl!,
-                    fit: BoxFit.cover,
-                    loadingBuilder: (context, child, progress) {
-                      if (progress == null) return child;
-                      return Container(
-                        color: Colors.white,
-                        child: const Center(
-                          child: CircularProgressIndicator(),
-                        ),
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) {
-                      return _imagePlaceholder();
-                    },
-                  )
-                : _imagePlaceholder(),
-          ),
-          Positioned(
-            left: 12,
-            right: 12,
-            bottom: 12,
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 10,
-              ),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(.45),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Text(
-                'Portfolio Image $imageIndex',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
+      child: GestureDetector(
+
+        onTap: () {
+    if (imageUrl == null || imageUrl!.isEmpty) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => FullScreenImageViewer(
+          image: NetworkImage(imageUrl!),
+        ),
+      ),
+    );
+  },
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: imageUrl != null && imageUrl!.trim().isNotEmpty
+                  ? Image.network(
+                      imageUrl!,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, progress) {
+                        if (progress == null) return child;
+                        return Container(
+                          color: Colors.white,
+                          child: const Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return _imagePlaceholder();
+                      },
+                    )
+                  : _imagePlaceholder(),
+            ),
+            Positioned(
+              left: 12,
+              right: 12,
+              bottom: 12,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(.45),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Text(
+                  'Portfolio Image $imageIndex',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

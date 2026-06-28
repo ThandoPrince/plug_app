@@ -18,25 +18,34 @@ import 'package:flutter_application_1/screens/notifications/views/notifications_
 import 'package:flutter_application_1/screens/reset_password/views/reset_password_screen.dart';
 import 'package:flutter_application_1/screens/splash/spash_screen.dart';
 import 'package:flutter_application_1/screens/viewAllServices/screens/view_all_services.dart';
-import 'package:flutter_application_1/screens/view_all_sp_service/views/viewSp_AssService.dart';
+import 'package:flutter_application_1/screens/view_all_sp_service/views/view_sp_ass_service_screen.dart';
 import 'package:go_router/go_router.dart';
 
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
+late final GoRouter router;
 
-final GoRouter _router = GoRouter(
-  observers: [
-    AppNavigationObserver(), 
-  ],
-   navigatorKey: navigatorKey,
-  initialLocation: '/splash',
-  routes: [
+GoRouter createRouter(String initialLocation) {
+  router = GoRouter(
+    observers: [AppNavigationObserver()],
+    navigatorKey: navigatorKey,
+    initialLocation: initialLocation,
+    routes: [
+      GoRoute(
+        path: '/welcome',
+        builder: (context, state) => const ClientonboardingScreen(),
+      ),
+      GoRoute(
+        path: '/login',
+        builder: (context, state) => const AuthLoginScreen(),
+      ),
+      GoRoute(
+        path: '/entryPoint',
+        builder: (context, state) => EntryPoint(),
+      ),
 
-    GoRoute(
-      path: '/splash',
-      builder: (context, state) => const SpashScreen(),
-    ),
+      
     GoRoute(
       path: '/welcome',
       builder: (context, state) => const ClientonboardingScreen(),
@@ -164,10 +173,15 @@ GoRoute(
         return LocationScreen();
       },
     ),
-
-  ],
-
+      
+    ],
+    
+  );
+   return router;
   
-);
+}
 
-GoRouter get router => _router;
+
+
+
+GoRouter get appRouter => router;

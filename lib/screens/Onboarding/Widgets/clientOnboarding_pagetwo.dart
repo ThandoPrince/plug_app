@@ -18,10 +18,12 @@ class OnboardingScreenTwo extends StatelessWidget {
         height: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [backgroundColor1, backgroundColor1, backgroundColor2],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [ Kolors.kPrimary,
+                  Kolors.kPrimary,
+                  Kolors.kSecondaryLight], // Deep brand gradient
+                  ),
         ),
         child: SafeArea(
           bottom: false,

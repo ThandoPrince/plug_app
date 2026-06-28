@@ -1,14 +1,22 @@
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:another_flushbar/flushbar_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
+import 'package:flutter_application_1/common/widgets/custom_button.dart';
+import 'package:flutter_application_1/common/widgets/flushbar_service.dart';
 import 'package:flutter_application_1/common/widgets/help_bottom_sheet.dart';
 import 'package:flutter_application_1/global_util/services/controler/address_client_ctrl.dart';
 import 'package:flutter_application_1/global_util/services/controler/auth_session_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/client_profile_by_email_ctrl.dart';
+import 'package:flutter_application_1/global_util/services/controler/client_profile_update_controller.dart';
+import 'package:flutter_application_1/global_util/services/controler/logout_controller.dart';
+import 'package:flutter_application_1/screens/account_and_security/views/account_and_security_screen.dart';
 import 'package:flutter_application_1/screens/entryPoint/controller/bottom_tab_notifier.dart';
+import 'package:flutter_application_1/screens/entryPoint/controller/tab_lifecycle_controller.dart';
 import 'package:flutter_application_1/screens/location/views/location_screen.dart';
+import 'package:flutter_application_1/screens/profile/widgets/full_screen_image_viewer.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_vector_icons/flutter_vector_icons.dart';
@@ -33,33 +41,53 @@ class Profile extends StatefulWidget {
 
 class _ProfileState extends State<Profile> {
   final ImagePicker _picker = ImagePicker();
+  late final ClientProfileUpdateController _updateCtrl;
+
   
+ 
 
-  late final ClientProfileController _profileCtrl;
-  late final AddressClientCtrl _addressCtrl;
+ @override
+void initState() {
+  super.initState();
 
-  @override
-  void initState() {
-    super.initState();
-    _profileCtrl = ClientProfileController();
-    _addressCtrl = AddressClientCtrl();
-   final clientId =  AuthSessionController.instance.clientId;
-    _profileCtrl.fetchClientByEmail(clientId!);
-    _addressCtrl.fetchAddresses();
+  _updateCtrl = ClientProfileUpdateController();
+
+
+ 
+
+
+}
+
+@override
+void didChangeDependencies() {
+  super.didChangeDependencies();
+
+  final lifecycle = context.read<TabLifecycleController>();
+  final profileCtrl = context.read<ClientProfileController>();
+
+  if (!lifecycle.isLoaded(3)) {
+    lifecycle.markLoaded(3);
+
+    final clientId = AuthSessionController.instance.clientId;
+    if (clientId != null) {
+      profileCtrl.fetchClientByEmail(clientId);
+    }
   }
+}
 
   @override
   void dispose() {
-    _profileCtrl.dispose();
-    _addressCtrl.dispose();
+    
+    _updateCtrl.dispose();
+    
     super.dispose();
   }
 
   void _confirmLogout() async {
-  final result = await showDialog<bool>(
+  showDialog(
     context: context,
     barrierDismissible: false,
-    builder: (context) {
+    builder: (dialogContext) {
       return Dialog(
         backgroundColor: Colors.transparent,
         insetPadding: const EdgeInsets.symmetric(horizontal: 30),
@@ -68,7 +96,10 @@ class _ProfileState extends State<Profile> {
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24,
+                vertical: 28,
+              ),
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(24),
@@ -84,13 +115,11 @@ class _ProfileState extends State<Profile> {
                     size: 48,
                     color: Colors.redAccent,
                   ),
-
                   const SizedBox(height: 16),
 
-                  Text(
+                  const Text(
                     "Logout",
                     style: TextStyle(
-                      color: Kolors.kDark,
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
@@ -98,13 +127,9 @@ class _ProfileState extends State<Profile> {
 
                   const SizedBox(height: 8),
 
-                  Text(
+                  const Text(
                     "Are you sure you want to logout?",
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Kolors.kDark.withOpacity(.8),
-                      fontSize: 14,
-                    ),
                   ),
 
                   const SizedBox(height: 28),
@@ -112,54 +137,47 @@ class _ProfileState extends State<Profile> {
                   Row(
                     children: [
                       Expanded(
-                        child: OutlinedButton(
-                          style: OutlinedButton.styleFrom(
-                            side: BorderSide(
-                              color: Colors.white.withOpacity(.25),
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                          ),
-                          onPressed: () {
-                            Navigator.pop(context, false);
-                          },
-                          child: Text(
-                            "Cancel",
-                            style: TextStyle(
-                              color: Kolors.kDark.withOpacity(.9),
-                            ),
-                          ),
-                        ),
+                        child: GradientBtn(
+  text: "Cancel",
+  btnColor: Colors.grey.shade200,
+  textColor: Colors.black,
+  btnHieght: 50,
+  btnWidth: double.infinity,
+  radius: 14,
+  onTap: () {
+    Navigator.of(dialogContext).pop();
+  },
+),
                       ),
-
                       const SizedBox(width: 12),
-
                       Expanded(
                         child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Kolors.kPrimary,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                          ),
-                          onPressed: () {
-                            Navigator.pop(context, true);
-                          },
-                          child: const Text(
-                            "Logout",
-                            style: TextStyle(
-                              color: Kolors.kOffWhite,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
+  style: ElevatedButton.styleFrom(
+    backgroundColor: Kolors.kPrimary,
+    elevation: 0,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(14),
+    ),
+    padding: const EdgeInsets.symmetric(vertical: 14),
+  ),
+  onPressed: () async {
+    Navigator.of(dialogContext).pop();
+
+    await _logout();
+
+    if (!context.mounted) return;
+  },
+  child: const Text(
+    "Logout",
+    style: TextStyle(
+      color: Kolors.kOffWhite,
+      fontWeight: FontWeight.bold,
+    ),
+  ),
+),
                       ),
                     ],
-                  )
+                  ),
                 ],
               ),
             ),
@@ -168,55 +186,142 @@ class _ProfileState extends State<Profile> {
       );
     },
   );
+}
 
-  if (result == true) {
-    _logout();
+Future<void> _editDateOfBirth() async {
+  final updateCtrl = context.read<ClientProfileUpdateController>();
+
+  final DateTime? picked = await showDatePicker(
+    context: context,
+    initialDate: DateTime.now().subtract(const Duration(days: 365 * 18)),
+    firstDate: DateTime(1900),
+    lastDate: DateTime.now(),
+    builder: (context, child) {
+      return Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.light(
+            primary: Kolors.kPrimary,
+          ),
+        ),
+        child: child!,
+      );
+    },
+  );
+
+  if (picked == null) return;
+
+  final formattedDate =
+      picked.toIso8601String().split('T').first;
+
+  final success = await updateCtrl.updateProfile(
+    dateOfBirth: formattedDate,
+  );
+
+  if (!mounted) return;
+
+  if (success) {
+
+    final clientId = AuthSessionController.instance.clientId;
+  if (clientId != null) {
+   await context.read<ClientProfileController>()
+        .fetchClientByEmail(clientId);
+  }
+    
+
+    FlushbarService.success(
+      context,
+      updateCtrl.message ?? "Date of birth updated",
+    );
+  } else {
+    FlushbarService.error(
+      context,
+      updateCtrl.errorMessage ?? "Failed to update DOB",
+    );
   }
 }
 
   Future<void> _logout() async {
-    try {
-      Provider.of<TabIndexNotifier>(context, listen: false).reset();
-      await AuthSessionController.instance.clearSession();
+  final logoutController = LogoutController();
 
-      if (!mounted) return;
+  try {
+    Provider.of<TabIndexNotifier>(context, listen: false).reset();
 
-      context.go('/login');
-      debugPrint("Client logged out successfully");
-    } catch (e) {
-      debugPrint("Logout failed: $e");
+    await logoutController.logout();
 
-      if (!mounted) return;
+    if (!mounted) return;
 
-      FlushbarHelper.createError(
-        message: "Logout failed. Please try again.",
-      ).show(context);
-    }
+    context.go('/login');
+
+    debugPrint("Client logged out successfully");
+  } catch (e) {
+    debugPrint("Logout failed: $e");
+
+    if (!mounted) return;
+
+    FlushbarHelper.createError(
+      message: "Logout failed. Please try again.",
+    ).show(context);
   }
+}
 
   Future<void> _changeProfilePicture() async {
-    final XFile? image = await _picker.pickImage(
-      source: ImageSource.gallery,
-    );
+  final XFile? image = await _picker.pickImage(
+    source: ImageSource.camera,
+    preferredCameraDevice: CameraDevice.front,
+    imageQuality: 85,
+  );
 
-    if (image != null) {
-      debugPrint('Selected image path: ${image.path}');
-    }
+  if (image == null) return;
+
+  final file = File(image.path);
+
+  final success = await _updateCtrl.updateProfile(
+    profilePicture: file,
+  );
+
+  if (!mounted) return;
+
+  if (success) {
+    final clientId = AuthSessionController.instance.clientId;
+  if (clientId != null) {
+  await  context.read<ClientProfileController>()
+        .fetchClientByEmail(clientId);
   }
+    
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      FlushbarService.success(
+        context,
+        _updateCtrl.message ?? "Profile picture updated",
+      );
+    });
+  } else {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      FlushbarService.error(
+        context,
+        _updateCtrl.errorMessage ?? "Update failed",
+      );
+    });
+  }
+}
 
   void _editField(String fieldName, String currentValue) {
-    final controller = TextEditingController(text: currentValue);
+  final controller = TextEditingController(text: currentValue);
 
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (dialogContext) {
+      return AlertDialog(
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20.r),
         ),
         title: Text(
-          'Edit $fieldName',
-          style: TextStyle(
-            fontSize: 18.sp,
+          "Edit $fieldName",
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontSize: 22,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -230,161 +335,234 @@ class _ProfileState extends State<Profile> {
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: Colors.grey),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              debugPrint('$fieldName updated to: ${controller.text}');
-              Navigator.pop(context);
-            },
-            child: const Text(
-              'Save',
-              style: TextStyle(
-                color: Kolors.kPrimary,
-                fontWeight: FontWeight.bold,
+          Column(
+            children: [
+              GradientBtn(
+                text: "Cancel",
+                btnColor: Colors.grey.shade300,
+                textColor: Colors.black,
+                btnHieght: 50.h,
+                btnWidth: double.infinity,
+                radius: 12,
+                onTap: () => Navigator.of(dialogContext).pop(),
               ),
-            ),
+              SizedBox(height: 10.h),
+
+              Consumer<ClientProfileUpdateController>(
+                builder: (context, updateCtrl, _) {
+                  return GradientBtn(
+                    text: updateCtrl.isLoading
+                        ? "Saving..."
+                        : "Save Changes",
+                    btnColor: Kolors.kPrimary,
+                    btnHieght: 50.h,
+                    btnWidth: double.infinity,
+                    radius: 12,
+                    onTap: updateCtrl.isLoading
+                        ? null
+                        : () async {
+                            final text = controller.text.trim();
+
+                            String? firstName;
+                            String? lastName;
+
+                            if (fieldName == "Name") {
+                              final parts = text.split(RegExp(r'\s+'));
+                              firstName = parts.isNotEmpty ? parts.first : null;
+                              lastName = parts.length > 1
+                                  ? parts.sublist(1).join(" ")
+                                  : null;
+                            }
+
+                            // close dialog FIRST (prevents Navigator conflicts)
+                            Navigator.of(dialogContext).pop();
+
+                            final success =
+                                await updateCtrl.updateProfile(
+                              firstName: firstName,
+                              lastName: lastName,
+                            );
+
+                            if (!mounted) return;
+
+                            if (success) {
+                              final clientId = AuthSessionController.instance.clientId;
+  if (clientId != null) {
+   await context.read<ClientProfileController>()
+        .fetchClientByEmail(clientId);
+  }
+    
+
+                              FlushbarService.success(
+                                context,
+                                updateCtrl.message ?? "Profile updated",
+                              );
+                            } else {
+                              FlushbarService.error(
+                                context,
+                                updateCtrl.errorMessage ?? "Update failed",
+                              );
+                            }
+                          },
+                  );
+                },
+              ),
+            ],
           ),
         ],
-      ),
-    );
-  }
+      );
+    },
+  );
+}
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider.value(value: _profileCtrl),
-        ChangeNotifierProvider.value(value: _addressCtrl),
-      ],
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        body: Consumer2<ClientProfileController, AddressClientCtrl>(
-          builder: (context, profileCtrl, addressCtrl, child) {
-            if (profileCtrl.isLoading || addressCtrl.isLoading) {
-              return const Center(
-                child: CircularProgressIndicator(color: Colors.white),
-              );
-            }
-
-            final profile = profileCtrl.clientProfile;
-
-            if (profile == null) {
-              return const Center(
-                child: Text(
-                  'Profile not found',
-                  style: TextStyle(color: Colors.white),
-                ),
-              );
-            }
-
-            return SafeArea(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: EdgeInsets.symmetric(
-                  horizontal: 20.w,
-                  vertical: 20.h,
-                ),
-                child: Column(
-                  children: [
-                    _buildProfileHeader(profile),
-                    SizedBox(height: 25.h),
-
-                    _buildGlassCard(
-                      padding: EdgeInsets.symmetric(vertical: 20.h),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                         
-                          _buildVerticalDivider(),
-                          _buildStatItem('Points', '0'),
-                          _buildVerticalDivider(),
-                          _buildStatItem(
-                            'Rating',
-                            (profile.rating?.toString().isNotEmpty ?? false)
-                                ? profile.rating.toString()
-                                : '5.0',
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    SizedBox(height: 10.h),
-
-                    _buildGlassCard(
-                      child: Column(
-                        children: [
-                          _buildEditableRow(
-                            Icons.person_outline,
-                            'Name',
-                            '${profile.firstName ?? ''} ${profile.lastName ?? ''}'
-                                .trim(),
-                          ),
-                          _buildDivider(),
-                          _buildEditableRow(
-                            Icons.email_outlined,
-                            'Email',
-                            profile.clientProfile?.emailAddress ?? '',
-                          ),
-                          _buildDivider(),
-                          _buildEditableRow(
-                            Icons.phone_android_outlined,
-                            'Phone',
-                            profile.clientProfile?.mobileNumber ?? '',
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    SizedBox(height: 10.h),
-
-                    _buildActionTile(
-                      icon: Ionicons.location_outline,
-                      title: "View my Addresses",
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => LocationScreen(),
-                          ),
-                        );
-                      },
-                    ),
-
-                    _buildActionTile(
-                      icon: Ionicons.help_buoy_outline,
-                      title: "Help & Support",
-                      onTap: () => showHelpCenterBottomSheet(context),
-                    ),
-
-                    _buildActionTile(
-                      icon: Ionicons.log_out_outline,
-                      title: "Logout",
-                      isDestructive: true,
-                      onTap: _confirmLogout,
-                    ),
-
-                    SizedBox(height: 20.h),
-                  ],
-                ),
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: Consumer2<ClientProfileController, AddressClientCtrl>(
+        builder: (context, profileCtrl, addressCtrl, child) {
+          if (profileCtrl.isLoading || addressCtrl.isLoading) {
+            return const Center(
+              child: CircularProgressIndicator(color: Colors.white),
+            );
+          }
+    
+          final profile = profileCtrl.clientProfile;
+    
+          if (profile == null) {
+            return const Center(
+              child: Text(
+                'Profile not found',
+                style: TextStyle(color: Colors.white),
               ),
             );
-          },
+          }
+    
+          return SafeArea(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: EdgeInsets.symmetric(
+                horizontal: 20.w,
+                vertical: 20.h,
+              ),
+              child: Column(
+                children: [
+                  _buildProfileHeader(profile),
+                  SizedBox(height: 25.h),
+    
+                  _buildGlassCard(
+                    padding: EdgeInsets.symmetric(vertical: 20.h),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                       
+                        _buildVerticalDivider(),
+                        _buildStatItem('Points', '0'),
+                        _buildVerticalDivider(),
+                        _buildStatItem(
+                          'Rating',
+                          (profile.rating?.toString().isNotEmpty ?? false)
+                              ? profile.rating.toString()
+                              : '0.0',
+                        ),
+                      ],
+                    ),
+                  ),
+    
+                  SizedBox(height: 10.h),
+    
+                  _buildGlassCard(
+                    child: Column(
+                      children: [
+                        _buildEditableRow(
+                          Icons.person_outline,
+                          'Name',
+                          '${profile.firstName ?? ''} ${profile.lastName ?? ''}'
+                              .trim(),
+                        ),
+                        
+                        _buildDivider(),
+                        _buildEditableRow(
+      Icons.cake_outlined,
+      'Date of Birth',
+      profile.dateOfBirth?.toIso8601String().split('T').first ?? ''
+    ),
+                      ],
+                    ),
+                  ),
+    
+                  SizedBox(height: 10.h),
+    
+                  _buildActionTile(
+      icon: Ionicons.shield_checkmark_outline,
+      title: "Account & Security",
+      onTap: () {
+        Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AccountSecurityScreen(
+    profile: profile,
         ),
+      ),
+    );
+      },
+    ),
+    
+                  _buildActionTile(
+                    icon: Ionicons.location_outline,
+                    title: "View My Addresses",
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => LocationScreen(),
+                        ),
+                      );
+                    },
+                  ),
+    
+                  _buildActionTile(
+                    icon: Ionicons.help_buoy_outline,
+                    title: "Help & Support",
+                    onTap: () => showHelpCenterBottomSheet(context),
+                  ),
+    
+                  _buildActionTile(
+                    icon: Ionicons.log_out_outline,
+                    title: "Logout",
+                    isDestructive: true,
+                    onTap: _confirmLogout,
+                  ),
+    
+                  SizedBox(height: 20.h),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
 
+  ImageProvider _resolveImage(String? path) {
+  final baseUrl = dotenv.env['MEDIA_BASE_URL'] ?? '';
+
+  if (path == null || path.isEmpty) {
+    return const AssetImage('assets/default_profile.png');
+  }
+
+  // already absolute URL → use directly
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    return NetworkImage(path);
+  }
+
+  // relative path → safely join
+  final uri = Uri.parse(baseUrl).resolve(path).toString();
+  return NetworkImage(uri);
+}
+
   Widget _buildProfileHeader(dynamic profile) {
-    final String baseUrl = dotenv.env['MEDIA_BASE_URL'] ?? '';
-    final profileImage = profile.profilePic != null
-        ? NetworkImage('$baseUrl${profile.profilePic}')
-        : const AssetImage('assets/default_profile.png') as ImageProvider;
+    final profileImage = _resolveImage(profile.profilePic);
 
     return Column(
       children: [
@@ -399,11 +577,23 @@ class _ProfileState extends State<Profile> {
                   width: 4,
                 ),
               ),
-              child: CircleAvatar(
-                radius: 60.r,
-                backgroundColor: Colors.grey.shade200,
-                backgroundImage: profileImage,
-              ),
+              child: GestureDetector(
+  onTap: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => FullScreenImageViewer(
+          image: profileImage,
+        ),
+      ),
+    );
+  },
+  child: CircleAvatar(
+    radius: 60.r,
+    backgroundColor: Colors.grey.shade200,
+    backgroundImage: profileImage,
+  ),
+),
             ),
             GestureDetector(
               onTap: _changeProfilePicture,
@@ -475,7 +665,13 @@ class _ProfileState extends State<Profile> {
 
   Widget _buildEditableRow(IconData icon, String title, String value) {
     return InkWell(
-      onTap: () => _editField(title, value),
+      onTap: () {
+  if (title == 'Date of Birth') {
+    _editDateOfBirth();
+  } else {
+    _editField(title, value);
+  }
+},
       child: Padding(
         padding: EdgeInsets.symmetric(vertical: 12.h),
         child: Row(

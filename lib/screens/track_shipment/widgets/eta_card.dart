@@ -1,21 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
+import 'package:flutter_application_1/global_util/services/controler/google_shipment_route_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/shipment_route_controller.dart';
 import 'package:flutter_application_1/global_util/services/models/order_service_models/shipment_model.dart';
 import 'card_decoration.dart';
 
 class EtaCard extends StatelessWidget {
-  final ShipmentRouteController routeController;
+  final GoogleShipmentRouteController routeController;
   final Shipment shipment;
 
+  String _normalizeStatus(String status) {
+  return status.toLowerCase().trim();
+}
+
   ShipmentStatusUI getShipmentStatusUI(String status) {
-  switch (status) {
-    case 'Pending':
+  switch (_normalizeStatus(status)) {
+    case 'pending'|| 'rescheduled':
+    case 'not_in_transit':
       return const ShipmentStatusUI(
         label: 'Not In Transit',
         color: Colors.orange,
         icon: Icons.hourglass_bottom,
       );
+
+      
 
     case 'in_transit':
       return const ShipmentStatusUI(
@@ -24,7 +32,7 @@ class EtaCard extends StatelessWidget {
         icon: Icons.local_shipping,
       );
 
-    case 'arrived': // ✅ ARRIVED
+    case 'arrived':
       return const ShipmentStatusUI(
         label: 'Arrived',
         color: Colors.green,
@@ -40,9 +48,9 @@ class EtaCard extends StatelessWidget {
 
     default:
       return const ShipmentStatusUI(
-        label: 'Unknown',
+        label: 'Processing',
         color: Colors.grey,
-        icon: Icons.help_outline,
+        icon: Icons.timelapse,
       );
   }
 }

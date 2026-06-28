@@ -43,7 +43,7 @@ class ProviderCard extends StatelessWidget {
                 Row(
                   children: [
                     const Icon(Icons.star, color: Colors.orange, size: 16),
-                    Text(' ${provider.rating} • 120 Reviews',
+                    Text(' ${provider.rating}',
                         style: const TextStyle(
                             fontSize: 12, fontWeight: FontWeight.bold)),
                   ],

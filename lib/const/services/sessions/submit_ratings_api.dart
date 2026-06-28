@@ -1,15 +1,34 @@
 import 'dart:convert';
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
+import 'package:flutter_application_1/global_util/services/api_client.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
-
-import 'package:flutter_application_1/const/services/api_tokens_helper.dart';
 
 class RatingApiHelper {
   static final String baseUrl = dotenv.env['API_BASE_URL'] ?? '';
 
+  static const Duration _timeout = Duration(seconds: 15);
+
   // =========================
-  // SUBMIT RATING
+  // ERROR HANDLER
+  // =========================
+  static Exception _handleError(Object e) {
+    if (e is TimeoutException) {
+      return Exception("Server timeout. Please try again.");
+    }
+
+    if (e is SocketException) {
+      return Exception("Server unreachable. Check your internet connection.");
+    }
+
+    return Exception("Unexpected error occurred.");
+  }
+
+  // =========================
+  // SUBMIT RATING (NO RETRY - MUTATION SAFE)
   // =========================
   static Future<bool> submitRating({
     required int sessionId,
@@ -22,21 +41,31 @@ class RatingApiHelper {
     );
 
     try {
-      final response = await http.patch(
-        url,
-        headers: await ApiTokensHelper.authHeaders(),
-        body: jsonEncode({
-          'score': rating,
-          'review': comment ?? '',
-        }),
-      );
+      final response = await ApiClient.instance.request((token) async {
+        return await http
+            .patch(
+              url,
+              headers: {
+                "Content-Type": "application/json",
+                if (token != null) "Authorization": "Bearer $token",
+              },
+              body: jsonEncode({
+                'score': rating,
+                'review': comment ?? '',
+              }),
+            )
+            .timeout(_timeout);
+      }).timeout(_timeout);
 
       // =========================
       // DEBUG LOGGING
       // =========================
       if (kDebugMode) {
-        print('Rating Status: ${response.statusCode}');
-        print('Rating Response: ${response.body}');
+        print("========== RATING SUBMIT ==========");
+        print("URL: $url");
+        print("STATUS: ${response.statusCode}");
+        print("BODY: ${response.body}");
+        print("===================================");
       }
 
       // =========================
@@ -49,14 +78,10 @@ class RatingApiHelper {
       // =========================
       // FAILURE CASE
       // =========================
-      throw Exception(
-        'HTTP ${response.statusCode}: ${response.body}',
-      );
+      throw Exception("Server error (${response.statusCode}).");
+
     } catch (e) {
-      if (kDebugMode) {
-        print('Rating submission error: $e');
-      }
-      return false;
+      throw _handleError(e);
     }
   }
 }

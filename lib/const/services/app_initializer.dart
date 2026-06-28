@@ -1,0 +1,175 @@
+import 'dart:io';
+
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart' as fcm;
+import 'package:flutter/foundation.dart';
+import 'package:flutter_application_1/global_util/services/controler/negotiation_badge_store_controller.dart';
+import 'package:flutter_application_1/global_util/services/widgets/app_notification_helper.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:get_storage/get_storage.dart';
+import 'package:huawei_hmsavailability/huawei_hmsavailability.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:here_sdk/core.dart';
+import 'package:here_sdk/core.engine.dart';
+import 'package:here_sdk/core.errors.dart';
+
+import 'package:flutter_application_1/common/services/storage.dart';
+import 'package:flutter_application_1/global_util/services/controler/auth_session_controller.dart';
+import 'package:flutter_application_1/global_util/services/widgets/push_notification_service.dart';
+
+/// MUST stay top-level
+@pragma('vm:entry-point')
+Future<void> firebaseBackgroundHandler(fcm.RemoteMessage message) async {
+  await Firebase.initializeApp();
+}
+
+class AppInitializer {
+  AppInitializer._();
+
+  static bool _isHuawei = false;
+
+  static Future<String> initialize() async {
+    await GetStorage.init();
+
+    await AuthSessionController.instance.loadSession();
+
+    // 1. detect platform first
+    await _detectHuawei();
+
+    // 2. env must load early (needed for services)
+    final envLoaded = await _safeLoadEnv();
+    if (!envLoaded) throw Exception("Environment loading failed");
+
+    // 3. HERE SDK
+    await _initializeHERESDK();
+
+    // 4. EVENT SYSTEM (IMPORTANT — MUST BE BEFORE PUSH)
+    _registerEventSystem();
+
+    // 5. PUSH NOTIFICATIONS
+    await PushNotificationService.instance.initialize();
+
+    // 6. PERMISSIONS
+    await _requestNotificationPermission();
+
+    if (!_isHuawei) {
+      await Firebase.initializeApp();
+
+      fcm.FirebaseMessaging.onBackgroundMessage(
+        firebaseBackgroundHandler,
+      );
+
+      await _requestFirebasePermission();
+    }
+
+    return _resolveRoute();
+  }
+
+  // ---------------- ROUTING ----------------
+
+  static String _resolveRoute() {
+    final hasOpenedBefore = Storage().getBool('firstOpen') ?? false;
+    final auth = AuthSessionController.instance;
+    final isLoggedIn = auth.clientId;
+
+    if (!hasOpenedBefore) {
+      Storage().setBool('firstOpen', true);
+      return '/welcome';
+    }
+
+    if (isLoggedIn == null) {
+      return '/login';
+    }
+
+    return '/entryPoint';
+  }
+
+  static void _registerEventSystem() {
+  AppEventRouter.register((event) {
+    switch (event.type) {
+      case AppEventType.negotiationRoundCreated:
+        _handleNegotiationRound(event);
+        break;
+    }
+  });
+}
+
+static void _handleNegotiationRound(AppEvent event) {
+  final negotiationId = event.negotiationId;
+
+  if (negotiationId == null) return;
+
+  if (kDebugMode) {
+    print("Negotiation event received in initializer: $negotiationId");
+  }
+
+  NegotiationBadgeStore.global.markUnread(negotiationId);
+}
+
+  // ---------------- INIT BLOCKS ----------------
+
+  static Future<void> _detectHuawei() async {
+    if (!Platform.isAndroid) {
+      _isHuawei = false;
+      return;
+    }
+
+    try {
+      final status = await HmsApiAvailability().isHMSAvailable();
+      _isHuawei = status == 0;
+
+      if (kDebugMode) {
+        print("Huawei device: $_isHuawei");
+      }
+    } catch (_) {
+      _isHuawei = false;
+    }
+  }
+
+  static Future<void> _requestFirebasePermission() async {
+    try {
+      await fcm.FirebaseMessaging.instance.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+    } catch (_) {}
+  }
+
+  static Future<bool> _safeLoadEnv() async {
+    final envFile =
+        kReleaseMode ? ".env.production" : ".env.development";
+
+    try {
+      await dotenv.load(fileName: envFile);
+      return true;
+    } catch (e) {
+      debugPrint("ENV load failed: $e");
+      return false;
+    }
+  }
+
+  static Future<void> _initializeHERESDK() async {
+    final accessKeyId = dotenv.env['HEREACCESSKEYID'] ?? '';
+    final accessKeySecret = dotenv.env['HEREKEYSECRET'] ?? '';
+
+    SdkContext.init(IsolateOrigin.main);
+
+    final authMode =
+        AuthenticationMode.withKeySecret(accessKeyId, accessKeySecret);
+
+    final options = SDKOptions.withAuthenticationMode(authMode);
+
+    try {
+      await SDKNativeEngine.makeSharedInstance(options);
+    } on InstantiationException {
+      rethrow;
+    }
+  }
+
+  static Future<void> _requestNotificationPermission() async {
+    if (!Platform.isAndroid) return;
+
+    await Permission.notification.request();
+  }
+}

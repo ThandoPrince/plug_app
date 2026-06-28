@@ -3,6 +3,8 @@ import 'dart:convert';
 
 import 'package:firebase_messaging/firebase_messaging.dart' as fcm;
 import 'package:flutter/foundation.dart';
+import 'package:flutter_application_1/global_util/services/controler/negotiation_badge_store_controller.dart';
+import 'package:flutter_application_1/global_util/services/widgets/app_notification_helper.dart';
 import 'package:flutter_application_1/screens/splash/spash_screen.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:huawei_push/huawei_push.dart' as hms;
@@ -221,50 +223,121 @@ class PushNotificationService {
 
   /// ---------------- HANDLER ----------------
   void _handleNotification(Map<String, dynamic> data) {
-    final type = data['type']?.toString();
+  final event = data['event']?.toString() ?? data['type']?.toString();
 
-    if (kDebugMode) {
-      print("Notification type: $type");
-      print("Notification payload: $data");
-    }
-
-    switch (type) {
-      case "order_accepted":
-        if (kDebugMode) {
-          print("Order accepted notification received");
-        }
-        break;
-
-      case "provider_on_the_way":
-        if (kDebugMode) {
-          print("Provider on the way notification received");
-        }
-        break;
-
-      case "provider_arrived":
-        if (kDebugMode) {
-          print("Provider arrived notification received");
-        }
-        break;
-
-      case "negotiation_accepted":
-        if (kDebugMode) {
-          print("Negotiation accepted notification received");
-        }
-        break;
-
-      case "test":
-        if (kDebugMode) {
-          print("Test notification received");
-        }
-        break;
-
-      default:
-        if (kDebugMode) {
-          print("Unknown notification type");
-        }
-    }
+  if (kDebugMode) {
+    print("Event received: $event");
+    print("Payload: $data");
   }
+
+  switch (event) {
+    // ---------------- ORDERS ----------------
+    case "order.created":
+      _onOrderCreated(data);
+      break;
+
+    case "order.accepted":
+      _onOrderAccepted(data);
+      break;
+
+    case "order.canceled":
+      _onOrderCanceled(data);
+      break;
+
+    // ---------------- NEGOTIATION ----------------
+    case "negotiation.round_created":
+      _onNegotiationRoundCreated(data);
+      break;
+
+    case "negotiation.accepted":
+      _onNegotiationAccepted(data);
+      break;
+
+    // ---------------- SHIPMENT ----------------
+    case "shipment.in_transit":
+      _onShipmentInTransit(data);
+      break;
+
+    case "shipment.arrived":
+      _onShipmentArrived(data);
+      break;
+
+    default:
+      if (kDebugMode) {
+        print("Unhandled event: $event");
+      }
+  }
+}
+
+void _onOrderCreated(Map<String, dynamic> data) {
+  if (kDebugMode) {
+    print("Order created event");
+  }
+
+  // TODO: refresh orders list / update state
+}
+
+
+void _onOrderAccepted(Map<String, dynamic> data) {
+  if (kDebugMode) {
+    print("Order accepted");
+  }
+
+  // Example:
+  // navigate to tracking screen or update provider dashboard
+}
+
+void _onOrderCanceled(Map<String, dynamic> data) {
+  if (kDebugMode) {
+    print("Order canceled");
+  }
+}
+
+
+
+void _onNegotiationRoundCreated(Map<String, dynamic> data) {
+  final negotiationId = int.tryParse(data['negotiation_id'].toString());
+  final orderId = int.tryParse(data['order_id'].toString());
+
+  if (kDebugMode) {
+    print("Negotiation round created: $data");
+  }
+
+  if (negotiationId == null || orderId == null) return;
+
+  AppEventRouter.handle(
+    AppEvent.negotiationRoundCreated(
+      orderId: orderId,
+      negotiationId: negotiationId,
+      payload: data,
+    ),
+  );
+}
+
+
+void _onShipmentInTransit(Map<String, dynamic> data) {
+  if (kDebugMode) {
+    print("Negotiation round created");
+  }
+
+  // Example:
+  // refresh negotiation screen stream / socket fallback
+}
+
+void _onShipmentArrived(Map<String, dynamic> data) {
+  if (kDebugMode) {
+    print("Order canceled");
+  }
+}
+
+void _onNegotiationAccepted(Map<String, dynamic> data)
+ {
+  if (kDebugMode) {
+    print("Order canceled");
+  }
+}
+
+
 
   void dispose() {
     _huaweiMessageSub?.cancel();

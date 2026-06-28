@@ -138,10 +138,12 @@ class _ServiceProviderDetailsScreenState
         body: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [Kolors.kPrimary, Kolors.kOffWhite],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [ Kolors.kPrimary,
+                  Kolors.kPrimary,
+                  Kolors.kSecondaryLight], // Deep brand gradient
+                  ),
           ),
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),

@@ -97,14 +97,12 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               height: double.infinity,
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [ Kolors.kPrimary,
                   Kolors.kPrimary,
-                  Kolors.kPrimary,
-                  Kolors.kSecondaryLight,
-                ],
-                begin: Alignment.topRight,
-                end: Alignment.bottomLeft,
-              ),
+                  Kolors.kSecondaryLight], // Deep brand gradient
+                  ),
             ),
             child: SafeArea(
               child: SingleChildScrollView(

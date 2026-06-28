@@ -9,35 +9,32 @@ class ServiceController with ChangeNotifier {
   bool _isLoading = false;
   String? _error;
 
+  final List<int> _featuredServiceIds = [
+    1, 2, 3, 29, 16, 20, 46, 15, 6, 4
+  ];
 
-  // ServiceController() {
-  //   WidgetsBinding.instance.addPostFrameCallback((_) {
-  //     fetchServices();
-  //   });
-  // }
-final List<int> _featuredServiceIds = [
-  1, 2, 3, 29, 16, 20, 46, 15, 6, 4
-];
-
-
-  // Filtered services (currently displayed)
   List<ServiceModel> get services => _services;
-
-  // Alias getter in case your UI uses filteredServices
   List<ServiceModel> get filteredServices => _services;
 
   bool get isLoading => _isLoading;
   String? get error => _error;
 
   Future<void> fetchServices() async {
+    // Already loaded -> don't fetch again
+    if (_allServices.isNotEmpty) return;
+
+    await refresh();
+  }
+
+  Future<void> refresh() async {
     _isLoading = true;
+    _error = null;
     notifyListeners();
 
     try {
       final fetched = await ServiceApi.fetchServices();
       _allServices = fetched;
       _services = fetched;
-      _error = null;
     } catch (e) {
       _error = e.toString();
     }
@@ -46,23 +43,34 @@ final List<int> _featuredServiceIds = [
     notifyListeners();
   }
 
-  void filterServices(String query) {
-    if (query.isEmpty) {
-      _services = _allServices;
-    } else {
-      _services = _allServices
-          .where((s) => s.serviceName.toLowerCase().contains(query.toLowerCase()))
-          .toList();
-    }
+  void clear() {
+    _allServices.clear();
+    _services.clear();
+    _error = null;
     notifyListeners();
   }
-List<ServiceModel> get featuredServices {
-  return _allServices
-      .where((s) => _featuredServiceIds.contains(s.serviceId))
-      .toList();
-}
+
+  void filterServices(String query) {
+    if (query.isEmpty) {
+      _services = List.from(_allServices);
+    } else {
+      _services = _allServices.where((s) {
+        return s.serviceName
+            .toLowerCase()
+            .contains(query.toLowerCase());
+      }).toList();
+    }
+
+    notifyListeners();
+  }
+
+  List<ServiceModel> get featuredServices {
+    return _allServices
+        .where((s) => _featuredServiceIds.contains(s.serviceId))
+        .toList();
+  }
+
   void updateSearchQuery(String query) {
     filterServices(query);
   }
-
 }

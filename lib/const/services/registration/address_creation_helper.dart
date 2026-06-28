@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_application_1/global_util/services/api_client.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-import 'package:flutter_application_1/const/services/api_tokens_helper.dart';
+
 
 class AddressCreationHelper {
   static final String baseUrl = dotenv.env['API_BASE_URL'] ?? '';
@@ -13,28 +14,28 @@ class AddressCreationHelper {
   // =========================
   static Future<http.Response> addClientAddress({
     required Map<String, dynamic> data,
-   
   }) async {
     final url = Uri.parse(
       "$baseUrl/clientsDB/client/add-residential-address/",
     );
 
-    try {
-      final response = await AuthHttpClient.post(
+    final response = await ApiClient.instance.request((token) {
+      return http.post(
         url,
-        headers: await ApiTokensHelper.authHeaders(),
+        headers: {
+          "Content-Type": "application/json",
+          if (token != null) "Authorization": "Bearer $token",
+        },
         body: jsonEncode(data),
       );
+    });
 
-      if (kDebugMode) {
-        print("Add Address Status: ${response.statusCode}");
-        print("Add Address Body: ${response.body}");
-      }
-
-      return response;
-    } catch (e) {
-      throw Exception("addClientAddress failed: $e");
+    if (kDebugMode) {
+      print("Add Address Status: ${response.statusCode}");
+      print("Add Address Body: ${response.body}");
     }
+
+    return response;
   }
 
   // =========================
@@ -53,10 +54,14 @@ class AddressCreationHelper {
       "$baseUrl/client_devices/register-device-token/",
     );
 
-    try {
-      final response = await AuthHttpClient.post(
+    final response = await ApiClient.instance.request((authToken) {
+      return http.post(
         url,
-        headers: await ApiTokensHelper.authHeaders(),
+        headers: {
+          "Content-Type": "application/json",
+          if (authToken != null)
+            "Authorization": "Bearer $authToken",
+        },
         body: jsonEncode({
           "email": email.toLowerCase(),
           "push_token": token,
@@ -67,15 +72,13 @@ class AddressCreationHelper {
           "provider": provider,
         }),
       );
+    });
 
-      if (kDebugMode) {
-        print("Push Token Status: ${response.statusCode}");
-        print("Push Token Body: ${response.body}");
-      }
-
-      return response;
-    } catch (e) {
-      throw Exception("updatePushToken failed: $e");
+    if (kDebugMode) {
+      print("Push Token Status: ${response.statusCode}");
+      print("Push Token Body: ${response.body}");
     }
+
+    return response;
   }
 }

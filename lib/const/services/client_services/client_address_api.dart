@@ -1,62 +1,79 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
+import 'package:flutter_application_1/global_util/services/api_client.dart';
 import 'package:flutter_application_1/global_util/services/controler/auth_session_controller.dart';
+import 'package:flutter_application_1/global_util/services/models/client_models/client_address_model.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
-import 'package:flutter_application_1/global_util/services/models/client_models/client_address_model.dart';
-import 'package:flutter_application_1/const/services/api_tokens_helper.dart';
-
 class AddressApi {
   static final String baseUrl = dotenv.env['API_BASE_URL'] ?? '';
+
+  static const Duration _timeout = Duration(seconds: 15);
 
   // =========================
   // GET CLIENT ADDRESSES
   // =========================
   static Future<List<ClientAddressModel>> getClientAddresses() async {
-    final id =  AuthSessionController.instance.clientId;
+    final clientId = AuthSessionController.instance.clientId;
+
     final url = Uri.parse(
-      '$baseUrl/clientsDB/address-only/$id',
+      '$baseUrl/clientsDB/address-only/$clientId',
     );
 
     try {
-      final response = await http.get(
-        url,
-        headers: await ApiTokensHelper.authHeaders(),
-      );
+      final response = await ApiClient.instance.request((token) async {
+        return await http
+            .get(
+              url,
+              headers: {
+                "Content-Type": "application/json",
+                if (token != null)
+                  "Authorization": "Bearer $token",
+              },
+            )
+            .timeout(_timeout);
+      }).timeout(_timeout);
 
       if (kDebugMode) {
-        print("Client Addresses HTTP: ${response.statusCode}");
-        print("Response: ${response.body}");
+        print("========== CLIENT ADDRESSES ==========");
+        print("URL: $url");
+        print("STATUS: ${response.statusCode}");
+        print("BODY: ${response.body}");
+        print("======================================");
       }
 
       if (response.statusCode != 200) {
-        throw Exception('Failed to load addresses: ${response.body}');
+        throw Exception(_extractError(response));
       }
 
       final decoded = jsonDecode(response.body);
 
       if (decoded is! Map<String, dynamic>) {
-        throw Exception('Invalid address response format');
+        throw Exception("Invalid address response format.");
       }
 
-      final addresses = decoded['addresses'];
+      final addresses = decoded["addresses"];
 
       if (addresses is! List) {
-        throw Exception('Invalid addresses list format');
+        throw Exception("Invalid addresses list format.");
       }
 
-      return addresses.map((item) {
-        if (item is! Map<String, dynamic>) {
-          throw Exception('Invalid address item format');
-        }
-        return ClientAddressModel.fromJson(item);
-      }).toList();
-    } catch (e) {
-      if (kDebugMode) {
-        print('AddressApi error: $e');
-      }
-      throw Exception('Error fetching addresses: $e');
+      return addresses
+          .whereType<Map<String, dynamic>>()
+          .map(ClientAddressModel.fromJson)
+          .toList();
+    } on TimeoutException {
+      throw Exception(
+        "Server timeout. Please try again.",
+      );
+    } on SocketException {
+      throw Exception(
+        "Server unreachable. Check your internet connection.",
+      );
     }
   }
 
@@ -72,29 +89,59 @@ class AddressApi {
     );
 
     try {
-      final response = await http.post(
-        url,
-        headers: await ApiTokensHelper.authHeaders(),
-        body: jsonEncode({
-          'client_address_id': clientAddressId,
-        }),
-      );
+      final response = await ApiClient.instance.request((token) async {
+        return await http
+            .post(
+              url,
+              headers: {
+                "Content-Type": "application/json",
+                if (token != null)
+                  "Authorization": "Bearer $token",
+              },
+              body: jsonEncode({
+                "client_address_id": clientAddressId,
+              }),
+            )
+            .timeout(_timeout);
+      }).timeout(_timeout);
 
       if (kDebugMode) {
-        print("Set Default Address HTTP: ${response.statusCode}");
-        print("Response: ${response.body}");
+        print("========== SET DEFAULT ADDRESS ==========");
+        print("URL: $url");
+        print("STATUS: ${response.statusCode}");
+        print("BODY: ${response.body}");
+        print("=========================================");
       }
 
       if (response.statusCode != 200) {
-        throw Exception(
-          'Failed to set default address: ${response.body}',
-        );
+        throw Exception(_extractError(response));
       }
-    } catch (e) {
-      if (kDebugMode) {
-        print('AddressApi error: $e');
-      }
-      rethrow;
+    } on TimeoutException {
+      throw Exception(
+        "Server timeout. Please try again.",
+      );
+    } on SocketException {
+      throw Exception(
+        "Server unreachable. Check your internet connection.",
+      );
     }
+  }
+
+  // =========================
+  // ERROR PARSER
+  // =========================
+  static String _extractError(http.Response response) {
+    try {
+      final decoded = jsonDecode(response.body);
+
+      if (decoded is Map<String, dynamic>) {
+        return decoded["message"] ??
+            decoded["error"] ??
+            decoded["detail"] ??
+            "Request failed.";
+      }
+    } catch (_) {}
+
+    return "Request failed (${response.statusCode}).";
   }
 }

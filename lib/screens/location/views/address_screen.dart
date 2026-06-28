@@ -38,10 +38,12 @@ class MainAddAddressScreen extends StatelessWidget {
           height: double.infinity,
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [Kolors.kPrimary, Kolors.kPrimary, Colors.white],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [ Kolors.kPrimary,
+                  Kolors.kPrimary,
+                  Kolors.kSecondaryLight], // Deep brand gradient
+                  ),
           ),
           child: SafeArea(
             child: Consumer<AddressACreationController>(
@@ -405,13 +407,13 @@ if (!context.mounted) return;
   // VERIFICATION DIALOG
   // ===============================
 
-  void _showVerificationDialog(
-  BuildContext context,
+ void _showVerificationDialog(
+  BuildContext parentContext,
   int clientAddressId,
   String? unitNumber,
 ) {
   showDialog(
-    context: context,
+    context: parentContext,
     barrierDismissible: false,
     builder: (dialogContext) => AlertDialog(
       backgroundColor: Colors.white,
@@ -419,28 +421,18 @@ if (!context.mounted) return;
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
       ),
-      titlePadding: EdgeInsets.only(top: 25.h, left: 20.w, right: 20.w),
-      contentPadding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 15.h),
-      actionsPadding: EdgeInsets.only(bottom: 20.h, left: 20.w, right: 20.w),
-      title: Text(
+      title: const Text(
         "Verify Address",
         textAlign: TextAlign.center,
         style: TextStyle(
-          fontSize: 22.sp,
+          fontSize: 22,
           fontWeight: FontWeight.w900,
-          color: Colors.black87,
-          letterSpacing: -0.5,
         ),
       ),
-      content: Text(
+      content: const Text(
         "Your address is not verified yet.\n\n"
         "Would you like to upload verification documents now?",
         textAlign: TextAlign.center,
-        style: TextStyle(
-          fontSize: 14.sp,
-          color: Colors.black54,
-          height: 1.4,
-        ),
       ),
       actions: [
         Column(
@@ -449,29 +441,29 @@ if (!context.mounted) return;
             GradientBtn(
               text: "VERIFY NOW",
               btnColor: Colors.lightBlueAccent,
-              btnHieght: 50.h,
+              btnHieght: 50,
               btnWidth: double.infinity,
               radius: 12,
               onTap: () {
                 Navigator.of(dialogContext).pop();
 
-                if (!context.mounted) return;
+                if (!parentContext.mounted) return;
 
-context.push(
-  "/addressVerification",
-  extra: {
-    "client_address_id": clientAddressId,
-    "unit_number": unitNumber,
-  },
-);
+                parentContext.push(
+                  "/addressVerification",
+                  extra: {
+                    "client_address_id": clientAddressId,
+                    "unit_number": unitNumber,
+                  },
+                );
               },
             ),
-            SizedBox(height: 10.h),
+            const SizedBox(height: 10),
             GradientBtn(
               text: "MAYBE LATER",
               textColor: Colors.black,
-              btnColor: Colors.grey.shade300,
-              btnHieght: 50.h,
+              btnColor: Colors.grey,
+              btnHieght: 50,
               btnWidth: double.infinity,
               radius: 12,
               onTap: () {

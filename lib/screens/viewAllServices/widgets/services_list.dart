@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
 import 'package:flutter_application_1/global_util/services/controler/service_controller.dart';
-import 'package:flutter_application_1/screens/view_all_sp_service/views/viewSp_AssService.dart';
+import 'package:flutter_application_1/screens/view_all_sp_service/views/view_sp_ass_service_screen.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -45,10 +45,12 @@ class ServicesListWidget extends StatelessWidget {
         return Container(
           decoration: const BoxDecoration(
     gradient: LinearGradient(
-      colors: [Kolors.kPrimary, Kolors.kOffWhite], // light orange to darker orange
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-    ),
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [ Kolors.kPrimary,
+                  Kolors.kPrimary,
+                  Kolors.kSecondaryLight], // Deep brand gradient
+                  ),
   ),
           child: ListView.builder(
             itemCount: controller.services.length,

@@ -62,6 +62,17 @@ class PrivacyPolicyScreen extends StatelessWidget {
                 title: "5. Third-Party Services",
                 body: "Plug may integrate trusted third-party services for secure payments and analytics to improve our platform.",
               ),
+
+              _policySection(
+  icon: Icons.security_outlined,
+  title: "5. Device & Security Information",
+  body: "For security and fraud prevention purposes, we collect device information such as device identifiers, operating system details, and device fingerprints. We may also log IP addresses to help detect unauthorized access, prevent abuse, and secure your account. This information is not used to personally identify you outside of security and analytics purposes.",
+),
+_policySection(
+  icon: Icons.check_circle_outline,
+  title: "6. Consent",
+  body: "By using the Plug app, you consent to the collection and processing of your personal data as described in this Privacy Policy. If you do not agree, you should discontinue use of the app.",
+),
               
               SizedBox(height: 40.h),
               _buildFooter(),

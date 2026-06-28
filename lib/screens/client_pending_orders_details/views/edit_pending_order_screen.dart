@@ -164,10 +164,12 @@ if (success) {
                   width: double.infinity,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [primaryColor, secondaryColor.withOpacity(0.95)],
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                    ),
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [ Kolors.kPrimary,
+                  Kolors.kPrimary,
+                  Kolors.kSecondaryLight], // Deep brand gradient
+                  ),
                   ),
                   child: SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),

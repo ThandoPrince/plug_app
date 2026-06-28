@@ -1,0 +1,36 @@
+{
+  "screen": "splash_screen",
+  "app_name": "Plug",
+  "layout": {
+    "alignment": "center",
+    "orientation": "vertical"
+  },
+  "background": {
+    "type": "linear_gradient",
+    "colors": [
+      "#3EC5FF",
+      "#6FD6FF",
+      "#D9F4FF"
+    ],
+    "direction": "top_to_bottom"
+  },
+  "logo": {
+    "type": "icon",
+    "name": "people_connection",
+    "color": "#FFFFFF",
+    "position": "center"
+  },
+  "text": {
+    "value": "Plug",
+    "color": "#FFFFFF",
+    "style": {
+      "fontWeight": "600",
+      "fontSize": 22
+    },
+    "position": "below_logo"
+  },
+  "spacing": {
+    "logo_to_text": 12,
+    "safe_area_padding": true
+  }
+}

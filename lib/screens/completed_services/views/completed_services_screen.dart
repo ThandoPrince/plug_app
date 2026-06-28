@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
 import 'package:flutter_application_1/global_util/services/controler/completed_service_controller.dart';
 import 'package:flutter_application_1/screens/completed_services/completed_services_details/views/completed_services_details_screen.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 
@@ -15,10 +16,41 @@ class ClientRatingsScreen extends StatefulWidget {
 }
 
 class _ClientRatingsScreenState extends State<ClientRatingsScreen> {
+ 
   @override
-  void initState() {
-    super.initState();
-    context.read<ClientRatingsController>().fetchRatings();
+void initState() {
+  super.initState();
+
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    final controller = context.read<ClientRatingsController>();
+
+    // prevent duplicate fetch
+    if (controller.ratings.isEmpty && !controller.isLoading) {
+      controller.fetchRatings();
+    }
+  });
+}
+
+  ImageProvider _resolveImage(String? path) {
+  final baseUrl = dotenv.env['MEDIA_BASE_URL'] ?? '';
+
+  if (path == null || path.isEmpty) {
+    return const AssetImage('assets/default_profile.png');
+  }
+
+  // already absolute URL → use directly
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    return NetworkImage(path);
+  }
+
+  // relative path → safely join
+  final uri = Uri.parse(baseUrl).resolve(path).toString();
+  return NetworkImage(uri);
+}
+  @override
+  void dispose() {
+    
+    super.dispose();
   }
 
   @override
@@ -41,10 +73,12 @@ class _ClientRatingsScreenState extends State<ClientRatingsScreen> {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Kolors.kPrimary, Kolors.kPrimary, Kolors.kSecondaryLight],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [ Kolors.kPrimary,
+                  Kolors.kPrimary,
+                  Kolors.kSecondaryLight], // Deep brand gradient
+                  ),
         ),
         child: Consumer<ClientRatingsController>(
           builder: (context, controller, child) {
@@ -53,92 +87,162 @@ class _ClientRatingsScreenState extends State<ClientRatingsScreen> {
             }
 
             if (controller.ratings.isEmpty) {
-              return _buildEmptyState();
-            }
+  return ListView(
+    physics: const AlwaysScrollableScrollPhysics(),
+    children: [
+      const SizedBox(height: 120),
+      Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.check_circle_outline,
+            size: 100,
+            color: Colors.white.withOpacity(0.6),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            "No Completed Services",
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Kolors.kWhite,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 10),
+          Text(
+            "Once your services are completed, they will appear here.",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              color: Kolors.kWhite.withOpacity(0.8),
+            ),
+          ),
+        ],
+      ),
+    ],
+  );
+}
 
-            return ListView.separated(
-              physics: const BouncingScrollPhysics(),
-              padding: EdgeInsets.fromLTRB(16.w, kToolbarHeight + 40.h, 16.w, 20.h),
-              itemCount: controller.ratings.length,
-              separatorBuilder: (context, index) => SizedBox(height: 12.h),
-              itemBuilder: (_, index) {
-                final rating = controller.ratings[index];
-                final provider = rating.session?.shipment?.serviceOrdered?.providerForService?.provider;
-                final serviceName = rating.session?.shipment?.serviceOrdered?.serviceRequired?.serviceName ?? "Service";
-                final status = rating.session?.sessionStatus ?? "Completed";
+            return RefreshIndicator(
+  onRefresh: () async {
+    await controller.refresh();
+  },
+  color: Colors.white,
+  backgroundColor: Kolors.kPrimary,
+  child: ListView.separated(
+    physics: const AlwaysScrollableScrollPhysics(),
+    padding: EdgeInsets.fromLTRB(
+      16.w,
+      kToolbarHeight + 40.h,
+      16.w,
+      20.h,
+    ),
+    itemCount: controller.ratings.length,
+    separatorBuilder: (context, index) => SizedBox(height: 12.h),
+    itemBuilder: (_, index) {
+      final rating = controller.ratings[index];
+      final provider = rating.session?.shipment?.serviceOrdered
+          ?.providerForService?.provider;
 
-                // Score Parsing
-                int score = 0;
-                if (rating.score != null) {
-                  if (rating.score is int) score = rating.score as int;
-                  else if (rating.score is String) score = int.tryParse(rating.score as String) ?? 0;
-                }
+      final serviceName =
+          rating.session?.shipment?.serviceOrdered?.serviceRequired
+              ?.serviceName ??
+              "Service";
 
-                final providerImageUrl = provider?.profileImageUrl != null && provider!.profileImageUrl!.isNotEmpty;
-                    
-                   
+      final status =
+          rating.session?.sessionStatus ?? "Completed";
 
-                return _buildGlassListItem(
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => ClientRatingDetailsScreen(rating: rating)),
-                  ),
-                  child: Row(
+      int score = 0;
+      if (rating.score != null) {
+        if (rating.score is int) {
+          score = rating.score as int;
+        } else if (rating.score is String) {
+          score = int.tryParse(rating.score as String) ?? 0;
+        }
+      }
+
+      final providerImageUrl = _resolveImage(provider?.profileImageUrl);
+
+      return _buildGlassListItem(
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ClientRatingDetailsScreen(rating: rating),
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white24, width: 2),
+              ),
+              child: CircleAvatar(
+                radius: 28.r,
+                backgroundColor: Colors.white12,
+                backgroundImage: providerImageUrl,
+                child: provider?.profileImageUrl == null
+                    ? const Icon(Icons.person, color: Colors.white)
+                    : null,
+              ),
+            ),
+            SizedBox(width: 12.w),
+
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Provider Avatar with border
-                      Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white24, width: 2),
-                        ),
-                        child: CircleAvatar(
-                          radius: 28.r,
-                          backgroundColor: Colors.white12,
-                          backgroundImage: providerImageUrl != null ? NetworkImage(providerImageUrl.toString()) : null,
-                          child: providerImageUrl == null ? Icon(Icons.person, color: Colors.white) : null,
+                      Text(
+                        serviceName,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15.sp,
+                          color: Kolors.kDark,
                         ),
                       ),
-                      SizedBox(width: 12.w),
-                      // Info Section
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  serviceName,
-                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15.sp, color: Kolors.kDark),
-                                ),
-                                _buildStatusBadge(status),
-                              ],
-                            ),
-                            Text(
-                              provider?.fullName ?? 'Unknown',
-                              style: TextStyle(color: Colors.black38, fontSize: 13.sp),
-                            ),
-                            SizedBox(height: 4.h),
-                            Row(
-                              children: List.generate(
-                                5,
-                                (i) => Icon(
-                                  Icons.star,
-                                  size: 12.sp,
-                                  color: i < score ? Colors.orangeAccent : Colors.white30,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      SizedBox(width: 8.w),
-                      Icon(Icons.arrow_forward_ios, size: 14.sp, color: Colors.white38),
+                      _buildStatusBadge(status),
                     ],
                   ),
-                );
-              },
-            );
+                  Text(
+                    provider?.fullName ?? 'Unknown',
+                    style: TextStyle(
+                      color: Colors.black38,
+                      fontSize: 13.sp,
+                    ),
+                  ),
+                  SizedBox(height: 4.h),
+                  Row(
+                    children: List.generate(
+                      5,
+                      (i) => Icon(
+                        Icons.star,
+                        size: 12.sp,
+                        color: i < score
+                            ? Colors.orangeAccent
+                            : Colors.white30,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            SizedBox(width: 8.w),
+            Icon(
+              Icons.arrow_forward_ios,
+              size: 14.sp,
+              color: Colors.white38,
+            ),
+          ],
+        ),
+      );
+    },
+  ),
+);
           },
         ),
       ),

@@ -12,24 +12,18 @@ class SessionByShipmentController extends ChangeNotifier {
 
   /// Fetch session once
   Future<void> fetchSession(String shipmentId) async {
-    isLoading = true;
-    errorMessage = null;
+  try {
+    session = await SessionApi.getSessionByShipment(shipmentId);
     notifyListeners();
+  } catch (e, stack) {
+    errorMessage = e.toString();
 
-    try {
-      session = await SessionApi.getSessionByShipment(shipmentId);
-    } catch (e, stack) {
-      errorMessage = e.toString();
-      if (kDebugMode) {
-        print("❌ ERROR in fetchSession: $e");
-        print("📌 STACKTRACE: $stack");
-      }
-    } finally {
-      isLoading = false;
-      notifyListeners();
-      if (kDebugMode) print("fetchSession() finished");
+    if (kDebugMode) {
+      print(e);
+      print(stack);
     }
   }
+}
 
   /// Start polling every [intervalSeconds] until session exists
   void startSessionPolling(String shipmentId, {int intervalSeconds = 5}) {

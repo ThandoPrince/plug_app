@@ -120,13 +120,12 @@ class _PendingOrderDetailScreenState extends State<PendingOrderDetailScreen> {
             body: Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [
-                    primaryColor,
-                    secondaryColor.withOpacity(0.9),
-                  ],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [ Kolors.kPrimary,
+                  Kolors.kPrimary,
+                  Kolors.kSecondaryLight], // Deep brand gradient
+                  ),
               ),
               child: Builder(
                 builder: (_) {
@@ -140,20 +139,48 @@ class _PendingOrderDetailScreenState extends State<PendingOrderDetailScreen> {
 
                   if (detailCtrl.errorMessage != null ||
                       detailCtrl.booking == null) {
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(32),
-                        child: Text(
-                          detailCtrl.errorMessage ??
-                              "No booking found.",
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 18,
-                          ),
-                        ),
-                      ),
-                    );
+                    return ListView(
+  physics: const AlwaysScrollableScrollPhysics(),
+  children: [
+    const SizedBox(height: 120),
+    Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(
+          Icons.event_busy_outlined,
+          size: 100,
+          color: Colors.white.withOpacity(0.6),
+        ),
+        const SizedBox(height: 20),
+
+        const Text(
+          "Booking Not Found",
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+          textAlign: TextAlign.center,
+        ),
+
+        const SizedBox(height: 10),
+
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Text(
+            detailCtrl.errorMessage ??
+                "No booking found. Please try again or refresh the page.",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.8),
+              fontSize: 14,
+            ),
+          ),
+        ),
+      ],
+    ),
+  ],
+);
                   }
 
                   return PendingOrderDetailBody(

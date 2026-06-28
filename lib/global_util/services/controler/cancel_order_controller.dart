@@ -4,8 +4,7 @@ import 'package:flutter_application_1/const/services/booking_services/cancel_ord
 
 
 class CancelOrderController extends ChangeNotifier {
-  final CancelOrderApiHelper _api =
-      CancelOrderApiHelper();
+
 
   bool _isLoading = false;
 
@@ -18,7 +17,7 @@ class CancelOrderController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final result = await _api.cancelOrder(
+      final result = await CancelOrderApiHelper().cancelOrder(
         orderId: orderId,
       );
 

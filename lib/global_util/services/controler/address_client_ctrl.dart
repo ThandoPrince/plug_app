@@ -7,12 +7,27 @@ class AddressClientCtrl with ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
 
+  bool _hasFetchedOnce = false;
+
   List<AddressClientModel> get addresses => _addresses;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
-  /// Fetch all addresses associated with the client
+  /// ✅ Normal fetch (cached / anti-spam)
   Future<void> fetchAddresses() async {
+    if (_hasFetchedOnce) return;
+
+    await _loadAddresses();
+    _hasFetchedOnce = true;
+  }
+
+  /// ✅ Forced refresh (pull-to-refresh / UI refresh)
+  Future<void> refresh() async {
+    await _loadAddresses();
+  }
+
+  /// ✅ Shared internal loader
+  Future<void> _loadAddresses() async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -28,10 +43,15 @@ class AddressClientCtrl with ChangeNotifier {
     notifyListeners();
   }
 
-  /// Clear controller state
+  /// ✅ Reset cache (use after updates like default address change)
+  void resetCache() {
+    _hasFetchedOnce = false;
+  }
+
   void clearAddresses() {
     _addresses = [];
     _errorMessage = null;
+    _hasFetchedOnce = false;
     notifyListeners();
   }
 }

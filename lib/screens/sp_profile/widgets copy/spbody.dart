@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
 import 'package:flutter_application_1/common/utils/url_utils.dart';
 import 'package:flutter_application_1/global_util/services/controler/sp_by_email_controller.dart';
+import 'package:flutter_application_1/screens/profile/widgets/full_screen_image_viewer.dart';
 import 'package:provider/provider.dart';
 
 class SPBody extends StatefulWidget {
@@ -169,38 +170,52 @@ class _SPBodyState extends State<SPBody> {
 
             // 3. Floating Profile Image
             Positioned(
-              top: 50,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 5),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 10,
-                        offset: const Offset(0, 5),
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(100),
-                    child: imageUrl != null
-                        ? Image.network(
-                            imageUrl,
-                            width: 110,
-                            height: 110,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                _defaultImage(),
-                          )
-                        : _defaultImage(),
+  top: 50,
+  left: 0,
+  right: 0,
+  child: Center(
+    child: GestureDetector(
+      onTap: imageUrl != null
+          ? () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => FullScreenImageViewer(
+                    image: NetworkImage(imageUrl),
                   ),
                 ),
-              ),
+              );
+            }
+          : null,
+      child: Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 5),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 5),
             ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(100),
+          child: imageUrl != null
+              ? Image.network(
+                  imageUrl,
+                  width: 110,
+                  height: 110,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) =>
+                      _defaultImage(),
+                )
+              : _defaultImage(),
+        ),
+      ),
+    ),
+  ),
+),
           ],
         );
       },

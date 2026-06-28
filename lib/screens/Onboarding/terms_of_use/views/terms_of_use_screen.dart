@@ -40,33 +40,79 @@ class TermsOfUseScreen extends StatelessWidget {
               _termsSection(
                 icon: Icons.gavel_rounded,
                 title: "1. Introduction",
-                body: "Welcome to Plug. By accessing or using our application, you agree to comply with and be bound by these Terms of Use in their entirety.",
+                body: "Welcome to Plug. By accessing or using our application, you agree to comply with and be bound by these Terms of Use. If you do not agree with these terms, you must discontinue use of the platform immediately."
               ),
               _termsSection(
                 icon: Icons.handshake_outlined,
                 title: "2. Services",
-                body: "Plug acts as a bridge connecting clients with independent service providers. Plug does not directly employ providers unless explicitly stated.",
+                                body: "Plug is a digital marketplace that connects clients with independent service providers. Plug does not directly provide services and is not responsible for service delivery, quality, timing, or outcomes provided by third-party providers."
+
               ),
               _termsSection(
                 icon: Icons.assignment_ind_outlined,
                 title: "3. User Responsibilities",
-                body: "Users agree to provide accurate data, maintain account security, comply with local laws, and use the platform with integrity.",
+                body: "Users agree to provide accurate information, maintain account security, use the platform lawfully, and not engage in fraudulent, abusive, or deceptive behavior. Users are responsible for all activity conducted through their accounts."
               ),
               _termsSection(
                 icon: Icons.payments_outlined,
                 title: "4. Payments",
-                body: "All financial transactions processed through Plug must strictly adhere to our current pricing structures and refund policies.",
+                body: "All payments processed through Plug must comply with platform pricing, refund policies, and transaction rules. Users agree not to initiate unauthorized chargebacks or fraudulent payment activity."
               ),
               _termsSection(
                 icon: Icons.report_problem_outlined,
                 title: "5. Limitation of Liability",
-                body: "Plug is not liable for personal disputes between parties. Users agree to resolve conflicts in good faith and hold Plug harmless.",
+                body: "To the maximum extent permitted by law, Plug is not liable for any direct, indirect, incidental, consequential, or punitive damages arising from use of the platform. This includes disputes between users, service delays, cancellations, or service quality issues."
               ),
               _termsSection(
                 icon: Icons.update_rounded,
                 title: "6. Changes to Terms",
                 body: "We reserve the right to modify these terms. Continued use of the platform after updates constitutes your formal acceptance of new terms.",
               ),
+              _termsSection(
+  icon: Icons.no_accounts_outlined,
+  title: "7. Account Suspension & Termination",
+  body: "We reserve the right to suspend or terminate accounts that violate these Terms, engage in fraudulent activity, abuse the platform, or compromise the safety of other users.",
+),
+_termsSection(
+  icon: Icons.storefront_outlined,
+  title: "8. Independent Service Providers",
+  body: "Service providers on Plug operate as independent contractors and are not employees of Plug. Plug is not responsible for the quality, safety, or outcomes of services provided by third parties.",
+),
+_termsSection(
+  icon: Icons.balance_outlined,
+  title: "9. Dispute Resolution",
+  body: "Users agree that any disputes arising between clients and service providers must first be resolved through communication. Plug may assist in mediation but is not legally liable for unresolved disputes.",
+),
+_termsSection(
+  icon: Icons.block_outlined,
+  title: "10. Prohibited Conduct",
+  body: "Users may not engage in fraudulent activity, harassment, impersonation, abusive behavior, or misuse of the platform. Any attempt to manipulate pricing, bookings, or ratings is strictly prohibited.",
+),
+_termsSection(
+  icon: Icons.copyright_outlined,
+  title: "11. Intellectual Property",
+  body: "All branding, design, code, and content within the Plug application remain the intellectual property of Plug unless otherwise stated. Unauthorized copying or redistribution is prohibited.",
+),
+_termsSection(
+  icon: Icons.warning_amber_outlined,
+  title: "12. Limitation of Liability",
+  body: "Plug is not liable for any direct, indirect, incidental, or consequential damages arising from use of the platform, including but not limited to service disputes, delays, or user interactions.",
+),
+_termsSection(
+  icon: Icons.gavel_rounded,
+  title: "13. Governing Law",
+  body: "These Terms are governed by the laws of South Africa. Any legal disputes shall be subject to the jurisdiction of South African courts.",
+),
+_termsSection(
+  icon: Icons.verified_user_outlined,
+  title: "14. Acceptance of Terms",
+  body: "By using the Plug application, you confirm that you have read, understood, and agreed to these Terms of Use. Continued use of the platform constitutes ongoing acceptance of any updates.",
+),
+_termsSection(
+  icon: Icons.security_outlined,
+  title: "15. Data & Security",
+  body: "We may collect device information, IP addresses, and usage data for security, fraud prevention, and platform integrity. This data is handled in accordance with our Privacy Policy.",
+),
               
               SizedBox(height: 40.h),
               _buildAcceptanceNote(),
@@ -180,3 +226,4 @@ class TermsOfUseScreen extends StatelessWidget {
     );
   }
 }
+

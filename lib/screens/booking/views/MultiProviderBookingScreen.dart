@@ -221,7 +221,7 @@ class _MultiProviderBookingScreenState extends State<MultiProviderBookingScreen>
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
-        backgroundColor: Colors.transparent,
+        backgroundColor: Kolors.kPrimary,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
@@ -229,10 +229,12 @@ class _MultiProviderBookingScreenState extends State<MultiProviderBookingScreen>
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [primaryColor, primaryColor, secondaryColor],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [ Kolors.kPrimary,
+                  Kolors.kPrimary,
+                  Kolors.kSecondaryLight], // Deep brand gradient
+                  ),
         ),
         child: SafeArea(
           child: MultiProviderBookingBody(

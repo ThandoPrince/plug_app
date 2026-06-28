@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/common/widgets/custom_button.dart';
 import 'package:flutter_application_1/global_util/services/controler/client_negotiation_round_start_ctrl.dart';
+import 'package:flutter_application_1/global_util/services/controler/negotiation_realtime_controller.dart';
+import 'package:flutter_application_1/global_util/services/controler/reject_negociation_controller.dart';
 import 'package:flutter_application_1/screens/sp_profile/views%20copy/viewSP_Profile_Screen.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -30,9 +33,48 @@ class _NegotiationDetailSheetState extends State<NegotiationDetailSheet> {
   final TextEditingController _messageController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
   final List<NegotiationRound> _displayedRounds = [];
+  late final NegotiationRealtimeController _realtimeCtrl;
+
+  @override
+void initState() {
+  super.initState();
+
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    final realtime = context.read<NegotiationRealtimeController>();
+
+    realtime.connect(widget.negotiationId, _handleSocketEvent);
+  });
+}
+
+@override
+void didChangeDependencies() {
+  super.didChangeDependencies();
+  _realtimeCtrl = context.read<NegotiationRealtimeController>();
+}
+
+void _handleSocketEvent(Map<String, dynamic> event) {
+  final type = event["type"];
+
+  if (type == "negotiation_counter_offer" ||
+      type == "negotiation_round_created") {
+    final data = event["data"];
+
+    final round = NegotiationRound.fromJson(data);
+
+    setState(() {
+      _displayedRounds.add(round);
+      _listKey.currentState?.insertItem(
+        _displayedRounds.length - 1,
+        duration: const Duration(milliseconds: 300),
+      );
+      _scrollToBottom();
+    });
+  }
+}
 
   @override
   void dispose() {
+   
     _scrollController.dispose();
     _messageController.dispose();
     _priceController.dispose();
@@ -77,42 +119,86 @@ class _NegotiationDetailSheetState extends State<NegotiationDetailSheet> {
   }
 
   void _openProviderProfile(NegotiationByIdController negotiation) {
-  final providerId = negotiation.negotiation?.providerForNegotiation?.provider.spProfile?.id;
-  final serviceId = negotiation.negotiation?.providerForNegotiation?.service.serviceId;
+    final providerId =
+        negotiation.negotiation?.providerForNegotiation?.provider.spProfile?.id;
+    final serviceId =
+        negotiation.negotiation?.providerForNegotiation?.service.serviceId;
 
-  if (providerId == null || serviceId == null) return;
+    if (providerId == null || serviceId == null) return;
 
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (_) => ServiceProviderScreen(id: providerId, serviceId: serviceId),
-    ),
-  );
-}
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            ServiceProviderScreen(id: providerId, serviceId: serviceId),
+      ),
+    );
+  }
 
-void _removeFromNegotiation(NegotiationByIdController negotiation) async {
-  final confirm = await showDialog<bool>(
+  void _removeFromNegotiation(
+  BuildContext context,
+  RejectNegotiationController rejectCtrl,
+  int negotiationId,
+) {
+  showDialog(
     context: context,
-    builder: (_) => AlertDialog(
-      title: const Text("Remove"),
-      content: const Text("Remove this negotiation thread?"),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-          child: const Text("Cancel"),
+    barrierDismissible: false,
+    builder: (dialogContext) => AlertDialog(
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      title: const Text(
+        "Remove Negotiation",
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontSize: 22,
+          fontWeight: FontWeight.bold,
         ),
-        TextButton(
-          onPressed: () => Navigator.pop(context, true),
-          child: const Text("Remove"),
+      ),
+      content: const Text(
+        "Are you sure you want to remove this negotiation thread?",
+        textAlign: TextAlign.center,
+      ),
+      actions: [
+        Column(
+          children: [
+            GradientBtn(
+              text: "No, Keep It",
+              btnColor: Kolors.kPrimary,
+              btnHieght: 50,
+              btnWidth: double.infinity,
+              radius: 12,
+              onTap: () => Navigator.of(dialogContext).pop(),
+            ),
+            const SizedBox(height: 10),
+            GradientBtn(
+              text: "Yes, Remove",
+              textColor: Colors.black,
+              btnColor: Colors.grey.shade300,
+              btnHieght: 50,
+              btnWidth: double.infinity,
+              radius: 12,
+              onTap: () async {
+  Navigator.of(dialogContext).pop();
+
+  final success = await rejectCtrl.rejectNegotiation(
+    negotiationId: negotiationId,
+  );
+
+  if (!context.mounted) return;
+
+  Navigator.of(context).pop({
+    "success": success,
+    "message": rejectCtrl.message,
+  });
+},
+            ),
+          ],
         ),
       ],
     ),
   );
-
-  if (confirm != true) return;
-
-  // TODO: call backend delete/block endpoint
-  Navigator.pop(context);
 }
 
   Future<void> _sendRound(ClientStartRoundController clientCtrl,
@@ -191,7 +277,9 @@ void _removeFromNegotiation(NegotiationByIdController negotiation) async {
           }
 
           final allRounds = negotiation.rounds ?? [];
-          _updateRounds(allRounds);
+          if (_displayedRounds.isEmpty) {
+  _updateRounds(allRounds);
+}
 
           final lastRoundIsProvider = _displayedRounds.isNotEmpty
               ? _displayedRounds.last.senderType == "provider"
@@ -201,94 +289,108 @@ void _removeFromNegotiation(NegotiationByIdController negotiation) async {
             children: [
               // Header
               Padding(
-  padding: const EdgeInsets.all(16),
-  child: Row(
-    children: [
-      Expanded(
-        child: Text(
-          negotiation.providerForNegotiation?.provider.fullName ?? "Unknown Provider",
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-          overflow: TextOverflow.ellipsis,
-        ),
-      ),
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        negotiation.providerForNegotiation?.provider.fullName ??
+                            "Unknown Provider",
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    PopupMenuButton<String>(
+                      icon: const Icon(Icons.more_vert),
+                      onSelected: (value) {
+  if (value == "profile") {
+    _openProviderProfile(negoCtrl);
+  } 
+  else if (value == "remove") {
+    final rejectCtrl = context.read<RejectNegotiationController>();
 
-      PopupMenuButton<String>(
-        icon: const Icon(Icons.more_vert),
-        onSelected: (value) {
-          if (value == "profile") {
-            _openProviderProfile(negoCtrl);
-          } else if (value == "remove") {
-            _removeFromNegotiation(negoCtrl);
-          }
-        },
-        itemBuilder: (context) => const [
-          PopupMenuItem(
-            value: "profile",
-            child: Text("View Profile"),
-          ),
-          PopupMenuItem(
-            value: "remove",
-            child: Text("Remove / Block"),
-          ),
-        ],
-      ),
-    ],
-  ),
-),
+    _removeFromNegotiation(
+      context,
+      rejectCtrl,
+      widget.negotiationId,
+    );
+  }
+},
+                      itemBuilder: (context) => const [
+                        PopupMenuItem(
+                          value: "profile",
+                          child: Text("View Profile"),
+                        ),
+                        PopupMenuItem(
+                          value: "remove",
+                          child: Text("Remove / Block"),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
               const Divider(height: 1),
 
               // Rounds list
               Expanded(
-  child: AnimatedList(
-    key: _listKey,
-    controller: _scrollController,
-    initialItemCount: _displayedRounds.length,
-    itemBuilder: (context, index, animation) {
-      if (index >= _displayedRounds.length) return const SizedBox();
-      final round = _displayedRounds[index];
-      final isClient = round.senderType == "client"; // true if client sent
+                child: AnimatedList(
+                  key: _listKey,
+                  controller: _scrollController,
+                  initialItemCount: _displayedRounds.length,
+                  itemBuilder: (context, index, animation) {
+                    if (index >= _displayedRounds.length)
+                      return const SizedBox();
+                    final round = _displayedRounds[index];
+                    final isClient =
+                        round.senderType == "client"; // true if client sent
 
-      return SizeTransition(
-        sizeFactor: animation,
-        child: Align(
-          alignment: isClient ? Alignment.centerRight : Alignment.centerLeft,
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
-            constraints: const BoxConstraints(maxWidth: 250),
-            decoration: BoxDecoration(
-              color: isClient ? Colors.blue.shade100 : Colors.grey.shade200,
-              borderRadius: BorderRadius.only(
-                topLeft: const Radius.circular(12),
-                topRight: const Radius.circular(12),
-                bottomLeft: Radius.circular(isClient ? 12 : 0),
-                bottomRight: Radius.circular(isClient ? 0 : 12),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (round.message != null)
-                  Text(round.message!,
-                      style: const TextStyle(
-                          fontSize: 14, color: Colors.black87)),
-                const SizedBox(height: 4),
-                Text(
-                  "R${round.offeredPrice?.toStringAsFixed(2) ?? 'N/A'} • ${round.createdAt != null ? DateFormat('HH:mm, dd MMM').format(round.createdAt!) : 'N/A'}",
-                  style: const TextStyle(fontSize: 12, color: Colors.black87),
+                    return SizeTransition(
+                      sizeFactor: animation,
+                      child: Align(
+                        alignment: isClient
+                            ? Alignment.centerRight
+                            : Alignment.centerLeft,
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          margin: const EdgeInsets.symmetric(
+                              vertical: 4, horizontal: 16),
+                          constraints: const BoxConstraints(maxWidth: 250),
+                          decoration: BoxDecoration(
+                            color: isClient
+                                ? Colors.blue.shade100
+                                : Colors.grey.shade200,
+                            borderRadius: BorderRadius.only(
+                              topLeft: const Radius.circular(12),
+                              topRight: const Radius.circular(12),
+                              bottomLeft: Radius.circular(isClient ? 12 : 0),
+                              bottomRight: Radius.circular(isClient ? 0 : 12),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (round.message != null)
+                                Text(round.message!,
+                                    style: const TextStyle(
+                                        fontSize: 14, color: Colors.black87)),
+                              const SizedBox(height: 4),
+                              Text(
+                                "R${round.offeredPrice?.toStringAsFixed(2) ?? 'N/A'} • ${round.createdAt != null ? DateFormat('HH:mm, dd MMM').format(round.createdAt!) : 'N/A'}",
+                                style: const TextStyle(
+                                    fontSize: 12, color: Colors.black87),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
                 ),
-              ],
-            ),
-          ),
-        ),
-      );
-    },
-  ),
-),
-
+              ),
 
               // Message & Price input
               if (lastRoundIsProvider)

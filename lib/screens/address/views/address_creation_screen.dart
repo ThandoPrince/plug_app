@@ -35,10 +35,12 @@ class AddAddressScreen extends StatelessWidget {
             height: double.infinity,
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [Kolors.kPrimary, Kolors.kPrimary, Colors.white],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [ Kolors.kPrimary,
+                  Kolors.kPrimary,
+                  Kolors.kSecondaryLight], // Deep brand gradient
+                  ),
             ),
             child: SafeArea(
               child: Consumer<AddressCreationController>(

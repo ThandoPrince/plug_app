@@ -1,85 +1,125 @@
 import 'dart:convert';
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
-import 'package:flutter_application_1/const/services/api_tokens_helper.dart';
-import 'package:flutter_application_1/global_util/services/models/order_service_models/session_token_model.dart';
+import 'package:flutter_application_1/global_util/services/api_client.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
-class ConfirmCheckinApi {
-  static final ConfirmCheckinApi _instance = ConfirmCheckinApi._internal();
-  factory ConfirmCheckinApi() => _instance;
-  ConfirmCheckinApi._internal();
+import 'package:flutter_application_1/global_util/services/models/order_service_models/session_token_model.dart';
 
+class ClientCheckinApi {
   static final String baseUrl = dotenv.env['API_BASE_URL'] ?? '';
 
-  // =========================
-  // GET
-  // =========================
-  Future<Map<String, dynamic>> get(
-    String endpoint,
-  ) async {
-    final response = await http.get(
-      Uri.parse("$baseUrl$endpoint"),
-      headers: await ApiTokensHelper.authHeaders(),
-    );
+  static const Duration _timeout = Duration(seconds: 15);
 
-    return _handleResponse(response);
+  // =========================
+  // ERROR HANDLER
+  // =========================
+  Exception _handleError(Object e) {
+    if (e is TimeoutException) {
+      return Exception("Server timeout. Please try again.");
+    }
+
+    if (e is SocketException) {
+      return Exception("Server unreachable. Check your internet connection.");
+    }
+
+    return Exception("Unexpected error occurred.");
   }
 
   // =========================
-  // POST
+  // GET CHECKIN TOKEN (SAFE GET - RETRY ENABLED)
   // =========================
-  Future<Map<String, dynamic>> post(
-    String endpoint, {
-    Object? body,
-  }) async {
-    final response = await http.post(
-      Uri.parse("$baseUrl$endpoint"),
-      headers: await ApiTokensHelper.authHeaders(),
-      body: jsonEncode(body),
-    );
-
-    return _handleResponse(response);
-  }
-
-  // =========================
-  // RESPONSE HANDLER
-  // =========================
-  Map<String, dynamic> _handleResponse(http.Response response) {
-    final decoded = jsonDecode(response.body);
-
-    if (kDebugMode) {
-      print("API ${response.statusCode}: ${response.body}");
-    }
-
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      if (decoded is Map<String, dynamic>) {
-        return decoded;
-      }
-      throw Exception("Invalid response format (expected Map)");
-    }
-
-    String message = "API Error";
-
-    if (decoded is Map<String, dynamic>) {
-      message = decoded["detail"] ?? decoded["error"] ?? decoded.toString();
-    }
-
-    throw Exception(message);
-  }
-}
-
-// =========================
-// CLIENT LAYER
-// =========================
-class ClientCheckinApi {
-  final ConfirmCheckinApi _api = ConfirmCheckinApi();
-
   Future<SessionTokenModel> fetchCheckinToken(int shipmentId) async {
-    final json = await _api.get(
-      "/bookings/sessions/get_checkin_token/$shipmentId",
+    final url = Uri.parse(
+      "$baseUrl/bookings/sessions/get_checkin_token/$shipmentId",
     );
 
-    return SessionTokenModel.fromJson(json);
+    try {
+      final response = await ApiClient.instance.request((token) async {
+        return await http
+            .get(
+              url,
+              headers: {
+                "Content-Type": "application/json",
+                if (token != null) "Authorization": "Bearer $token",
+              },
+            )
+            .timeout(_timeout);
+      }).timeout(_timeout);
+
+      if (kDebugMode) {
+        print("========== CHECKIN TOKEN ==========");
+        print("URL: $url");
+        print("STATUS: ${response.statusCode}");
+        print("BODY: ${response.body}");
+        print("===================================");
+      }
+
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw Exception("Server error (${response.statusCode}).");
+      }
+
+      final decoded = jsonDecode(response.body);
+
+      if (decoded is! Map<String, dynamic>) {
+        throw Exception("Invalid check-in token format.");
+      }
+
+      return SessionTokenModel.fromJson(decoded);
+
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  // =========================
+  // CHECK-IN (POST - NO RETRY SAFE)
+  // =========================
+  Future<Map<String, dynamic>> confirmCheckin({
+    required String endpoint,
+    Map<String, dynamic>? body,
+  }) async {
+    final url = Uri.parse("$baseUrl$endpoint");
+
+    try {
+      final response = await ApiClient.instance.request((token) async {
+        return await http
+            .post(
+              url,
+              headers: {
+                "Content-Type": "application/json",
+                if (token != null) "Authorization": "Bearer $token",
+              },
+              body: jsonEncode(body ?? {}),
+            )
+            .timeout(_timeout);
+      }).timeout(_timeout);
+
+      if (kDebugMode) {
+        print("========== CHECKIN CONFIRM ==========");
+        print("URL: $url");
+        print("STATUS: ${response.statusCode}");
+        print("BODY: ${response.body}");
+        print("=====================================");
+      }
+
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw Exception("Server error (${response.statusCode}).");
+      }
+
+      final decoded = jsonDecode(response.body);
+
+      if (decoded is! Map<String, dynamic>) {
+        throw Exception("Invalid check-in response format.");
+      }
+
+      return decoded;
+
+    } catch (e) {
+      throw _handleError(e);
+    }
   }
 }

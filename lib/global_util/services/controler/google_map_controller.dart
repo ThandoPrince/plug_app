@@ -22,6 +22,8 @@ class GoogleMapMarkerController extends ChangeNotifier {
   bool _clientAnchorLocked = true;
 bool get clientAnchorLocked => _clientAnchorLocked;
 bool get _isHighDensityCluster => _visibleProviders.length > 10;
+bool _defaultLoaded = false;
+
 
   SPLiveLocationModel? _selectedProvider;
   SPLiveLocationModel? get selectedProvider => _selectedProvider;
