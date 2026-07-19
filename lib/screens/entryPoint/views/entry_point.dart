@@ -235,7 +235,7 @@ void initState() {
 
     // Dynamic routing matrix selection based on device operating environment
     final List<Widget> pages = [
-      _isHmsPresent ? const HomePage() : const GoogleHomeMapPage(),
+      const GoogleHomeMapPage(),
       const ClientPendingOrdersScreen(),
       const ScheduledShipmentsScreen(),
       const Profile(),
@@ -307,10 +307,10 @@ void initState() {
                   Container(
                     decoration: const BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [Kolors.kPrimary, Kolors.kSecondaryLight],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
+          colors: [Kolors.kPrimary, Kolors.kPrimary, Kolors.kWhite],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
                     ),
                   ),
 

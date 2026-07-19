@@ -24,6 +24,48 @@ class _SPBodyState extends State<SPBody> {
     });
   }
 
+  Widget _buildState({
+  required IconData icon,
+  required String title,
+ required String subtitle,
+}) {
+  return Center(
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            icon,
+            size: 90,
+            color: Kolors.kPrimary.withOpacity(.7),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF263238),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            subtitle,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 15,
+              color: Colors.blueGrey.shade600,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
   @override
   Widget build(BuildContext context) {
     return Consumer<ServiceProviderByEmailController>(
@@ -34,23 +76,46 @@ class _SPBodyState extends State<SPBody> {
         }
 
         if (controller.error != null) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                const SizedBox(height: 16),
-                Text("Error: ${controller.error}"),
-              ],
-            ),
-          );
-        }
+  final error = controller.error!.toLowerCase();
+
+  IconData icon = Icons.cloud_off_outlined;
+  String title = "Unable to Load Provider";
+  String subtitle = "Something went wrong. Please try again.";
+
+  if (error.contains("socket") ||
+      error.contains("network") ||
+      error.contains("internet")) {
+    icon = Icons.wifi_off;
+    title = "No Internet Connection";
+    subtitle = "Please connect to the internet and try again.";
+  } else if (error.contains("timeout")) {
+    icon = Icons.access_time;
+    title = "Request Timed Out";
+    subtitle = "The server took too long to respond.";
+  } else if (error.contains("500") ||
+      error.contains("502") ||
+      error.contains("503") ||
+      error.contains("server")) {
+    icon = Icons.cloud_off_outlined;
+    title = "Server Unavailable";
+    subtitle = "We're unable to reach the server right now.";
+  }
+
+  return _buildState(
+    icon: icon,
+    title: title,
+    subtitle: subtitle,
+  );
+}
 
         final provider = controller.provider;
-        if (provider == null) {
-          return const Center(child: Text("Provider not found."));
-        }
-
+       if (provider == null) {
+  return _buildState(
+    icon: Icons.person_search_outlined,
+    title: "Provider Not Found",
+    subtitle: "We couldn't find the requested provider.",
+  );
+}
         final imageUrl = getFullImageUrl(provider.profileImage);
 
         return Stack(

@@ -20,7 +20,7 @@ class ShipmentRouteApi {
     int shipmentId,
   ) async {
     final uri = Uri.parse(
-      '$_baseUrl/bookings/shipment/$shipmentId/route/',
+      '$_baseUrl/bookings/client/shipment/$shipmentId/route/',
     );
 
     try {

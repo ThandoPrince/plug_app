@@ -441,7 +441,7 @@ class _MultiProviderBookingBodyState extends State<MultiProviderBookingBody> {
                 ],
               ),
 
-            if (averagePrice != null || (firstProviderCost != null && firstProviderCost.negotiable))
+            
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8.0),
                 child: Container(
@@ -479,12 +479,12 @@ class _MultiProviderBookingBodyState extends State<MultiProviderBookingBody> {
                             ),
                           ],
                         ),
-                      if (averagePrice != null && firstProviderCost != null && firstProviderCost.negotiable)
+                      
                         const Padding(
                           padding: EdgeInsets.symmetric(vertical: 8.0),
                           child: Divider(height: 1, color: Color(0xFFE5E7EB)),
                         ),
-                      if (firstProviderCost != null && firstProviderCost.negotiable)
+                     
                         Padding(
                           padding: const EdgeInsets.only(top: 4.0),
                           child: TextField(

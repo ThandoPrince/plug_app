@@ -9,7 +9,7 @@ import 'package:flutter_application_1/global_util/services/controler/sp_by_addes
 
 class HomeRefreshController with ChangeNotifier {
   final SPByAddressController spByAddressController;
-  final HereMapMarkerController mapMarkerCtrl;
+ 
   final GoogleMapMarkerController googleMapMarkerController;
   final ServiceController serviceController;
   final DefAddController defAddController;
@@ -24,7 +24,7 @@ class HomeRefreshController with ChangeNotifier {
   HomeRefreshController({
     required this.spByAddressController,
     required this.defAddController,
-    required this.mapMarkerCtrl,
+
     required this.googleMapMarkerController,
     required this.serviceController,
     required this.authSessionController,
@@ -39,10 +39,10 @@ class HomeRefreshController with ChangeNotifier {
     try {
       // Fetch all data
       await defAddController.fetchAddresses();
-      await spByAddressController.fetchFromVisibleMarkers(mapMarkerCtrl);
+    
       await spByAddressController
           .googlefetchFromVisibleMarkers(googleMapMarkerController);
-      await mapMarkerCtrl.showDefaultAddress();
+  
       await serviceController.fetchServices();
     } catch (e) {
       _errorMessage = e.toString();

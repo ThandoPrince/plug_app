@@ -59,12 +59,10 @@ class _AddressVerificationUploadScreenState
                 width: double.infinity,
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [ Kolors.kPrimary,
-                  Kolors.kPrimary,
-                  Kolors.kSecondaryLight], // Deep brand gradient
-                  ),
+          colors: [Kolors.kPrimary, Kolors.kPrimary, Kolors.kWhite],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
                 ),
                 child: SafeArea(
                   bottom: false,

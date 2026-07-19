@@ -102,12 +102,7 @@ List<SingleChildWidget> appProviders = [
       create: (_) => BookingController()),
   ChangeNotifierProvider(create: (_) => ServiceProviderByEmailController()),
   ChangeNotifierProvider(create: (_) => SpAddressControllerByID()),
-  ChangeNotifierProvider(
-    create: (context) => HereMapMarkerController(
-      defAddCtrl: Provider.of<DefAddController>(context, listen: false),
-      spAddrCtrl: Provider.of<SpAddressControllerByID>(context, listen: false),
-    ),
-  ),
+  
   ChangeNotifierProvider(create: (_) => SPByAddressController()),
   ChangeNotifierProvider(create: (_) => PatchDefaultAddressController()),
   ChangeNotifierProvider(create: (_) => ClientRatingsController()),
@@ -120,25 +115,20 @@ ChangeNotifierProvider<DefAddController>(
       ChangeNotifierProvider<SPByAddressController>(
         create: (_) => SPByAddressController(),
       ),
-      ChangeNotifierProvider<HereMapMarkerController>(
-        create: (_) => HereMapMarkerController(
-          defAddCtrl: DefAddController(),
-          spAddrCtrl: SpAddressControllerByID(),
-        ),
-      ),
+     
       ChangeNotifierProvider<ServiceController>(
         create: (_) => ServiceController(),
       ),
 
       
       // HomeRefreshController depends on SPByAddressController + HereMapMarkerController + DefAddController
-      ChangeNotifierProxyProvider2<SPByAddressController, HereMapMarkerController, HomeRefreshController>(
+      ChangeNotifierProxyProvider2<SPByAddressController,GoogleMapMarkerController, HomeRefreshController>(
         create: (context) => HomeRefreshController(
           googleMapMarkerController: context.read<GoogleMapMarkerController>(),
           defAddController: context.read<DefAddController>(),
           spByAddressController: context.read<SPByAddressController>(),
           authSessionController: AuthSessionController.instance,
-          mapMarkerCtrl: context.read<HereMapMarkerController>(),
+          
           serviceController: context.read<ServiceController>(),
         ),
         update: (context, spCtrl, mapCtrl, homeCtrl, ) {
@@ -147,7 +137,7 @@ ChangeNotifierProvider<DefAddController>(
             defAddController: context.read<DefAddController>(), 
             spByAddressController: spCtrl,
             authSessionController: AuthSessionController.instance,
-            mapMarkerCtrl: mapCtrl,
+            
             serviceController: context.read<ServiceController>(),
           );
         },

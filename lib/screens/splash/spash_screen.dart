@@ -15,9 +15,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:go_router/go_router.dart';
-import 'package:here_sdk/core.dart';
-import 'package:here_sdk/core.engine.dart';
-import 'package:here_sdk/core.errors.dart';
+
 import 'package:huawei_hmsavailability/huawei_hmsavailability.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -126,7 +124,7 @@ class _SpashScreenState extends State<SpashScreen> {
     }
 
     
-    await _initializeHERESDK();
+ 
 
     
     await PushNotificationService.instance.initialize();
@@ -232,23 +230,7 @@ class _SpashScreenState extends State<SpashScreen> {
   }
 
   /// HERE SDK Initialization
-  Future<void> _initializeHERESDK() async {
-    final accessKeyId = dotenv.env['HEREACCESSKEYID'] ?? '';
-    final accessKeySecret = dotenv.env['HEREKEYSECRET'] ?? '';
-
-    SdkContext.init(IsolateOrigin.main);
-    final authMode =
-        AuthenticationMode.withKeySecret(accessKeyId, accessKeySecret);
-    final options = SDKOptions.withAuthenticationMode(authMode);
-
-    try {
-      await SDKNativeEngine.makeSharedInstance(options);
-      debugPrint("HERE SDK initialized");
-    } on InstantiationException {
-      debugPrint("HERE SDK failed to initialize");
-      rethrow;
-    }
-  }
+  
 
   @override
   void dispose() {

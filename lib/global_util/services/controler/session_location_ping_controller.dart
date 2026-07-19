@@ -11,7 +11,8 @@ class ClientSessionLocationPingController extends ChangeNotifier {
   double? distanceMeters;
 
   Timer? _timer;
-  Timer? _fetchPingTimer;
+  
+  ClientSessionLocationPingModel? latesttPing;
 
   bool _hasNavigated = false;
   bool get hasNavigated => _hasNavigated;
@@ -29,26 +30,26 @@ class ClientSessionLocationPingController extends ChangeNotifier {
   void markNavigated() => _hasNavigated = true;
 
   /// Initialize session using backend start time
-  void initSession({
-    required int id,
-    DateTime? backendCheckinTime,
-  }) {
-    sessionId = id;
+ Future<void> initSession({
+  required int id,
+  DateTime? backendCheckinTime,
+}) async {
+  sessionId = id;
 
-    // Use backend check-in timestamp as absolute start time
-    if (backendCheckinTime != null) {
-      _sessionStartTime = backendCheckinTime;
-    }
-
-    // Fetch initial ping
-    fetchLatestPing();
-
-    // Start UI elapsed timer
-    _startElapsedTimer();
-
-    // Start periodic ping fetch
-    _startFetchingPing();
+  if (backendCheckinTime != null) {
+    _sessionStartTime = backendCheckinTime;
   }
+
+  // Wait until the ping has been fetched
+  await fetchLatestPing();
+
+  // Start the duration timer
+  _startElapsedTimer();
+
+  // Remove this if WebSocket is now responsible for updates
+  // _startFetchingPing();
+}
+
 
   void _startElapsedTimer() {
     _timer?.cancel();
@@ -62,16 +63,7 @@ class ClientSessionLocationPingController extends ChangeNotifier {
     });
   }
 
-  void _startFetchingPing() {
-    if (sessionId == null) return;
 
-    _fetchPingTimer?.cancel();
-
-    _fetchPingTimer = Timer.periodic(const Duration(seconds: 15), (_) async {
-      if (_disposed) return;
-      await fetchLatestPing();
-    });
-  }
 
   Future<void> fetchLatestPing() async {
     if (sessionId == null || _disposed) return;
@@ -98,7 +90,7 @@ class ClientSessionLocationPingController extends ChangeNotifier {
 
   Future<void> endSession() async {
     _timer?.cancel();
-    _fetchPingTimer?.cancel();
+   
   }
 
   String _formatDuration(Duration d) {
@@ -112,7 +104,7 @@ class ClientSessionLocationPingController extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     _timer?.cancel();
-    _fetchPingTimer?.cancel();
+   
     super.dispose();
   }
 }

@@ -67,12 +67,10 @@ void dispose() {
     builder: (_) => Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [ Kolors.kPrimary,
-                  Kolors.kPrimary,
-                  Kolors.kSecondaryLight], // Deep brand gradient
-                  ),
+          colors: [Kolors.kPrimary, Kolors.kPrimary, Kolors.kWhite],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: const BorderRadius.vertical(
           top: Radius.circular(24),
         ),

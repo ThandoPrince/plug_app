@@ -14,41 +14,7 @@ class SPByAddressController with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
-  /// Fetch SPs for all visible providers on the map (bulk call)
-  Future<void> fetchFromVisibleMarkers(HereMapMarkerController markerCtrl) async {
-    final visibleAddresses = markerCtrl.visibleProviders;
-
-    if (visibleAddresses.isEmpty) {
-      _errorMessage = "No visible providers on map";
-      notifyListeners();
-      return;
-    }
-
-    _isLoading = true;
-    _errorMessage = null;
-    _serviceProviders.clear();
-    notifyListeners();
-
-    try {
-      // collect all IDs
-      final ids = visibleAddresses
-    .map((addr) => addr.providerId)    // maybe String? or dynamic
-    .where((id) => id != null)         // remove nulls
-    .map((id) => id!.toString())       // ensure all are Strings
-    .toList();   
-
-      // ✅ single request with ?ids=2,1
-      final spList = await ServiceProvidersByAddressApi.fetchProvidersByAddresses(ids.map(int.parse).toList());
-
-      _serviceProviders.addAll(spList);
-    } catch (e) {
-      _errorMessage = "Failed to fetch providers: ${e.toString()}";
-      _serviceProviders.clear();
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
+  
 
 Future<void> googlefetchFromVisibleMarkers(GoogleMapMarkerController markerCtrl) async {
     final visibleAddresses = markerCtrl.visibleProviders;

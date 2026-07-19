@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_application_1/global_util/services/api_client.dart';
+import 'package:flutter_application_1/global_util/services/controler/auth_session_controller.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
@@ -32,12 +33,13 @@ class RatingApiHelper {
   // =========================
   static Future<bool> submitRating({
     required int sessionId,
-    required String clientEmail,
+  
     required int rating,
     String? comment,
   }) async {
+    final clientId = AuthSessionController.instance.clientId;
     final url = Uri.parse(
-      '$baseUrl/bookings/$sessionId/rate-provider/$clientEmail/',
+      '$baseUrl/bookings/$sessionId/rate-provider/$clientId/',
     );
 
     try {

@@ -1,12 +1,14 @@
-import 'dart:math';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:here_sdk/core.dart';
-import 'package:here_sdk/mapview.dart';
+import 'package:flutter_application_1/global_util/services/controler/google_shipment_route_controller.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+
 import 'package:flutter_application_1/global_util/services/controler/session_location_ping_controller.dart';
 import 'package:flutter_application_1/global_util/services/models/order_service_models/session_model.dart';
 
 class GeofenceMapSection extends StatefulWidget {
-  final ClientSessionLocationPingController controller;
+  final GoogleShipmentRouteController controller;
   final SessionModel session;
   final double geofenceRadiusMeters;
 
@@ -22,191 +24,160 @@ class GeofenceMapSection extends StatefulWidget {
 }
 
 class _GeofenceMapSectionState extends State<GeofenceMapSection> {
-  HereMapController? _mapController;
+  GoogleMapController? _mapController;
 
-  MapPolygon? _geofencePolygon;
-  MapMarker? _providerMarker;
+  LatLng? _center;
+  BitmapDescriptor? _providerIcon;
+BitmapDescriptor? _siteIcon;
 
   bool _cameraInitialized = false;
-  bool _polygonInitialized = false;
+
+  Marker? _providerMarker;
+  Circle? _geofenceCircle;
 
   @override
-  void initState() {
-    super.initState();
-    widget.controller.addListener(_onControllerUpdate);
+void initState() {
+  super.initState();
+
+  widget.controller.addListener(_onControllerUpdate);
+
+  _loadMarkerIcons();
+}
+
+Future<void> _loadMarkerIcons() async {
+  _providerIcon = await BitmapDescriptor.asset(
+    const ImageConfiguration(size: Size(64, 64)),
+    "assets/icons/sp_marker.png",
+  );
+
+  _siteIcon = await BitmapDescriptor.asset(
+    const ImageConfiguration(size: Size(64, 64)),
+    "assets/icons/default_marker.png",
+  );
+
+  if (mounted) {
+    setState(() {});
   }
+}
 
   @override
   void dispose() {
     widget.controller.removeListener(_onControllerUpdate);
+    _mapController?.dispose();
     super.dispose();
   }
 
-  // ===============================
-  // MAP CREATED
-  // ===============================
-  void onMapCreated(HereMapController mapController) {
-    _mapController = mapController;
-
-    _mapController!.mapScene.loadSceneForMapScheme(
-      MapScheme.normalDay,
-      (MapError? error) {
-        if (error != null) {
-          debugPrint("❌ Map scene load error: $error");
-          return;
-        }
-
-        _initCameraOnce();
-        _drawGeofenceOnce();
-        _updateProviderMarker();
-      },
-    );
-  }
-
-  // ===============================
-  // CAMERA (ONLY ONCE)
-  // ===============================
-  void _initCameraOnce() {
-    if (_cameraInitialized || _mapController == null) return;
-
-    final delivery = widget.session.shipment
-        ?.serviceOrdered
-        ?.deliveryAddress;
+  // =========================
+  // INIT CENTER
+  // =========================
+  void _initCenter() {
+    final delivery =
+        widget.session.shipment?.serviceOrdered?.deliveryAddress;
 
     if (delivery == null) return;
 
-    final center = GeoCoordinates(
+    _center = LatLng(
       double.tryParse(delivery.latitude.toString()) ?? 0.0,
       double.tryParse(delivery.longitude.toString()) ?? 0.0,
     );
+  }
 
-    _mapController!.camera.lookAtPointWithMeasure(
-      center,
-      MapMeasure(
-        MapMeasureKind.distanceInMeters,
-        widget.geofenceRadiusMeters * 5,
-      ),
+  Marker _buildProviderMarker(LatLng position) {
+  return Marker(
+    markerId: const MarkerId("provider"),
+    position: position,
+    icon: _providerIcon ?? BitmapDescriptor.defaultMarker,
+    anchor: const Offset(0.5, 0.5),
+  );
+}
+
+Marker _buildSiteMarker() {
+  return Marker(
+    markerId: const MarkerId("site"),
+    position: _center!,
+    icon: _siteIcon ?? BitmapDescriptor.defaultMarker,
+    anchor: const Offset(0.5, 0.5),
+  );
+}
+
+  // =========================
+  // CAMERA ONCE
+  // =========================
+  void _moveCameraOnce() {
+    if (_cameraInitialized || _mapController == null || _center == null) return;
+
+    _mapController!.animateCamera(
+      CameraUpdate.newLatLngZoom(_center!, 18),
     );
 
     _cameraInitialized = true;
   }
 
-  // ===============================
-  // DRAW GEOFENCE ONLY ONCE
-  // ===============================
-  void _drawGeofenceOnce() {
-    if (_polygonInitialized || _mapController == null) return;
-
-    final delivery = widget.session.shipment
-        ?.serviceOrdered
-        ?.deliveryAddress;
-
-    if (delivery == null) return;
-
-    final center = GeoCoordinates(
-      double.tryParse(delivery.latitude.toString()) ?? 0.0,
-      double.tryParse(delivery.longitude.toString()) ?? 0.0,
-    );
-
-    final points = <GeoCoordinates>[];
-    const segments = 64;
-
-    for (int i = 0; i < segments; i++) {
-      final angle = (i * 360 / segments) * (pi / 180);
-
-      final latOffset =
-          widget.geofenceRadiusMeters * cos(angle) / 111320;
-
-      final lngOffset =
-          widget.geofenceRadiusMeters *
-          sin(angle) /
-          (111320 * cos(center.latitude * pi / 180));
-
-      points.add(
-        GeoCoordinates(
-          center.latitude + latOffset,
-          center.longitude + lngOffset,
-        ),
-      );
-    }
-
-    final outlineColor =
-        widget.controller.isInsideGeofence ? Colors.green : Colors.red;
-
-    final fillColor = widget.controller.isInsideGeofence
-        ? const Color.fromARGB(64, 0, 255, 0)
-        : const Color.fromARGB(64, 255, 0, 0);
-
-    _geofencePolygon =
-        MapPolygon.withOutlineColorAndOutlineWidthInPixels(
-      GeoPolygon(points),
-      fillColor,
-      outlineColor,
-      3,
-    );
-
-    _mapController!.mapScene.addMapPolygon(_geofencePolygon!);
-
-    _polygonInitialized = true;
-  }
-
-  // ===============================
-  // CONTROLLER UPDATE LISTENER
-  // ===============================
+  // =========================
+  // CONTROLLER UPDATE
+  // =========================
   void _onControllerUpdate() {
-    _updateProviderMarker();
-    _updateGeofenceColorOnly();
+    if (!mounted) return;
+
+    final position = widget.controller.geofenceProviderLocation;
+
+if (position != null) {
+  _providerMarker = _buildProviderMarker(position);
+}
+
+    setState(() {});
   }
 
-  // ===============================
-  // UPDATE MARKER (NO RECREATE)
-  // ===============================
-  void _updateProviderMarker() {
-    if (_mapController == null) return;
+  // =========================
+  // GEOFENCE CIRCLE
+  // =========================
+  Circle _buildCircle() {
+    final isInside = widget.controller.isInsideGeofence;
 
-    final ping = widget.controller.latestPing;
-    if (ping == null) return;
-
-    final geoCoords = GeoCoordinates(
-      ping.latitude ?? 0.0,
-      ping.longitude ?? 0.0,
+    return Circle(
+      circleId: const CircleId("geofence"),
+      center: _center!,
+      radius: widget.geofenceRadiusMeters,
+      fillColor: (isInside ? Colors.green : Colors.red).withOpacity(0.25),
+      strokeColor: isInside ? Colors.green : Colors.red,
+      strokeWidth: 2,
     );
-
-    // Create marker first time
-    if (_providerMarker == null) {
-      _providerMarker = MapMarker(
-        geoCoords,
-        MapImage.withFilePathAndWidthAndHeight(
-          "assets/icons/sp_marker.png",
-          64,
-          64,
-        ),
-      );
-
-      _mapController!.mapScene.addMapMarker(_providerMarker!);
-    } else {
-      // 🔥 MOVE marker instead of recreating
-      _providerMarker!.coordinates = geoCoords;
-    }
   }
 
-  // ===============================
-  // UPDATE ONLY COLOR (NO CAMERA)
-  // ===============================
-  void _updateGeofenceColorOnly() {
-    if (_mapController == null || _geofencePolygon == null) return;
-
-    _mapController!.mapScene.removeMapPolygon(_geofencePolygon!);
-    _polygonInitialized = false;
-
-    _drawGeofenceOnce();
-  }
-
-  // ===============================
+  // =========================
   // BUILD
-  // ===============================
+  // =========================
   @override
   Widget build(BuildContext context) {
-    return HereMap(onMapCreated: onMapCreated);
+    _initCenter();
+
+    if (_center == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _moveCameraOnce();
+    });
+
+    final Set<Marker> markers = {
+  _buildSiteMarker(),
+  if (_providerMarker != null) _providerMarker!,
+};
+
+    return GoogleMap(
+      initialCameraPosition: CameraPosition(
+        target: _center!,
+        zoom: 18,
+      ),
+      onMapCreated: (controller) {
+        _mapController = controller;
+        _moveCameraOnce();
+      },
+      markers: markers,
+      circles: {_buildCircle()},
+      myLocationEnabled: false,
+      zoomControlsEnabled: false,
+      mapToolbarEnabled: false,
+    );
   }
 }

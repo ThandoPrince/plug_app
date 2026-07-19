@@ -139,12 +139,10 @@ class _ServiceProviderScreenScreenState
         body: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [ Kolors.kPrimary,
-                  Kolors.kPrimary,
-                  Kolors.kSecondaryLight], // Deep brand gradient
-                  ),
+          colors: [Kolors.kPrimary, Kolors.kPrimary, Kolors.kWhite],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
           ),
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -163,14 +161,37 @@ Consumer<CostOfServiceController>(
                       );
                     }
 
-                    if (controller.error != null) {
-                      return _buildSectionCard(
-                        child: Text(
-                          "Error loading cost: ${controller.error}",
-                          style: const TextStyle(color: Colors.redAccent),
-                        ),
-                      );
-                    }
+                    if (controller.error != Null) {
+  return _buildStateCard(
+    icon: Icons.wifi_off,
+    title: "No Internet Connection",
+    subtitle: "Please connect to the internet and try again.",
+  );
+}
+
+if (controller.error != Null) {
+  return _buildStateCard(
+    icon: Icons.cloud_off_outlined,
+    title: "Server Unavailable",
+    subtitle: "We're unable to reach the server right now.",
+  );
+}
+
+if (controller.error != Null) {
+  return _buildStateCard(
+    icon: Icons.access_time,
+    title: "Request Timed Out",
+    subtitle: "The server took too long to respond.",
+  );
+}
+
+if (controller.error != null) {
+  return _buildStateCard(
+    icon: Icons.error_outline,
+    title: "Unable to Load Pricing",
+    subtitle: "Something went wrong. Please try again.",
+  );
+}
                     
 
                     return CostOfServiceCard(
@@ -418,6 +439,46 @@ Consumer<CostOfServiceController>(
     );
   }
 
+  Widget _buildStateCard({
+  required IconData icon,
+  required String title,
+  required String subtitle,
+}) {
+  return _buildSectionCard(
+    child: Padding(
+      padding: const EdgeInsets.symmetric(vertical: 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 56,
+            color: Colors.grey.shade500,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            subtitle,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey.shade600,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
   Widget _buildSectionCard({required Widget child}) {
     return Container(
       width: double.infinity,
@@ -564,6 +625,8 @@ class _ServiceImageCard extends StatelessWidget {
     );
   }
 
+  
+
   Widget _imagePlaceholder() {
     return Container(
       color: Colors.white,
@@ -577,3 +640,6 @@ class _ServiceImageCard extends StatelessWidget {
     );
   }
 }
+
+
+

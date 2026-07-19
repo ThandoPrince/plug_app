@@ -17,53 +17,57 @@ class AuthLoginApi {
   // LOGIN
   // =========================
   Future<ClientLoginResponse> login({
-    required String identifier,
-    required String password,
-  }) async {
-    final uri = Uri.parse('$baseUrl/clientsDB/login/');
+  required String identifier,
+  required String password,
+}) async {
+  final uri = Uri.parse('$baseUrl/clientsDB/login/');
 
-    try {
-      final response = await http
-          .post(
-            uri,
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({
-              "identifier": identifier.toLowerCase().trim(),
-              "password": password,
-            }),
-          )
-          .timeout(_timeout);
+  try {
+    final response = await http
+        .post(
+          uri,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            "identifier": identifier.toLowerCase().trim(),
+            "password": password,
+          }),
+        )
+        .timeout(_timeout);
 
-      final data = jsonDecode(response.body);
+    final data = jsonDecode(response.body);
 
-      if (response.statusCode == 200) {
-        return ClientLoginResponse.fromJson(data['data']);
-      }
-
-      throw ApiException(
-        statusCode: response.statusCode,
-        data: data,
-      );
-
-    } on TimeoutException {
-      throw ApiException(
-        statusCode: 408,
-        data: {"error": "Server timeout"},
-      );
-
-    } on SocketException {
-      throw ApiException(
-        statusCode: 503,
-        data: {"error": "Server unreachable"},
-      );
-
-    } catch (e) {
-      throw ApiException(
-        statusCode: 500,
-        data: {"error": "Unexpected error: $e"},
-      );
+    if (response.statusCode == 200) {
+      return ClientLoginResponse.fromJson(data['data']);
     }
+
+    throw ApiException(
+      statusCode: response.statusCode,
+      data: data,
+    );
+
+  } on TimeoutException {
+    throw ApiException(
+      statusCode: 408,
+      data: {"error": "Server timeout"},
+    );
+
+  } on SocketException {
+    throw ApiException(
+      statusCode: 503,
+      data: {"error": "Server unreachable"},
+    );
+
+  } on ApiException {
+    // Preserve the original exception
+    rethrow;
+
+  } catch (e) {
+    throw ApiException(
+      statusCode: 500,
+      data: {"error": "Unexpected error: $e"},
+    );
   }
+}
 
   // =========================
   // PUSH TOKEN REGISTER

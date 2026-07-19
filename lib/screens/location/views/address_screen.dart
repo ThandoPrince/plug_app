@@ -6,6 +6,7 @@ import 'package:flutter_application_1/global_util/services/controler/address_a_c
 import 'package:flutter_application_1/global_util/services/controler/address_client_ctrl.dart';
 
 import 'package:flutter_application_1/global_util/services/controler/auth_session_controller.dart';
+import 'package:flutter_application_1/global_util/services/controler/google_map_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/home_here_map_controller.dart';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -38,12 +39,10 @@ class MainAddAddressScreen extends StatelessWidget {
           height: double.infinity,
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [ Kolors.kPrimary,
-                  Kolors.kPrimary,
-                  Kolors.kSecondaryLight], // Deep brand gradient
-                  ),
+          colors: [Kolors.kPrimary, Kolors.kPrimary, Kolors.kWhite],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
           ),
           child: SafeArea(
             child: Consumer<AddressACreationController>(
@@ -382,7 +381,7 @@ if (!context.mounted) return;
 
              
     final addressCtrl = context.read<AddressClientCtrl>();
-    final mapCtrl = context.read<HereMapMarkerController>(); 
+    final mapCtrl = context.read<GoogleMapMarkerController>(); 
 
     await addressCtrl.fetchAddresses();
     await mapCtrl.showDefaultAddress();

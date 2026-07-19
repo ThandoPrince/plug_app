@@ -11,12 +11,12 @@ import 'package:provider/provider.dart';
 
 class RatingScreen extends StatefulWidget {
   final int sessionId;
-  final String clientEmail;
+
 
   const RatingScreen({
     super.key,
     required this.sessionId,
-    required this.clientEmail,
+   
   });
 
   @override
@@ -43,10 +43,10 @@ class _RatingScreenState extends State<RatingScreen> {
               body: Container(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Kolors.kPrimary, Color(0xFF1A1A1A)],
-                  ),
+          colors: [Kolors.kPrimary, Kolors.kPrimary, Kolors.kWhite],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
                 ),
                 child: SafeArea(
                   bottom: false,
@@ -176,9 +176,9 @@ class _RatingScreenState extends State<RatingScreen> {
                 style: TextStyle(color: Colors.white, fontSize: 18.sp, fontWeight: FontWeight.bold),
               ),
               Text(
-                "Session ID: #$widget.sessionId",
-                style: TextStyle(color: Colors.white70, fontSize: 12.sp),
-              ),
+  "Session ID: #${widget.sessionId}",
+  style: TextStyle(color: Colors.white70, fontSize: 12.sp),
+),
             ],
           ),
         ],
@@ -263,7 +263,7 @@ class _RatingScreenState extends State<RatingScreen> {
             : () async {
                 HapticFeedback.mediumImpact();
                 final success = await controller.submitRating(
-                    sessionId: widget.sessionId, clientEmail: widget.clientEmail);
+                    sessionId: widget.sessionId);
 
                 if (success && mounted) {
                   _showSuccessDialog();

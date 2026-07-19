@@ -9,9 +9,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:huawei_hmsavailability/huawei_hmsavailability.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:here_sdk/core.dart';
-import 'package:here_sdk/core.engine.dart';
-import 'package:here_sdk/core.errors.dart';
+
 
 import 'package:flutter_application_1/common/services/storage.dart';
 import 'package:flutter_application_1/global_util/services/controler/auth_session_controller.dart';
@@ -40,8 +38,7 @@ class AppInitializer {
     final envLoaded = await _safeLoadEnv();
     if (!envLoaded) throw Exception("Environment loading failed");
 
-    // 3. HERE SDK
-    await _initializeHERESDK();
+  
 
     // 4. EVENT SYSTEM (IMPORTANT — MUST BE BEFORE PUSH)
     _registerEventSystem();
@@ -149,23 +146,7 @@ static void _handleNegotiationRound(AppEvent event) {
     }
   }
 
-  static Future<void> _initializeHERESDK() async {
-    final accessKeyId = dotenv.env['HEREACCESSKEYID'] ?? '';
-    final accessKeySecret = dotenv.env['HEREKEYSECRET'] ?? '';
-
-    SdkContext.init(IsolateOrigin.main);
-
-    final authMode =
-        AuthenticationMode.withKeySecret(accessKeyId, accessKeySecret);
-
-    final options = SDKOptions.withAuthenticationMode(authMode);
-
-    try {
-      await SDKNativeEngine.makeSharedInstance(options);
-    } on InstantiationException {
-      rethrow;
-    }
-  }
+  
 
   static Future<void> _requestNotificationPermission() async {
     if (!Platform.isAndroid) return;

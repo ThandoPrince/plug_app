@@ -101,7 +101,20 @@ class ShipmentApi {
     } on FormatException {
       throw Exception("Invalid JSON format in shipment response");
     } catch (e) {
-      throw Exception("ShipmentApi error: $e");
-    }
+  if (e is TimeoutException) {
+    throw Exception("Request timed out. Check your connection.");
+  }
+
+  final msg = e.toString().toLowerCase();
+
+  if (msg.contains("socketexception") ||
+      msg.contains("failed host lookup") ||
+      msg.contains("unreachable") ||
+      msg.contains("network is unreachable")) {
+    throw Exception("No internet connection. Please try again.");
+  }
+
+  throw Exception("Unable to load shipments.");
+}
   }
 }

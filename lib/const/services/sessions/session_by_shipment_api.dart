@@ -36,7 +36,7 @@ class SessionApi {
     String shipmentId,
   ) async {
     final url = Uri.parse(
-      "$baseUrl/bookings/sessions/get_session_by_shipment/$shipmentId/",
+      "$baseUrl/bookings/sessions/client/get_session_by_shipment/$shipmentId/",
     );
 
     try {

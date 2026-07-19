@@ -138,12 +138,10 @@ class _ServiceProviderDetailsScreenState
         body: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [ Kolors.kPrimary,
-                  Kolors.kPrimary,
-                  Kolors.kSecondaryLight], // Deep brand gradient
-                  ),
+          colors: [Kolors.kPrimary, Kolors.kPrimary, Kolors.kWhite],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
           ),
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -163,13 +161,12 @@ Consumer<CostOfServiceController>(
                     }
 
                     if (controller.error != null) {
-                      return _buildSectionCard(
-                        child: Text(
-                          "Error loading cost: ${controller.error}",
-                          style: const TextStyle(color: Colors.redAccent),
-                        ),
-                      );
-                    }
+  return _buildStateCard(
+    icon: Icons.cloud_off_outlined,
+    title: "Unable to Load Pricing",
+    subtitle: controller.error!,
+  );
+}
                     
 
                     return CostOfServiceCard(
@@ -421,6 +418,46 @@ Consumer<CostOfServiceController>(
       ),
     );
   }
+
+Widget _buildStateCard({
+  required IconData icon,
+  required String title,
+  required String subtitle,
+}) {
+  return _buildSectionCard(
+    child: Padding(
+      padding: const EdgeInsets.symmetric(vertical: 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 56,
+            color: Colors.grey.shade500,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            subtitle,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey.shade600,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
 
   Widget _buildSectionCard({required Widget child}) {
     return Container(

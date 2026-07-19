@@ -45,12 +45,10 @@ class ServicesListWidget extends StatelessWidget {
         return Container(
           decoration: const BoxDecoration(
     gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [ Kolors.kPrimary,
-                  Kolors.kPrimary,
-                  Kolors.kSecondaryLight], // Deep brand gradient
-                  ),
+          colors: [Kolors.kPrimary, Kolors.kPrimary, Kolors.kWhite],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
   ),
           child: ListView.builder(
             itemCount: controller.services.length,

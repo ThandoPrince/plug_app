@@ -56,6 +56,23 @@ Future<void> onSessionCreated({
   );
 }
 
+String _normalizeError(Object e) {
+  final msg = e.toString().toLowerCase();
+
+  if (msg.contains("no internet") ||
+      msg.contains("socketexception") ||
+      msg.contains("unreachable") ||
+      msg.contains("failed host lookup")) {
+    return "No internet connection. Please check your network.";
+  }
+
+  if (msg.contains("timeout")) {
+    return "Request timed out. Try again.";
+  }
+
+  return "Something went wrong. Please try again.";
+}
+
 void setSession(int shipmentId, SessionModel session) {
   _sessions[shipmentId] = session;
   notifyListeners();
@@ -86,7 +103,7 @@ void setSession(int shipmentId, SessionModel session) {
         ..clear()
         ..addAll(data);
     } catch (e) {
-      _error = e.toString();
+      _error = _normalizeError(e);
     } finally {
       _isLoading = false;
       notifyListeners();

@@ -41,4 +41,6 @@ class ClientSessionLocationPingModel {
       createdAt: json['created_at'] is String ? DateTime.tryParse(json['created_at']) : null,
     );
   }
+
+  
 }

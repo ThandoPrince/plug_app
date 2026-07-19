@@ -5,14 +5,14 @@ class CostOfServiceModel {
   final int? id;
 
   final double? basePrice;
-  final bool negotiable;
+ 
   final String? notes;
 
   CostOfServiceModel({
     this.id,
 
     this.basePrice,
-    required this.negotiable,
+  
     this.notes,
   });
 
@@ -23,7 +23,7 @@ class CostOfServiceModel {
       basePrice: json['base_price'] != null
           ? double.tryParse(json['base_price'].toString())
           : null,
-      negotiable: json['negotiable'] ?? true,
+     
       notes: json['notes'],
     );
   }
@@ -33,7 +33,7 @@ class CostOfServiceModel {
       'id': id,
 
       'base_price': basePrice,
-      'negotiable': negotiable,
+    
       'notes': notes,
     };
   }

@@ -422,21 +422,32 @@ Future<void> _editDateOfBirth() async {
       body: Consumer2<ClientProfileController, AddressClientCtrl>(
         builder: (context, profileCtrl, addressCtrl, child) {
           if (profileCtrl.isLoading || addressCtrl.isLoading) {
-            return const Center(
-              child: CircularProgressIndicator(color: Colors.white),
-            );
-          }
-    
-          final profile = profileCtrl.clientProfile;
-    
-          if (profile == null) {
-            return const Center(
-              child: Text(
-                'Profile not found',
-                style: TextStyle(color: Colors.white),
-              ),
-            );
-          }
+  return const Center(
+    child: CircularProgressIndicator(
+      color: Colors.white,
+    ),
+  );
+}
+
+if (profileCtrl.errorMessage != null) {
+  return _buildStateCard(
+    icon: Icons.cloud_off_outlined,
+    title: "Unable to Load Profile",
+    subtitle: profileCtrl.errorMessage!,
+  );
+}
+
+final profile = profileCtrl.clientProfile;
+
+if (profile == null) {
+  return _buildStateCard(
+    icon: Icons.person_off_outlined,
+    title: "Profile Not Found",
+    subtitle: "We couldn't find your profile information.",
+  );
+}
+
+
     
           return SafeArea(
             child: SingleChildScrollView(
@@ -449,6 +460,8 @@ Future<void> _editDateOfBirth() async {
                 children: [
                   _buildProfileHeader(profile),
                   SizedBox(height: 25.h),
+
+                  
     
                   _buildGlassCard(
                     padding: EdgeInsets.symmetric(vertical: 20.h),
@@ -756,6 +769,52 @@ Future<void> _editDateOfBirth() async {
       height: 1,
     );
   }
+
+  Widget _buildStateCard({
+  required IconData icon,
+  required String title,
+  required String subtitle,
+}) {
+  return Center(
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: _buildGlassCard(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 64,
+                color: Kolors.kDark.withOpacity(.7),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Kolors.kDark,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                subtitle,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 15,
+                  color: Kolors.kDark.withOpacity(.8),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
 
   Widget _buildGlassCard({
     required Widget child,

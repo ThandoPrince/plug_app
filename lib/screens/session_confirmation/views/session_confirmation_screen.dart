@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/global_util/services/controler/confirm_session_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/get_client_shipment_ctrl.dart';
+import 'package:flutter_application_1/global_util/services/controler/google_shipment_route_controller.dart';
 import 'package:flutter_application_1/global_util/services/models/order_service_models/session_model.dart';
 import 'package:flutter_application_1/screens/session_confirmation/widget/client_qr_checkin_content.dart';
 import 'package:flutter_application_1/screens/sessions/views/session_screen.dart';
@@ -10,22 +11,29 @@ enum PaymentType { cash, card }
 
 class ClientQrCheckinScreen extends StatefulWidget {
   final int shipmentId;
+  final GoogleShipmentRouteController googleShipmentRouteController;
 
   const ClientQrCheckinScreen({
     super.key,
     required this.shipmentId,
+    required this.googleShipmentRouteController
   });
 
   @override
-  State<ClientQrCheckinScreen> createState() =>
-      _ClientQrCheckinScreenState();
+  State<ClientQrCheckinScreen> createState() => _ClientQrCheckinScreenState();
 }
 
-class _ClientQrCheckinScreenState
-    extends State<ClientQrCheckinScreen> {
+class _ClientQrCheckinScreenState extends State<ClientQrCheckinScreen> {
   PaymentType _selectedPaymentType = PaymentType.cash;
 
   bool _isNavigating = false;
+
+  @override
+void initState() {
+  super.initState();
+
+  widget.googleShipmentRouteController.startRealtime(widget.shipmentId);
+}
 
   Future<void> _handleSession(SessionModel session) async {
     if (!mounted || _isNavigating) return;
@@ -36,7 +44,7 @@ class _ClientQrCheckinScreenState
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (_) => SessionScreen(session: session),
+          builder: (_) => SessionScreen(session: session, googleShipmentRouteController: widget.googleShipmentRouteController,),
         ),
       );
       return;
@@ -56,7 +64,7 @@ class _ClientQrCheckinScreenState
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (_) => SessionScreen(session: session),
+          builder: (_) => SessionScreen(session: session, googleShipmentRouteController: widget.googleShipmentRouteController,),
         ),
       );
     } else {
@@ -71,8 +79,7 @@ class _ClientQrCheckinScreenState
 
     final shipmentController = context.read<ShipmentController>();
 
-    final session =
-        shipmentController.sessionForShipment(widget.shipmentId);
+    final session = shipmentController.sessionForShipment(widget.shipmentId);
 
     if (session != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -86,7 +93,6 @@ class _ClientQrCheckinScreenState
     return Selector<ShipmentController, SessionModel?>(
       selector: (_, controller) =>
           controller.sessionForShipment(widget.shipmentId),
-
       builder: (context, session, child) {
         if (session != null) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -95,8 +101,8 @@ class _ClientQrCheckinScreenState
         }
 
         return ChangeNotifierProvider(
-          create: (_) => ClientCheckinController()
-            ..loadCheckinToken(widget.shipmentId),
+          create: (_) =>
+              ClientCheckinController()..loadCheckinToken(widget.shipmentId),
           child: ClientQrCheckinContent(
             selectedPaymentType: _selectedPaymentType,
             onPaymentTypeChanged: _onPaymentTypeChanged,
@@ -120,6 +126,8 @@ class _PaymentProcessingOverlayScreenState
   @override
   void initState() {
     super.initState();
+    
+    
     _simulateProcessing();
   }
 

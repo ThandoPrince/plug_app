@@ -6,9 +6,14 @@ import 'package:flutter_application_1/global_util/services/api_client.dart';
 import 'package:flutter_application_1/screens/splash/providers.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+
+  FlutterNativeSplash.preserve(
+    widgetsBinding: widgetsBinding,
+  );
 
   String initialRoute = '/login';
 
@@ -19,16 +24,9 @@ Future<void> main() async {
     initialRoute = '/login';
   }
 
-//   ApiClient.instance.setSessionExpiredHandler(() {
-//   navigatorKey.currentState?.pushNamedAndRemoveUntil(
-//     '/login',
-//     (route) => false,
-//   );
-// });
-
-ApiClient.instance.setSessionExpiredHandler(() {
-  router.go('/login');
-});
+  ApiClient.instance.setSessionExpiredHandler(() {
+    router.go('/login');
+  });
 
   runApp(
     MultiProvider(
@@ -36,6 +34,11 @@ ApiClient.instance.setSessionExpiredHandler(() {
       child: MyApp(initialRoute: initialRoute),
     ),
   );
+
+  // Remove the native splash after the first frame is rendered.
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    FlutterNativeSplash.remove();
+  });
 }
 
 class MyApp extends StatelessWidget {

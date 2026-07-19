@@ -99,14 +99,7 @@ class _CostOfServiceCardState extends State<CostOfServiceCard> {
               ],
             ),
             const SizedBox(height: 12),
-            Row(
-              children: [
-                _buildBadge(
-                  cost.negotiable ? "Negotiable" : "Fixed Price",
-                  cost.negotiable ? Colors.green : Colors.blueGrey,
-                ),
-              ],
-            ),
+            
             if (cost.notes != null && cost.notes!.isNotEmpty) ...[
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 10),

@@ -22,7 +22,7 @@ class RatingController extends ChangeNotifier {
   /// Submit rating to API
   Future<bool> submitRating({
     required int sessionId,
-    required String clientEmail,
+   
   }) async {
     if (rating == 0) return false;
 
@@ -31,7 +31,7 @@ class RatingController extends ChangeNotifier {
 
     final success = await RatingApiHelper.submitRating(
       sessionId: sessionId,
-      clientEmail: clientEmail,
+     
       rating: rating,
       comment: comment,
     );

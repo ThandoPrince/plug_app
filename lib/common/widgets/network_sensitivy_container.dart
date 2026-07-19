@@ -14,18 +14,27 @@ class SensitiveContainer extends StatelessWidget {
   Widget build(BuildContext context) {
     return ConnectivityBuilder(
       builder: (context, isConnected, status) {
-        final bool connected = isConnected ?? true;
+        final connected = isConnected ?? true;
 
         return Stack(
           children: [
+            // 1. Main UI
             child,
+
+            // 2. HARD BLOCKER (prevents all interaction)
+            if (!connected)
+              const Positioned.fill(
+                child: _InputBlocker(),
+              ),
+
+            // 3. Status banner (UI feedback)
             if (!connected)
               const Positioned(
                 top: 0,
                 left: 0,
                 right: 0,
                 child: StatusBanner(
-                  message: "You are offline. Features may be limited.",
+                  message: "You are offline. Interaction is disabled.",
                   icon: Ionicons.wifi_outline,
                   actionLabel: "RETRY",
                 ),
@@ -36,97 +45,63 @@ class SensitiveContainer extends StatelessWidget {
     );
   }
 }
-
 class StatusBanner extends StatelessWidget {
-  final String message;
-  final IconData icon;
-  final String? actionLabel;
-
   const StatusBanner({
     super.key,
     required this.message,
     required this.icon,
-    this.actionLabel,
+    required this.actionLabel,
   });
+
+  final String message;
+  final IconData icon;
+  final String actionLabel;
 
   @override
   Widget build(BuildContext context) {
-    // Dynamically fetch the primary brand color or fallback to lightBlueAccent
-    final themeColor = Theme.of(context).primaryColor == Colors.blue 
-        ? Colors.lightBlueAccent 
-        : Theme.of(context).primaryColor;
-
-    return Container(
-      width: double.infinity,
-      // Ambient decoration with solid background and sharp definition shadow
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Color(0x0D000000),
-            blurRadius: 12,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
+    return Material(
+      color: Colors.red.shade700,
       child: SafeArea(
         bottom: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             children: [
-              // High-visibility status indicator circle
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: themeColor.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: themeColor, size: 18),
-              ),
+              Icon(icon, color: Colors.white),
               const SizedBox(width: 12),
-              
-              // Text payload field
               Expanded(
                 child: Text(
                   message,
-                  style: const TextStyle(
-                    color: Color(0xFF1C1B1F),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: -0.1,
-                  ),
+                  style: const TextStyle(color: Colors.white),
                 ),
               ),
-              
-              // Optional clean text action link
-              if (actionLabel != null) ...[
-                const SizedBox(width: 12),
-                TextButton(
-                  onPressed: () {
-                    // Trigger manual connection diagnostic re-evaluation loop
-                  },
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                  ),
-                  child: Text(
-                    actionLabel!,
-                    style: TextStyle(
-                      color: themeColor,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
+              TextButton(
+                onPressed: () {},
+                child: Text(
+                  actionLabel,
+                  style: const TextStyle(color: Colors.white),
                 ),
-              ],
+              ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+class _InputBlocker extends StatelessWidget {
+  const _InputBlocker();
+
+  @override
+  Widget build(BuildContext context) {
+    return AbsorbPointer(
+      absorbing: true,
+      child: Container(
+        color: Colors.transparent,
+
+        // optional: slight dim to signal locked state
+        child: ColoredBox(
+          color: Colors.black.withOpacity(0.03),
         ),
       ),
     );

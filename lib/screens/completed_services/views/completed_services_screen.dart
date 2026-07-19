@@ -73,12 +73,10 @@ void initState() {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [ Kolors.kPrimary,
-                  Kolors.kPrimary,
-                  Kolors.kSecondaryLight], // Deep brand gradient
-                  ),
+          colors: [Kolors.kPrimary, Kolors.kPrimary, Kolors.kWhite],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         ),
         child: Consumer<ClientRatingsController>(
           builder: (context, controller, child) {

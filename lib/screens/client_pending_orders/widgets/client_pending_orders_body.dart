@@ -9,12 +9,35 @@ import 'package:flutter_application_1/common/utils/kcolors.dart';
 
 class ClientPendingOrdersBody extends StatelessWidget {
   final ClientPendingOrdersController controller;
+  final String selectedStatus;
   
-  const ClientPendingOrdersBody({super.key, required this.controller});
+  const ClientPendingOrdersBody({super.key, required this.controller,required this.selectedStatus,});
 
   @override
 Widget build(BuildContext context) {
+
+
   Widget content;
+  final filteredOrders = selectedStatus == "All"
+    ? controller.pendingOrders
+    : controller.pendingOrders.where((order) {
+        final status = order.status?.toLowerCase() ?? "";
+
+        switch (selectedStatus) {
+          case "Pending":
+            return status.contains("pending");
+
+          case "In-Negotiation":
+            return status.contains("in-negotiation");
+
+          case "Rescheduled":
+            return status.contains("rescheduled")
+                   ;
+
+          default:
+            return true;
+        }
+      }).toList();
 
   if (controller.isLoading) {
     content = const Center(
@@ -26,11 +49,11 @@ Widget build(BuildContext context) {
       title: "Failed to load orders",
       subtitle: controller.errorMessage!,
     );
-  } else if (controller.pendingOrders.isEmpty) {
+  } else if (filteredOrders.isEmpty) {
     content = _buildStateView(
       icon: Icons.assignment_turned_in_outlined,
       title: "No Pending Orders",
-      subtitle: "You have no outstanding requests right now 🎉",
+      subtitle: "You have no outstanding requests right now ",
     );
   } else {
     content = RefreshIndicator(
@@ -38,9 +61,9 @@ Widget build(BuildContext context) {
       onRefresh: () => controller.fetchPendingOrders(forceRefresh: true),
       child: ListView.builder(
         padding: const EdgeInsets.symmetric(vertical: 8.0),
-        itemCount: controller.pendingOrders.length,
+        itemCount: filteredOrders.length,
         itemBuilder: (context, index) {
-          final order = controller.pendingOrders[index];
+          final order = filteredOrders[index];
           return _buildOrderItemCard(context, order);
         },
       ),
@@ -51,12 +74,10 @@ Widget build(BuildContext context) {
     padding: const EdgeInsets.all(12.0),
     decoration: const BoxDecoration(
       gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [ Kolors.kPrimary,
-                  Kolors.kPrimary,
-                  Kolors.kSecondaryLight], // Deep brand gradient
-                  ),
+          colors: [Kolors.kPrimary, Kolors.kPrimary, Kolors.kWhite],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
     ),
     child: content,
   );
@@ -95,7 +116,7 @@ Widget build(BuildContext context) {
             Text(
               subtitle,
               style: TextStyle(
-                color: Colors.white.withOpacity(0.8),
+                color: Colors.grey,
                 fontSize: 14,
               ),
               textAlign: TextAlign.center,

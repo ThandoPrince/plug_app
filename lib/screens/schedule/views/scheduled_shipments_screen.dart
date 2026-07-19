@@ -4,6 +4,7 @@ import 'package:flutter_application_1/common/widgets/flushbar_service.dart';
 
 import 'package:flutter_application_1/global_util/services/controler/cancel_shipment_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/shipment_reshedule_controler.dart';
+import 'package:flutter_application_1/global_util/services/widgets/common_error_state.dart';
 import 'package:provider/provider.dart';
 
 import 'package:flutter_application_1/common/utils/kcolors.dart';
@@ -23,8 +24,7 @@ class _ScheduledShipmentsScreenState extends State<ScheduledShipmentsScreen> {
   
 late ShipmentCancelController cancelCtrl;
 late ShipmentRescheduleController rescheduleCtrl;
-
-
+String _selectedStatus = "All";
 
   bool _showHeader = true;
 
@@ -40,6 +40,16 @@ void initState() {
   });
   
 }
+
+static const List<String> _statuses = [
+  "All",
+  "Pending",
+  "In Transit",
+  "Arrived",
+  "In Session",
+  "Rescheduled",
+  "Delivered"
+];
 
 @override
 void didChangeDependencies() {
@@ -77,12 +87,10 @@ void didChangeDependencies() {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [ Kolors.kPrimary,
-                  Kolors.kPrimary,
-                  Kolors.kSecondaryLight], // Deep brand gradient
-                  ),
+          colors: [Kolors.kPrimary, Kolors.kPrimary, Kolors.kWhite],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         ),
 
 
@@ -95,38 +103,113 @@ void didChangeDependencies() {
             return false;
           },
           child: Column(
-            children: [
-              // ✅ SAFE COLLAPSING HEADER
-              SafeArea(
-                bottom: false,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 220),
-                  curve: Curves.easeOut,
-                  height: _showHeader ? 56 : 0,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
-                    child: const Center(
-                      child: Text(
-                        'My Schedule',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          color: Colors.white,
-                          fontSize: 20,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+  children: [
+    // Header
+    SafeArea(
+      bottom: false,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOut,
+        height: _showHeader ? 56 : 0,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 12,
+          ),
+          child: const Center(
+            child: Text(
+              'My Schedule',
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                color: Colors.white,
+                fontSize: 20,
+                letterSpacing: 1.2,
               ),
+            ),
+          ),
+        ),
+      ),
+    ),
 
-              // ✅ BODY
-              Expanded(
-                child: _buildBody(controller),
+    // Filter Chips
+    SizedBox(
+  height: 48,
+  child: ListView.separated(
+    scrollDirection: Axis.horizontal,
+    padding: const EdgeInsets.symmetric(horizontal: 16),
+    itemCount: _statuses.length,
+    separatorBuilder: (_, __) => const SizedBox(width: 10),
+    itemBuilder: (_, index) {
+      final status = _statuses[index];
+      final selected = _selectedStatus == status;
+
+      return GestureDetector(
+        onTap: () {
+          setState(() {
+            _selectedStatus = status;
+          });
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOut,
+          padding: const EdgeInsets.symmetric(
+            horizontal: 18,
+            vertical: 10,
+          ),
+          decoration: BoxDecoration(
+            color: selected ? Colors.white : Colors.white.withOpacity(.12),
+            borderRadius: BorderRadius.circular(30),
+            border: Border.all(
+              color: selected
+                  ? Colors.white
+                  : Colors.white.withOpacity(.25),
+            ),
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(.08),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
+                : [],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (selected) ...[
+                Icon(
+                  Icons.check_circle,
+                  size: 16,
+                  color: Kolors.kPrimary,
+                ),
+                const SizedBox(width: 6),
+              ],
+              Text(
+                status,
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: selected
+                      ? Kolors.kPrimary
+                      : Colors.white,
+                ),
               ),
             ],
           ),
+        ),
+      );
+    },
+  ),
+),
+
+    const SizedBox(height: 8),
+
+    // Body
+    Expanded(
+      child: _buildBody(controller),
+    ),
+  ],
+),
         ),
       ),
     );
@@ -135,22 +218,34 @@ void didChangeDependencies() {
   // ───────────────────────────── UI PARTS ─────────────────────────────
 
   Widget _buildBody(ShipmentController controller) {
-    if (controller.isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: Colors.white),
-      );
-    }
-
-    if (controller.error != null) {
-      return _buildErrorState(controller.error!);
-    }
-
-    if (controller.shipments.isEmpty) {
-      return _buildEmptyState();
-    }
-
-    return _buildShipmentList(controller);
+  if (controller.isLoading) {
+    return const Center(
+      child: CircularProgressIndicator(color: Colors.white),
+    );
   }
+
+  if (controller.error != null) {
+    return CommonErrorState(
+  onRefresh: _onRefresh,
+  title: "Unable to load shipments",
+  message: "Pull down to try again.",
+  icon: Icons.local_shipping_outlined,
+);
+  }
+
+  final filteredShipments = _selectedStatus == "All"
+      ? controller.shipments
+      : controller.shipments.where((shipment) {
+          return shipment.shipmentStatus.toLowerCase() ==
+              _selectedStatus.toLowerCase().replaceAll(" ", "_");
+        }).toList();
+
+  if (filteredShipments.isEmpty) {
+    return _buildEmptyState();
+  }
+
+  return _buildShipmentList(controller);
+}
 
   
 
@@ -513,29 +608,41 @@ if (success) {
   // ───────────────────────────── STATES ─────────────────────────────
 
   Widget _buildShipmentList(ShipmentController controller) {
-    return RefreshIndicator(
-      color: Kolors.kPrimary,
-      backgroundColor: Colors.white,
-      onRefresh: _onRefresh,
-      child: ListView.separated(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 10, 16, 30),
-        itemCount: controller.shipments.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 18),
-        itemBuilder: (_, index) {
-          return GestureDetector(
-            onLongPress: () {
-    _showShipmentActions(context, controller.shipments[index].shipmentId);
-  },
-            child: ShipmentScheduleCard(
-              shipmentController: controller,
-              shipment: controller.shipments[index],
-            ),
-          );
-        },
-      ),
-    );
-  }
+  final shipments = _selectedStatus == "All"
+      ? controller.shipments
+      : controller.shipments.where((shipment) {
+          return shipment.shipmentStatus.toLowerCase() ==
+              _selectedStatus.toLowerCase().replaceAll(" ", "_");
+        }).toList();
+
+  return RefreshIndicator(
+    color: Kolors.kPrimary,
+    backgroundColor: Colors.white,
+    onRefresh: _onRefresh,
+    child: ListView.separated(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 30),
+      itemCount: shipments.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 18),
+      itemBuilder: (_, index) {
+        final shipment = shipments[index];
+
+        return GestureDetector(
+          onLongPress: () {
+            _showShipmentActions(
+              context,
+              shipment.shipmentId,
+            );
+          },
+          child: ShipmentScheduleCard(
+            shipmentController: controller,
+            shipment: shipment,
+          ),
+        );
+      },
+    ),
+  );
+}
 
   Widget _buildEmptyState() {
     return RefreshIndicator(
@@ -568,35 +675,7 @@ if (success) {
     );
   }
 
-  Widget _buildErrorState(String error) {
-    return RefreshIndicator(
-      onRefresh: _onRefresh,
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        children: [
-          const SizedBox(height: 120),
-          Center(
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              margin: const EdgeInsets.symmetric(horizontal: 30),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.9),
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Text(
-                error,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.red,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+ 
 }
 class _ActionTile extends StatelessWidget {
   final IconData icon;

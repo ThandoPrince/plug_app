@@ -23,7 +23,11 @@ class SessionDetailsCard extends StatelessWidget {
           const Text("Session Details", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
           const Divider(height: 24),
           _detailItem(Icons.build_circle_outlined, "Job", service),
-          _detailItem(Icons.calendar_month, "Date", session.dateCreated.toString() ?? '-'),
+          _detailItem(
+  Icons.calendar_month,
+  "Date",
+  session.formattedDate,
+),
           _detailItem(Icons.location_on_rounded, "Destination", shipment?.serviceOrdered?.deliveryAddress?.formattedAddress),
           
         ],

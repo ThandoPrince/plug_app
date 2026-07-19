@@ -38,6 +38,12 @@ class _ClientQrCheckinContentState extends State<ClientQrCheckinContent> {
     }
   }
 
+  bool _interactionEnabled(ClientCheckinController controller) {
+  if (controller.token == null) return false;
+
+  return !controller.isExpired;
+}
+
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
@@ -68,12 +74,10 @@ class _ClientQrCheckinContentState extends State<ClientQrCheckinContent> {
                 height: double.infinity,
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [ Kolors.kPrimary,
-                  Kolors.kPrimary,
-                  Kolors.kSecondaryLight], // Deep brand gradient
-                  ),
+          colors: [Kolors.kPrimary, Kolors.kPrimary, Kolors.kWhite],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
               ),
               child: SafeArea(
                 child: _buildContent(context, controller),
@@ -116,6 +120,33 @@ class _ClientQrCheckinContentState extends State<ClientQrCheckinContent> {
       child: Column(
         children: [
           const SizedBox(height: 20),
+
+      if (!_interactionEnabled(controller))
+        Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(bottom: 20),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.red.shade50,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.red.shade200),
+          ),
+          child: const Row(
+            children: [
+              Icon(Icons.lock_outline, color: Colors.red),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  "This check-in session has expired. Please go back and refresh for a new Token.",
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
           Container(
             decoration: BoxDecoration(
               color: Colors.white,
@@ -168,7 +199,7 @@ class _ClientQrCheckinContentState extends State<ClientQrCheckinContent> {
                         label: "Amount Due",
                         value: "R ${displayedPrice.toStringAsFixed(2)}",
                         icon: Icons.payments_outlined,
-                        enabled: orderId != null,
+                        enabled: orderId != null && _interactionEnabled(controller),
                         onEdit: orderId == null
                             ? null
                             : () => _editFinalPrice(
@@ -178,10 +209,16 @@ class _ClientQrCheckinContentState extends State<ClientQrCheckinContent> {
                                 ),
                       ),
                       const SizedBox(height: 16),
-                      _PaymentTypeSelector(
-                        selectedPaymentType: widget.selectedPaymentType,
-                        onChanged: widget.onPaymentTypeChanged,
-                      ),
+                      AbsorbPointer(
+  absorbing: !_interactionEnabled(controller),
+  child: Opacity(
+    opacity: _interactionEnabled(controller) ? 1.0 : 0.45,
+    child: _PaymentTypeSelector(
+      selectedPaymentType: widget.selectedPaymentType,
+      onChanged: widget.onPaymentTypeChanged,
+    ),
+  ),
+),
                       const SizedBox(height: 16),
                       DetailRow(
                         label: "Payment Type",
@@ -198,43 +235,37 @@ class _ClientQrCheckinContentState extends State<ClientQrCheckinContent> {
                       ),
                       const SizedBox(height: 12),
                       Consumer<PatchOrderFinalPriceController>(
-                        builder: (context, patchCtrl, _) {
-                          if (patchCtrl.isLoading) {
-                            return const Padding(
-                              padding: EdgeInsets.only(top: 8),
-                              child: LinearProgressIndicator(),
-                            );
-                          }
+  builder: (context, patchCtrl, _) {
+    if (patchCtrl.isLoading) {
+      return const Padding(
+        padding: EdgeInsets.only(top: 8),
+        child: LinearProgressIndicator(),
+      );
+    }
 
-                          if (patchCtrl.error != null) {
-                            return Padding(
-                              padding: const EdgeInsets.only(top: 8),
-                              child: Text(
-                                patchCtrl.error!,
-                                style: const TextStyle(
-                                  color: Colors.red,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            );
-                          }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!context.mounted) return;
 
-                          if (patchCtrl.successMessage != null) {
-                            return Padding(
-                              padding: const EdgeInsets.only(top: 8),
-                              child: Text(
-                                patchCtrl.successMessage!,
-                                style: const TextStyle(
-                                  color: Colors.green,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            );
-                          }
+      if (patchCtrl.error != null) {
+        FlushbarHelper.createError(
+          message: patchCtrl.error!,
+          duration: const Duration(seconds: 3),
+        ).show(context);
 
-                          return const SizedBox.shrink();
-                        },
-                      ),
+        patchCtrl.clearState();
+      } else if (patchCtrl.successMessage != null) {
+        FlushbarHelper.createSuccess(
+          message: patchCtrl.successMessage!,
+          duration: const Duration(seconds: 3),
+        ).show(context);
+
+        patchCtrl.clearState();
+      }
+    });
+
+    return const SizedBox.shrink();
+  },
+),
                     ],
                   ),
                 ),
@@ -251,6 +282,19 @@ class _ClientQrCheckinContentState extends State<ClientQrCheckinContent> {
     required int orderId,
     required double currentPrice,
   }) async {
+
+    if (!mounted) return;
+
+  final checkinController = context.read<ClientCheckinController>();
+
+  if (checkinController.isExpired) {
+    FlushbarHelper.createError(
+      message: "This QR code has expired. Please go back and refresh.",
+    ).show(context);
+    return;
+  }
+
+ 
     final patchController = context.read<PatchOrderFinalPriceController>();
 
     final newPrice = await showDialog<double>(
@@ -400,11 +444,14 @@ class _EditFinalPriceDialog extends StatefulWidget {
 class _EditFinalPriceDialogState extends State<_EditFinalPriceDialog> {
   late final TextEditingController _textController;
 
+  
+
   @override
 void initState() {
   super.initState();
 
   _textController = TextEditingController(
+    
     text: widget.initialPrice.toStringAsFixed(2),
   );
 
@@ -676,11 +723,14 @@ class _EditablePriceRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            Icon(
-              Icons.edit_outlined,
-              size: 18,
-              color: enabled ? Kolors.kPrimary : Colors.grey,
-            ),
+            Opacity(
+  opacity: enabled ? 1 : 0.4,
+  child: Icon(
+    Icons.edit_outlined,
+    size: 18,
+    color: enabled ? Kolors.kPrimary : Colors.grey,
+  ),
+),
           ],
         ),
       ),

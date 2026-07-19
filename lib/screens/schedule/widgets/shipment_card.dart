@@ -11,20 +11,25 @@ import 'package:flutter_application_1/screens/sessions/views/session_screen.dart
 import 'package:flutter_application_1/screens/track_shipment/views/track_service_screen.dart';
 import 'package:provider/provider.dart';
 
-class ShipmentScheduleCard extends StatelessWidget {
+class ShipmentScheduleCard extends StatefulWidget {
   final ShipmentController shipmentController;
 
   final Shipment shipment;
   
   const ShipmentScheduleCard({super.key, required this.shipment, required this.shipmentController});
 
+  @override
+  State<ShipmentScheduleCard> createState() => _ShipmentScheduleCardState();
+}
+
+class _ShipmentScheduleCardState extends State<ShipmentScheduleCard> {
   String _cleanProviderName(String rawName) {
     return rawName.split('-').first.trim();
   }
 
   @override
   Widget build(BuildContext context) {
-    final order = shipment.serviceOrdered;
+    final order = widget.shipment.serviceOrdered;
 
     return Container(
       decoration: BoxDecoration(
@@ -73,7 +78,7 @@ class ShipmentScheduleCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                StatusChip(status: shipment.shipmentStatus),
+                StatusChip(status: widget.shipment.shipmentStatus),
               ],
             ),
 
@@ -83,9 +88,9 @@ class ShipmentScheduleCard extends StatelessWidget {
             ),
 
             // Details
-            _buildDetailRow(Icons.event_note_rounded, shipment.formattedDate, 'Scheduled Date'),
+            _buildDetailRow(Icons.event_note_rounded, widget.shipment.formattedDate, 'Scheduled Date'),
             const SizedBox(height: 12),
-            _buildDetailRow(Icons.access_time_filled_rounded, shipment.formattedTime, 'Arrival Time'),
+            _buildDetailRow(Icons.access_time_filled_rounded, widget.shipment.formattedTime, 'Arrival Time'),
 
             if (order?.providerForService != null) ...[
               const SizedBox(height: 12),
@@ -113,21 +118,24 @@ class ShipmentScheduleCard extends StatelessWidget {
                   ),
                 ),
                 onPressed: () async {
-  final orderStatus = shipment.serviceOrdered?.status ?? '';
-  final shipmentStatus = shipment.shipmentStatus.toLowerCase();
+  final orderStatus = widget.shipment.serviceOrdered?.status ?? '';
+  final shipmentStatus = widget.shipment.shipmentStatus.toLowerCase();
   final session =
-    shipmentController.sessionForShipment(
-      shipment.shipmentId,
+    widget.shipmentController.sessionForShipment(
+      widget.shipment.shipmentId,
     );
-
+final routeController = GoogleShipmentRouteController(
+  shipment: widget.shipment,
+  shipmentController: widget.shipmentController,
+);
   /// 🚀 1. IN TRANSIT or ARRIVED → TRACK ROUTE
   if (shipmentStatus == 'in_transit' || shipmentStatus == 'arrived' || shipmentStatus == 'rescheduled') {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => ChangeNotifierProvider(
-          create: (_) => GoogleShipmentRouteController(shipment: shipment, shipmentController: shipmentController),
-          child: TrackServiceScreen(shipment: shipment),
+          create: (_) => GoogleShipmentRouteController(shipment: widget.shipment, shipmentController: widget.shipmentController),
+          child: TrackServiceScreen(shipment: widget.shipment, googleShipmentRouteController: routeController,),
         ),
       ),
     );
@@ -140,35 +148,48 @@ class ShipmentScheduleCard extends StatelessWidget {
       context,
       MaterialPageRoute(
         builder: (_) =>
-            ClientQrCheckinScreen(shipmentId: shipment.shipmentId),
+            ChangeNotifierProvider(
+              create: (_) => GoogleShipmentRouteController(shipment: widget.shipment, shipmentController: widget.shipmentController),
+              child: ClientQrCheckinScreen(shipmentId: widget.shipment.shipmentId, googleShipmentRouteController: routeController,)),
       ),
     );
     return;
   }
 
  
-  final sessionController = context.read<SessionByShipmentController>();
-  await sessionController.fetchSession(shipment.shipmentId.toString());
-  if (!context.mounted) return;
 
-  
-  if (session != null && session.sessionStatus == 'in_session') {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => SessionScreen(session: session),
+
+  final sessionController = context.read<SessionByShipmentController>();
+
+await sessionController.fetchSession(
+  widget.shipment.shipmentId.toString(),
+);
+
+if (!context.mounted) return;
+
+final activeSession = sessionController.session;
+
+if (activeSession != null &&
+    activeSession.sessionStatus == 'in_session') {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => SessionScreen(
+        session: activeSession,
+        googleShipmentRouteController: routeController,
       ),
-    );
-    return;
-  }
+    ),
+  );
+  return;
+}
 
   Navigator.push(
     context,
     MaterialPageRoute(
-      builder: (_) => ChangeNotifierProvider(
-        create: (_) => ShipmentRouteController(shipment: shipment),
-        child: TrackServiceScreen(shipment: shipment),
-      ),
+      builder: (_) =>
+       
+         TrackServiceScreen(shipment: widget.shipment, googleShipmentRouteController: routeController,),
+      
     ),
   );
 },
@@ -274,7 +295,9 @@ class StatusChip extends StatelessWidget {
       case 'in_session':
         color = Colors.purple;
         case 'rescheduled':
-        color = Colors.yellow;
+        color = Colors.amber;
+        case 'delivered':
+        color = Colors.blueGrey;
       
         break;
       default:

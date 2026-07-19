@@ -1,4 +1,5 @@
 import 'package:flutter_application_1/global_util/services/models/order_service_models/shipment_model.dart';
+import 'package:intl/intl.dart';
 
 class SessionModel {
   final int? sessionId;
@@ -72,6 +73,13 @@ class SessionModel {
   // ---------------------------------------------------------------------------
   // 🧠 Computed helpers
   // ---------------------------------------------------------------------------
+
+
+  String get formattedDate {
+  if (dateCreated == null) return "-";
+
+  return DateFormat("dd MMM yyyy, HH:mm").format(dateCreated!);
+}
 
   /// Dart Duration object
   Duration get duration => Duration(seconds: durationSeconds);

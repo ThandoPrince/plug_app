@@ -36,13 +36,13 @@ class _LocationScreenState extends State<LocationScreen> {
     final patchController = context.read<PatchDefaultAddressController>();
     
     final addressCtrl = context.read<AddressClientCtrl>();
-    final mapCtrl = context.read<HereMapMarkerController>();
+
     final googleMapCtrl = context.read<GoogleMapMarkerController>();
 
     await patchController.setDefault(addressId);
     addressCtrl.resetCache();
 await addressCtrl.refresh();
-    await mapCtrl.showDefaultAddress();
+ 
     await googleMapCtrl.showDefaultAddress();
     FlushbarService.success(
       context,
@@ -89,12 +89,10 @@ await addressCtrl.refresh();
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [ Kolors.kPrimary,
-                  Kolors.kPrimary,
-                  Kolors.kSecondaryLight], // Deep brand gradient
-                  ),
+          colors: [Kolors.kPrimary, Kolors.kPrimary, Kolors.kWhite],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         ),
         child: SafeArea(
           child: RefreshIndicator(

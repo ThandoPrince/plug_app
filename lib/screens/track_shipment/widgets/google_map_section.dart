@@ -25,39 +25,45 @@ class _GoogleMapSectionState extends State<GoogleMapSection> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final ctrl = widget.routeController;
+  @override
+Widget build(BuildContext context) {
+  return AnimatedBuilder(
+    animation: widget.routeController,
+    builder: (context, _) {
+      final ctrl = widget.routeController;
 
-    return Stack(
-      children: [
-        GoogleMap(
-          onMapCreated: onMapCreated,
+      return Stack(
+        children: [
+          GoogleMap(
+            onMapCreated: onMapCreated,
 
-          initialCameraPosition: const CameraPosition(
-            target: LatLng(-26.2041, 28.0473),
-            zoom: 12,
+            initialCameraPosition: const CameraPosition(
+              target: LatLng(-26.2041, 28.0473),
+              zoom: 12,
+            ),
+
+            myLocationEnabled: true,
+            zoomControlsEnabled: false,
+            myLocationButtonEnabled: false,
+
+            markers: ctrl.markers,
+            polylines: ctrl.polylines,
+
+            onCameraMoveStarted: ctrl.onUserInteraction,
+            onTap: (_) => ctrl.onUserInteraction(),
           ),
 
-          myLocationEnabled: true,
-          zoomControlsEnabled: false,
-          myLocationButtonEnabled: false,
-
-          markers: ctrl.markers,
-          polylines: ctrl.polylines,
-
-          onCameraMoveStarted: ctrl.onUserInteraction,
-          onTap: (_) => ctrl.onUserInteraction(),
-        ),
-
-        Positioned(
-          bottom: 20,
-          right: 20,
-          child: FloatingActionButton(
-            onPressed: ctrl.recenter,
-            child: const Icon(Icons.my_location),
+          Positioned(
+            bottom: 20,
+            right: 20,
+            child: FloatingActionButton(
+              onPressed: ctrl.recenter,
+              child: const Icon(Icons.my_location),
+            ),
           ),
-        ),
-      ],
-    );
-  }
+        ],
+      );
+    },
+  );
+}
 }

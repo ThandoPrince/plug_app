@@ -473,13 +473,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.1"
-  flexible_polyline:
-    dependency: "direct main"
-    description:
-      path: "D:/plug/flexible-polyline-master"
-      relative: false
-    source: path
-    version: "1.0.1"
   flutter:
     dependency: "direct main"
     description: flutter
@@ -598,7 +591,7 @@ packages:
     source: hosted
     version: "3.0.0"
   flutter_native_splash:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: flutter_native_splash
       sha256: "4fb9f4113350d3a80841ce05ebf1976a36de622af7d19aca0ca9a9911c7ff002"
@@ -943,13 +936,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.0"
-  here_sdk:
-    dependency: "direct main"
-    description:
-      path: "D:/plug/here-sdk"
-      relative: false
-    source: path
-    version: "4.25.0"
   hooks:
     dependency: transitive
     description:
@@ -1786,14 +1772,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.11.0"
-  tuple:
-    dependency: transitive
-    description:
-      name: tuple
-      sha256: a97ce2013f240b2f3807bcbaf218765b6f301c3eff91092bcfa23a039e7dd151
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.0.2"
   typed_data:
     dependency: transitive
     description:

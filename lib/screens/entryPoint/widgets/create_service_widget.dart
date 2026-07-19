@@ -34,19 +34,15 @@ class CreateServiceWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     // Watch both controllers to catch data adjustments regardless of the rendering engine
     final googleMapCtrl = context.watch<GoogleMapMarkerController>();
-    final hereMapCtrl = context.watch<HereMapMarkerController>();
+   
     final spByAddrCtrl = context.read<SPByAddressController>();
 
     // Determine engine priority (uses Google Maps data if available, falls back to HERE Maps)
     
     
- final int? activeServiceId = isHuaweiDevice
-    ? hereMapCtrl.selectedServiceId
-    : googleMapCtrl.selectedServiceId;
+ final int? activeServiceId = googleMapCtrl.selectedServiceId;
 
-final List<dynamic> currentVisibleProviders = isHuaweiDevice
-    ? hereMapCtrl.visibleProviders
-    : googleMapCtrl.visibleProviders;
+final List<dynamic> currentVisibleProviders = googleMapCtrl.visibleProviders;
 
     final bool isEnabled = currentVisibleProviders.isNotEmpty;
 
@@ -80,15 +76,11 @@ final List<dynamic> currentVisibleProviders = isHuaweiDevice
           );
 
           /// 🔍 Fetch providers via the active controller signature
-          if (isHuaweiDevice) {
-  await spByAddrCtrl.fetchFromVisibleMarkers(
-    hereMapCtrl,
-  );
-} else {
+          
   await spByAddrCtrl.googlefetchFromVisibleMarkers(
     googleMapCtrl,
   );
-}
+
 
           if (spByAddrCtrl.serviceProviders.isEmpty) {
             Navigator.of(context).pop();

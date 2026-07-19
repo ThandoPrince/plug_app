@@ -301,54 +301,73 @@ class LoginController extends ChangeNotifier {
   }
 
   void _handleBackendErrors(int statusCode, dynamic data) {
+  _clearAllErrors();
+
   if (data is! Map<String, dynamic>) {
     _generalError = "Login failed.";
     notifyListeners();
     return;
   }
 
+  // Handle common non-validation errors first
+  switch (statusCode) {
+    case 400:
+    case 401:
+      if (data['error'] != null) {
+        _generalError = data['error'].toString();
+      }
+      break;
+
+    case 403:
+      _generalError = data['error']?.toString() ?? "Access denied.";
+      break;
+
+    case 404:
+      _generalError = data['error']?.toString() ?? "User not found.";
+      break;
+
+    case 408:
+      _generalError = "Server timeout. Please try again.";
+      break;
+
+    case 503:
+      _generalError = "Unable to connect to the server.";
+      break;
+  }
+
   final errors = data['errors'];
 
   if (errors is Map<String, dynamic>) {
-
-    // -------------------------
-    // Field-specific errors
-    // -------------------------
-    if (errors.containsKey('email')) {
+    if (errors['email'] is List) {
       _emailError = (errors['email'] as List).join('\n');
     }
 
-    if (errors.containsKey('identifier')) {
+    if (errors['identifier'] is List) {
       _emailError = (errors['identifier'] as List).join('\n');
     }
 
-    if (errors.containsKey('password')) {
+    if (errors['password'] is List) {
       _passwordError = (errors['password'] as List).join('\n');
     }
 
-    if (errors.containsKey('non_field_errors')) {
+    if (errors['non_field_errors'] is List) {
       _generalError = (errors['non_field_errors'] as List).join('\n');
     }
 
-    // -------------------------
-    // META handling (NEW)
-    // -------------------------
-    if (errors.containsKey('meta')) {
-      final meta = errors['meta'];
-
-      if (meta is Map<String, dynamic>) {
-        final remainingAttempts = meta['remaining_attempts'];
-
-        if (remainingAttempts != null) {
-          _generalError =
-              "${_generalError ?? 'Invalid credentials.'} "
-              "($remainingAttempts attempts remaining)";
-        }
+    final meta = errors['meta'];
+    if (meta is Map<String, dynamic>) {
+      final remaining = meta['remaining_attempts'];
+      if (remaining != null) {
+        _generalError =
+            "${_generalError ?? 'Invalid credentials.'} ($remaining attempts remaining)";
       }
     }
   }
 
-  _generalError ??= data['message'] ?? data['error'] ?? "Login failed.";
+  _generalError ??=
+      data['message']?.toString() ??
+      data['error']?.toString() ??
+      "Login failed.";
 
   notifyListeners();
 }

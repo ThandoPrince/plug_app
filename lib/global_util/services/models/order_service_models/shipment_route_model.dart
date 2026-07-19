@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:here_sdk/core.dart';
+
 
 class ShipmentRouteModel {
   final int routeId;
@@ -185,4 +185,11 @@ class ShipmentRouteModel {
 
     return points;
   }
+}
+
+class GeoCoordinates {
+  final double lat;
+  final double lng;
+
+  GeoCoordinates(this.lat, this.lng);
 }
