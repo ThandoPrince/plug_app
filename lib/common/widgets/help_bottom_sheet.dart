@@ -5,6 +5,7 @@ import 'package:flutter_application_1/screens/Onboarding/terms_of_use/views/priv
 import 'package:flutter_application_1/screens/Onboarding/terms_of_use/views/terms_of_use_screen.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_vector_icons/flutter_vector_icons.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 Future<dynamic> showHelpCenterBottomSheet(BuildContext context) {
   return showModalBottomSheet<void>(
@@ -98,20 +99,43 @@ Future<dynamic> showHelpCenterBottomSheet(BuildContext context) {
                     Icon(MaterialCommunityIcons.phone_outline,
                         color: Colors.black),
                     SizedBox(width: 10.0),
-                    Text('0719503706',
+                    Text('0763729362',
                         style: TextStyle(fontSize: 16.0, color: Colors.black)),
                   ],
                 ),
                 SizedBox(height: 20.h),
 
                 ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: Kolors.kPrimary,
-                  ),
-                  onPressed: () {},
-                  child: const Text('Visit Full Help Center',style: TextStyle(fontSize: 16.0, color: Colors.black)),
-                ),
+  style: ElevatedButton.styleFrom(
+    backgroundColor: Colors.white,
+    foregroundColor: Kolors.kPrimary,
+  ),
+  onPressed: () async {
+    final Uri url = Uri.parse(
+      'https://plugwebsite.up.railway.app/',
+    );
+
+    if (await canLaunchUrl(url)) {
+      await launchUrl(
+        url,
+        mode: LaunchMode.externalApplication,
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to open the Help Center.'),
+        ),
+      );
+    }
+  },
+  child: const Text(
+    'Visit Full Help Center',
+    style: TextStyle(
+      fontSize: 16.0,
+      color: Colors.black,
+    ),
+  ),
+),
                 const SizedBox(height: 20),
 
 const Text(

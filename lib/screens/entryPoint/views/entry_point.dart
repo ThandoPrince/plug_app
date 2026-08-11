@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:another_flushbar/flushbar_helper.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/widgets/custom_button.dart';
 import 'package:flutter_application_1/const/services/registration/logout_api.dart';
@@ -53,6 +54,15 @@ void initState() {
       context
           .read<ClientProfileController>()
           .fetchClientByEmail(clientId);
+
+          AuthSessionController.instance.setLoggedIn(true);
+
+    if (kDebugMode) {
+      print(
+        "AuthSessionController.isLoggedIn: "
+        "${AuthSessionController.instance.isLoggedIn}",
+      );
+    }
     }
   });
 }

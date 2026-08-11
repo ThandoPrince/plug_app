@@ -57,6 +57,7 @@ dependencies:
   http_certificate_pinning: ^3.0.1
   web_socket_channel: ^3.0.3
   flutter_native_splash: ^2.4.7
+  url_launcher: ^6.3.2
   
 
 
@@ -79,7 +80,7 @@ flutter_launcher_icons:
   min_sdk_android: 21
   
 flutter_native_splash:
-  background_image: assets/icons/splash_background_gradient.jpeg
+  color: "#3EC5FF"
   image: assets/icons/plug_icon.png
 
   android_12:
@@ -102,3 +103,4 @@ flutter:
     - assets/icons/default_marker.png
     - assets/icons/sp_marker.png
     - .env.development 
+    - .env.production

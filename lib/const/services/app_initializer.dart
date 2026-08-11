@@ -64,22 +64,25 @@ class AppInitializer {
 
   // ---------------- ROUTING ----------------
 
-  static String _resolveRoute() {
-    final hasOpenedBefore = Storage().getBool('firstOpen') ?? false;
-    final auth = AuthSessionController.instance;
-    final isLoggedIn = auth.clientId;
 
-    if (!hasOpenedBefore) {
-      Storage().setBool('firstOpen', true);
-      return '/welcome';
-    }
+static String _resolveRoute() {
+  final hasOpenedBefore =
+      Storage().getBool('firstOpen') ?? false;
 
-    if (isLoggedIn == null) {
-      return '/login';
-    }
+  final auth = AuthSessionController.instance;
+  final isLoggedIn = auth.isLoggedIn;
 
-    return '/entryPoint';
+  if (!hasOpenedBefore) {
+    return '/welcome';
   }
+
+  if (!isLoggedIn) {
+    return '/login';
+  }
+
+  return '/entryPoint';
+}
+
 
   static void _registerEventSystem() {
   AppEventRouter.register((event) {

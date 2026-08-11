@@ -39,7 +39,7 @@ void initState() {
   @override
   void dispose() {
     _controller.dispose();
-    _searchController.dispose();
+  
     super.dispose();
   }
 

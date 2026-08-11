@@ -24,12 +24,12 @@ bool _loggedOut = false;
 bool get loggedOut => _loggedOut;
 
   int? get clientId => _clientId;
+  static const _kIsLoggedIn = "auth_is_logged_in";
   String? get accessToken => _accessToken;
   String? get refreshToken => _refreshToken;
-
-  bool get isLoggedIn =>
-      _accessToken?.isNotEmpty == true &&
-      _refreshToken?.isNotEmpty == true;
+bool _isLoggedIn = false;
+  bool get isLoggedIn => _isLoggedIn;
+  
 
   // ======================
   // Keys
@@ -50,6 +50,11 @@ bool get loggedOut => _loggedOut;
 
     _accessToken = await _storage.read(key: _kAccess);
     _refreshToken = await _storage.read(key: _kRefresh);
+    final storedLoggedIn =
+      await _storage.read(key: _kIsLoggedIn);
+
+  _isLoggedIn = storedLoggedIn == 'true';
+  _loggedOut = !_isLoggedIn;
 
     notifyListeners();
   }
@@ -92,6 +97,17 @@ Future<String?> getValidAccessToken() async {
     notifyListeners();
   }
 
+Future<void> setLoggedIn(bool value) async {
+  _isLoggedIn = value;
+  _loggedOut = !value;
+
+  await _storage.write(
+    key: _kIsLoggedIn,
+    value: value.toString(),
+  );
+
+  notifyListeners();
+}
   // ======================
   // Clear session (logout)
   // ======================

@@ -70,22 +70,14 @@ class _SpashScreenState extends State<SpashScreen> {
 
       if (!mounted) return;
 
-      final hasOpenedBefore = Storage().getBool('firstOpen') ?? false;
+  
       final auth = AuthSessionController.instance;
-      final isLoggedIn =
+    
           auth.clientId;
 
       if (!mounted) return;
 
-      if (!hasOpenedBefore) {
-        Storage().setBool('firstOpen', true);
-        if (!mounted) return;
-        context.go('/welcome');
-      } else if (isLoggedIn == null) {
-        context.go('/login');
-      } else {
-        context.go('/entryPoint');
-      }
+     
     } catch (e, st) {
       debugPrint("❌ Splash initialization failed: $e\n$st");
 
