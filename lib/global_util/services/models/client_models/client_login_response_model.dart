@@ -3,6 +3,7 @@ class ClientLoginResponse {
   final String? email;
   final String? accessToken;
   final String? refreshToken;
+  
 
   ClientLoginResponse({
     this.id,

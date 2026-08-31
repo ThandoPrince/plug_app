@@ -51,6 +51,8 @@ double _haversineMeters(LatLng a, LatLng b) {
 
 double _lerp(double a, double b, double t) => a + (b - a) * t;
 
+
+
 // ============================================================
 // Smooth position animator
 // ============================================================
@@ -69,6 +71,7 @@ class _SmoothPositionAnimator {
     this.minDuration = const Duration(milliseconds: 350),
     this.maxDuration = const Duration(milliseconds: 3000),
     this.defaultDuration = const Duration(milliseconds: 900),
+    this.maxStaleDuration = const Duration(seconds: 6),
   });
 
   final void Function(LatLng position) onTick;
@@ -78,12 +81,38 @@ class _SmoothPositionAnimator {
   final Duration maxDuration;
   final Duration defaultDuration;
 
+  /// Safety valve for the jitter filter below. A hard "ignore anything
+  /// under minMovementMeters" rule is fine for a provider that's fully
+  /// stationary, but a provider genuinely creeping forward — crawling
+  /// traffic, someone walking slowly, a delivery navigating on foot inside
+  /// a building — can send several fixes in a row that are each
+  /// individually under the threshold even though real, continuous
+  /// movement is happening. Without this, the dot sits frozen through all
+  /// of those fixes and then suddenly jumps once the cumulative drift
+  /// finally clears 1.5m — which reads as broken tracking, not as
+  /// "filtering noise".
+  ///
+  /// Once this long has passed since the marker last actually moved, the
+  /// next fix is accepted unconditionally, however small. That bounds the
+  /// worst-case "frozen" duration to maxStaleDuration regardless of how
+  /// slowly the provider is moving.
+  final Duration maxStaleDuration;
+
   Timer? _timer;
   LatLng? _from;
   LatLng? _to;
   DateTime? _startTime;
   Duration _duration = const Duration(milliseconds: 900);
+
+  /// Timestamp of the last raw fix received (accepted or filtered) — used
+  /// only to estimate the socket's update cadence so the animation
+  /// duration matches it.
   DateTime? _lastFixTime;
+
+  /// Timestamp of the last fix that actually moved the marker. Distinct
+  /// from `_lastFixTime` — the staleness check above is measured against
+  /// this, not against every raw fix.
+  DateTime? _lastAcceptedTime;
 
   bool get isAnimating => _timer != null;
 
@@ -95,16 +124,25 @@ class _SmoothPositionAnimator {
     LatLng target, {
     required LatLng currentVisualPosition,
   }) {
+    final now = DateTime.now();
     final distance = _haversineMeters(currentVisualPosition, target);
 
+    // Anchor the staleness clock the very first time we're called, so a
+    // run of small movements starting before any acceptance still has
+    // something to be measured against.
+    _lastAcceptedTime ??= now;
+
+    final timeSinceLastMove = now.difference(_lastAcceptedTime!);
+    final isStale = timeSinceLastMove >= maxStaleDuration;
+
     // Filter GPS jitter: real driving/walking movement will clear this
-    // easily; a stationary provider's noisy fixes won't.
-    if (distance < minMovementMeters) {
-      _lastFixTime = DateTime.now();
+    // easily on its own; a stationary provider's noisy fixes won't. But
+    // never let this filter withhold movement indefinitely — see
+    // maxStaleDuration above.
+    if (distance < minMovementMeters && !isStale) {
+      _lastFixTime = now;
       return;
     }
-
-    final now = DateTime.now();
 
     // Animate over roughly the same interval fixes are arriving at, so
     // the motion neither stalls waiting for the next update nor rushes
@@ -113,6 +151,7 @@ class _SmoothPositionAnimator {
         ? defaultDuration
         : now.difference(_lastFixTime!);
     _lastFixTime = now;
+    _lastAcceptedTime = now;
 
     _duration = Duration(
       milliseconds: interval.inMilliseconds.clamp(
@@ -164,11 +203,12 @@ class _SmoothPositionAnimator {
 class GoogleShipmentRouteController extends ChangeNotifier {
   final Shipment shipment;
   final ShipmentController shipmentController;
-bool isInsideGeofence = true;
-double? distanceFromSiteMeters;
-LatLng? geofenceProviderLocation;
+
+  bool isInsideGeofence = true;
+  double? distanceFromSiteMeters;
+  LatLng? geofenceProviderLocation;
   String shipmentStatus;
-ClientSessionLocationPingModel? latestPing;
+  ClientSessionLocationPingModel? latestPing;
   GoogleMapController? _mapController;
 
   GoogleShipmentRouteController({
@@ -191,6 +231,17 @@ ClientSessionLocationPingModel? latestPing;
   ShipmentRouteModel? activeRoute;
   bool isLoading = false;
   String? errorMessage;
+
+  /// True once we've successfully loaded (or received via socket) at
+  /// least one route. This — not `isLoading`/`errorMessage` — is the
+  /// signal the UI should use to decide whether it has "real" content to
+  /// show. Both of those flags are transient and can flip for reasons
+  /// unrelated to whether the currently-displayed data is still valid
+  /// (a background refetch, a reconnect, a duplicate socket event), so
+  /// gating full-screen loading/error states on them alone caused the UI
+  /// to flicker back to a blocking screen even after content had already
+  /// loaded successfully once.
+  bool get hasRoute => activeRoute != null;
 
   /// Fingerprint of the last route broadcast we actually processed, used
   /// to cheaply drop exact-duplicate broadcasts (see _handleRoutePayload).
@@ -245,9 +296,30 @@ ClientSessionLocationPingModel? latestPing;
   // INIT MAP
   // -----------------------------
   bool _routeLoaded = false;
+bool _hasFocusedInitially = false;
+  bool _isInitializing = true;
+bool get isInitializing => _isInitializing;
+
+void _markInitialized() {
+  if (_isInitializing) {
+    _isInitializing = false;
+    notifyListeners();
+  }
+}
 
   void setMapController(GoogleMapController controller) {
     _mapController = controller;
+
+    // Kick this off unconditionally and as early as possible — not just
+    // on the HTTP-fetch success path in `loadShipmentRoutes()`. If the
+    // screen opens before the provider has a route yet (empty fetch,
+    // which is a normal state — see `hasRoute`), the icons need to
+    // already be loaded by the time a *socket* event later delivers the
+    // first real route, since `_handleRoutePayload` builds markers
+    // directly and previously had no path to these icons at all in that
+    // case, silently falling back to `BitmapDescriptor.defaultMarker`.
+    // `_loadMarkerIcons` is safe to call more than once (`??=` inside).
+    unawaited(_loadMarkerIcons());
 
     if (_routeLoaded) return;
 
@@ -255,36 +327,47 @@ ClientSessionLocationPingModel? latestPing;
     loadShipmentRoutes();
   }
 
+  Future<void> _focusInitialCameraIfNeeded(LatLng position) async {
+  if (_hasFocusedInitially || _disposed) return;
+  _hasFocusedInitially = true;
+
+  await Future.delayed(const Duration(milliseconds:400 ));
+  if (_disposed) return;
+
+  await _flyTo(position);
+}
+
+  // -----------------------------
+  // ELAPSED TIME
+  // -----------------------------
+  Timer? _elapsedTimer;
+  Duration _elapsed = Duration.zero;
+
+  String get elapsedTimeFormatted => _formatDuration(_elapsed);
+
+  void startElapsedTimer(DateTime startTime) {
+    _elapsedTimer?.cancel();
+
+    _elapsedTimer = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) {
+        _elapsed = DateTime.now().difference(startTime);
+        notifyListeners();
+      },
+    );
+  }
+
+  String _formatDuration(Duration d) {
+    final h = d.inHours.toString().padLeft(2, '0');
+    final m = (d.inMinutes % 60).toString().padLeft(2, '0');
+    final s = (d.inSeconds % 60).toString().padLeft(2, '0');
+
+    return "$h:$m:$s";
+  }
+
   // -----------------------------
   // LOAD INITIAL ROUTE (HTTP fallback once)
   // -----------------------------
-
-
-  Timer? _elapsedTimer;
-Duration _elapsed = Duration.zero;
-
-String get elapsedTimeFormatted => _formatDuration(_elapsed);
-
-void startElapsedTimer(DateTime startTime) {
-  _elapsedTimer?.cancel();
-
-  _elapsedTimer = Timer.periodic(
-    const Duration(seconds: 1),
-    (_) {
-      _elapsed = DateTime.now().difference(startTime);
-      notifyListeners();
-    },
-  );
-}
-
-String _formatDuration(Duration d) {
-  final h = d.inHours.toString().padLeft(2, '0');
-  final m = (d.inMinutes % 60).toString().padLeft(2, '0');
-  final s = (d.inSeconds % 60).toString().padLeft(2, '0');
-
-  return "$h:$m:$s";
-}
-
   Future<void> loadShipmentRoutes() async {
     if (_mapController == null || shipment.shipmentId == 0) return;
 
@@ -296,15 +379,25 @@ String _formatDuration(Duration d) {
       if (_disposed) return;
 
       if (routes.isEmpty) {
-        _setError("No route found");
+        // NOT an error: the provider simply hasn't started a route yet
+        // (or the backend hasn't created one). Leave `activeRoute` null
+        // and `errorMessage` null so the UI renders the real content
+        // with an empty map — a later `route_updated` /
+        // `shipment_route_updated` socket event will populate things
+        // once the provider actually starts moving. Previously this set
+        // `errorMessage = "No route found"`, which incorrectly triggered
+        // the full-screen "Unable to load tracking" state for what is
+        // just a normal pending state.
+        _setError(null);
         return;
       }
 
       activeRoute = routes.last;
       if (_disposed) return;
 
-      final points =
-          activeRoute!.decodedPolyline.map((p) => LatLng(p.lat, p.lng)).toList();
+      final points = activeRoute!.decodedPolyline
+          .map((p) => LatLng(p.lat, p.lng))
+          .toList();
       if (_disposed) return;
 
       if (points.isEmpty) return;
@@ -328,6 +421,7 @@ String _formatDuration(Duration d) {
 
       _setInitialMarkers(provider: provider, client: client);
       _updateTrimmedPolyline(provider);
+      await _focusInitialCameraIfNeeded(provider);
 
       // One-shot animated fly-in feels right for the first load; the
       // continuous tracking below uses a different technique (see
@@ -345,6 +439,7 @@ String _formatDuration(Duration d) {
       _setError(e.toString());
     } finally {
       _setLoading(false);
+      _markInitialized();
     }
   }
 
@@ -364,25 +459,24 @@ String _formatDuration(Duration d) {
   // WEBSOCKET START
   // -----------------------------
   void startRealtime(int shipmentId) {
-  if (_connected || _hasStarted) return;
+    if (_connected || _hasStarted) return;
 
-  _hasStarted = true;
+    _hasStarted = true;
 
-  _socket.connect(
-    shipmentId: shipmentId,
-    onConnected: () {
-      _connected = true;
-      notifyListeners();
-    },
-    onDisconnected: () {
-      _connected = false;
-      _hasStarted = false;
-      notifyListeners();
-    },
-    onEvent: _handleSocketEvent,
-  );
-}
-  
+    _socket.connect(
+      shipmentId: shipmentId,
+      onConnected: () {
+        _connected = true;
+        notifyListeners();
+      },
+      onDisconnected: () {
+        _connected = false;
+        _hasStarted = false;
+        notifyListeners();
+      },
+      onEvent: _handleSocketEvent,
+    );
+  }
 
   void disconnect() {
     _socket.disconnect();
@@ -394,22 +488,19 @@ String _formatDuration(Duration d) {
     notifyListeners();
   }
 
-
-
-
   void setInitialPing(ClientSessionLocationPingModel? ping) {
-  latestPing = ping;
+    latestPing = ping;
 
-  isInsideGeofence = ping?.insideGeofence ?? true;
-  distanceFromSiteMeters = ping?.distanceFromSiteMeters;
+    isInsideGeofence = ping?.insideGeofence ?? true;
+    distanceFromSiteMeters = ping?.distanceFromSiteMeters;
 
-  geofenceProviderLocation =
-      ping?.latitude != null && ping?.longitude != null
-          ? LatLng(ping!.latitude!, ping.longitude!)
-          : null;
+    geofenceProviderLocation =
+        ping?.latitude != null && ping?.longitude != null
+            ? LatLng(ping!.latitude!, ping.longitude!)
+            : null;
 
-  notifyListeners();
-}
+    notifyListeners();
+  }
 
   // -----------------------------
   // SOCKET EVENTS
@@ -421,26 +512,29 @@ String _formatDuration(Duration d) {
 
     switch (event["type"]) {
       case "route_updated":
-        _handleRoutePayload(event["data"]);
+        if (kDebugMode) {
+          print("📍 ROUTE UPDATED DATA: ${event["data"]}");
+        }
+        await _handleRoutePayload(event["data"]);
         break;
 
       case "shipment_route_updated":
-        _handleRoutePayload(event["data"]);
+        await _handleRoutePayload(event["data"]);
         break;
 
       case "shipment_status_update":
-  final newStatus = event["status"];
+        final newStatus = event["status"];
 
-  if (newStatus != null && shipmentStatus != newStatus) {
-    shipmentStatus = newStatus;
-    notifyListeners();
-  }
+        if (newStatus != null && shipmentStatus != newStatus) {
+          shipmentStatus = newStatus;
+          notifyListeners();
+        }
 
-  if (shipmentStatus == "arrived") {
-    shipmentController.fetchShipmentsByClientEmail(forceRefresh: true);
-  }
+        if (shipmentStatus == "arrived") {
+          shipmentController.fetchShipmentsByClientEmail(forceRefresh: true);
+        }
 
-  break;
+        break;
 
       case "session_created":
         await shipmentController.onSessionCreated(
@@ -459,31 +553,30 @@ String _formatDuration(Duration d) {
         notifyListeners();
         break;
 
-case "geofence_ping_updated":
-  debugPrint("PING RECEIVED");
-  debugPrint(event.toString());
-  final data = event["data"];
+      case "geofence_ping_updated":
+        debugPrint("PING RECEIVED");
+        debugPrint(event.toString());
+        final data = event["data"];
 
-  if (data is Map<String, dynamic>) {
-    latestPing = ClientSessionLocationPingModel.fromJson(data);
+        if (data is Map<String, dynamic>) {
+          latestPing = ClientSessionLocationPingModel.fromJson(data);
 
-    isInsideGeofence = latestPing?.insideGeofence ?? true;
-    distanceFromSiteMeters = latestPing?.distanceFromSiteMeters;
+          isInsideGeofence = latestPing?.insideGeofence ?? true;
+          distanceFromSiteMeters = latestPing?.distanceFromSiteMeters;
 
-    geofenceProviderLocation =
-        latestPing?.latitude != null &&
-                latestPing?.longitude != null
-            ? LatLng(
-                latestPing!.latitude!,
-                latestPing!.longitude!,
-              )
-            : null;
-            debugPrint("Updated provider location: $geofenceProviderLocation");
+          geofenceProviderLocation =
+              latestPing?.latitude != null && latestPing?.longitude != null
+                  ? LatLng(
+                      latestPing!.latitude!,
+                      latestPing!.longitude!,
+                    )
+                  : null;
+          debugPrint("Updated provider location: $geofenceProviderLocation");
 
-    notifyListeners();
-  }
+          notifyListeners();
+        }
 
-  break;
+        break;
       case "error":
         errorMessage = event["message"] ?? "Route update failed";
         notifyListeners();
@@ -491,7 +584,7 @@ case "geofence_ping_updated":
     }
   }
 
-  void _handleRoutePayload(dynamic json) {
+  Future<void> _handleRoutePayload(dynamic json) async {
     try {
       if (json is! Map) {
         if (kDebugMode) print("Route payload wasn't a JSON object, ignoring.");
@@ -567,6 +660,15 @@ case "geofence_ping_updated":
           ? LatLng(destLat, destLng)
           : points.last;
 
+      // Guarantees real icons even if this is the very first route this
+      // controller has ever seen (e.g. status just flipped to
+      // "in_transit" while the client was already sitting on this
+      // screen with no route loaded yet — see setMapController). A
+      // no-op if they're already loaded, since _loadMarkerIcons caches
+      // via `??=`.
+      await _loadMarkerIcons();
+      if (_disposed) return;
+
       _updateClientMarker(client);
 
       // Route redraw is instant (the line itself), but the provider dot
@@ -582,7 +684,9 @@ case "geofence_ping_updated":
       if (kDebugMode) {
         print("========== ROUTE UPDATE ==========");
         print("Points       : ${points.length}");
-        print("Live fix     : ${providerFix.latitude}, ${providerFix.longitude}");
+        print(
+          "Live fix     : ${providerFix.latitude}, ${providerFix.longitude}",
+        );
         print("Visual pos   : $_visualProviderPosition");
         print("==================================");
       }
@@ -595,6 +699,13 @@ case "geofence_ping_updated":
         print(s);
       }
     }
+    finally {
+    // A socket payload landing before loadShipmentRoutes() has even
+    // fired (e.g. HTTP still in flight, or setMapController() hasn't
+    // run yet) is itself proof we've resolved *something* real — no
+    // need to wait for the HTTP path to also finish.
+    _markInitialized();
+  }
   }
 
   double? _asDouble(dynamic value) {
@@ -608,15 +719,17 @@ case "geofence_ping_updated":
   // -----------------------------
 
   void _updateProviderPosition(LatLng target) {
-    final current = _visualProviderPosition ?? target;
+  final current = _visualProviderPosition ?? target;
+  final isFirstFix = _visualProviderPosition == null;
 
-    _providerAnimator.animateTo(target, currentVisualPosition: current);
+  _providerAnimator.animateTo(target, currentVisualPosition: current);
 
-    if (_visualProviderPosition == null) {
-      // No prior fix to animate from — place it immediately.
-      _onProviderTick(target);
-    }
+  if (isFirstFix) {
+    // No prior fix to animate from — place it immediately.
+    _onProviderTick(target);
+    unawaited(_focusInitialCameraIfNeeded(target));
   }
+}
 
   /// Called on every animation frame (~30fps) while interpolating between
   /// the provider's last two known fixes, and once immediately for the
@@ -626,9 +739,6 @@ case "geofence_ping_updated":
 
     _updateProviderMarker(position);
     _updateTrimmedPolyline(position);
-
-    debugPrint("Markers: ${_markers.length}");
-debugPrint("Polylines: ${_polylines.length}");
 
     // MrD-style tracking: the camera follows on every single frame of
     // provider movement, unconditionally. There is no follow flag to
@@ -837,8 +947,8 @@ debugPrint("Polylines: ${_polylines.length}");
   ///    route (e.g. where the path loops back near itself).
   int _findNearestPointIndex(LatLng from) {
     const backtrackWindow = 5;
-    final start =
-        (_lastProjectedIndex - backtrackWindow).clamp(0, _routeGeometry.length - 1);
+    final start = (_lastProjectedIndex - backtrackWindow)
+        .clamp(0, _routeGeometry.length - 1);
 
     var bestIndex = start;
     var bestDistance = _haversineMeters(from, _routeGeometry[start]);
@@ -905,7 +1015,7 @@ debugPrint("Polylines: ${_polylines.length}");
   @override
   void dispose() {
     _disposed = true;
- _elapsedTimer?.cancel();
+    _elapsedTimer?.cancel();
     disconnect();
     _providerAnimator.dispose();
     _mapController = null;

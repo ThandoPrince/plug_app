@@ -17,7 +17,6 @@ class ServiceProviderDetailsScreen extends StatefulWidget {
 
   const ServiceProviderDetailsScreen({
     super.key,
-    
     required this.id,
     required this.serviceId,
   });
@@ -35,6 +34,10 @@ class _ServiceProviderDetailsScreenState
 
   ServiceProviderModel? loadedProvider;
 
+  // Single source of truth for "is the screen ready to show real content".
+  // This is what stops the empty/blank flash on first frame.
+  bool _isInitialLoading = true;
+
   @override
   void initState() {
     super.initState();
@@ -47,17 +50,17 @@ class _ServiceProviderDetailsScreenState
   }
 
   Future<void> _loadData() async {
+    // Run the rating + provider fetches together instead of sequentially,
+    // and only ONCE each (the duplicate fetchProviderByEmail call was part
+    // of what caused the loading state to flicker).
+    await Future.wait([
+      context.read<SPRatingController>().fetchRatings(widget.id),
+      spController.fetchProviderByEmail(widget.id),
+    ]);
 
-    await context.read<SPRatingController>()
-      .fetchRatings(widget.id);
-    await spController.fetchProviderByEmail(widget.id);
-    await spController.fetchProviderByEmail(widget.id);
+    if (!mounted) return;
 
-    if (mounted) {
-      setState(() {
-        loadedProvider = spController.provider;
-      });
-    }
+    loadedProvider = spController.provider;
 
     await costController.fetchCostByEmailAndService(
       widget.id,
@@ -69,6 +72,12 @@ class _ServiceProviderDetailsScreenState
 
     if (costId != null) {
       await imageController.fetchImagesByCostId(costId);
+    }
+
+    if (mounted) {
+      setState(() {
+        _isInitialLoading = false;
+      });
     }
   }
 
@@ -123,232 +132,188 @@ class _ServiceProviderDetailsScreenState
         ),
       ],
       child: Scaffold(
+        extendBodyBehindAppBar: true,
         appBar: AppBar(
-  backgroundColor: Kolors.kPrimary,
-  elevation: 0,
-  centerTitle: false,
-  iconTheme: const IconThemeData(
-    color: Colors.white, // back button color
-  ),
-  title: const Text(
-    "Service Provider Details",
-    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-  ),
-),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          centerTitle: false,
+          iconTheme: const IconThemeData(color: Colors.white),
+        ),
         body: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-          colors: [Kolors.kPrimary, Kolors.kPrimary, Kolors.kWhite],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+              colors: [Kolors.kPrimary, Kolors.kPrimary, Kolors.kWhite],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
           ),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SPDetailsBody(id: widget.id.toString()),
-Consumer<CostOfServiceController>(
-                  builder: (context, controller, _) {
-                    if (controller.isLoading) {
-                      return const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(24),
-                          child: CircularProgressIndicator(),
-                        ),
-                      );
-                    }
-
-                    if (controller.error != null) {
-  return _buildStateCard(
-    icon: Icons.cloud_off_outlined,
-    title: "Unable to Load Pricing",
-    subtitle: controller.error!,
-  );
-}
-                    
-
-                    return CostOfServiceCard(
-                      costs: controller.costs,
-                      serviceId: widget.serviceId,
-                    );
-                  },
-                ),
-
-                const SizedBox(height: 10),
-
-                Consumer<CostOfServiceImageController>(
-                  builder: (context, controller, _) {
-                    return _buildImageGallerySection(controller);
-                  },
-                ),
-
-                const SizedBox(height: 10),
-
-                Consumer<SPRatingController>(
-                  builder: (context, controller, _) {
-                    if (controller.isLoading) {
-                      return const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 16),
-                        child: Center(
-                          child: CircularProgressIndicator(),
-                        ),
-                      );
-                    }
-
-                    if (controller.ratings.isEmpty) {
-  return _buildSectionCard(
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const _SectionHeader(
-          title: "Ratings & Reviews",
-          subtitle: "Recent customer feedback",
-        ),
-        const SizedBox(height: 12),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-          decoration: BoxDecoration(
-            color: Colors.grey.shade50,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.grey.shade200),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.star_outline_rounded, color: Colors.amber, size: 22),
-              const SizedBox(width: 8),
-              Text(
-                "New • No ratings yet",
-                style: TextStyle(
-                  color: Colors.grey.shade600,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    ),
-  );
-}
-                    return _buildSectionCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const _SectionHeader(
-                            title: "Ratings & Reviews",
-                            subtitle: "Recent customer feedback",
-                          ),
-                          const SizedBox(height: 16),
-                          ...controller.ratings.map(
-                            (rating) => Padding(
-                              padding: const EdgeInsets.only(bottom: 14),
-                              child: Container(
-                                padding: const EdgeInsets.all(14),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey.shade50,
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
+          child: _isInitialLoading
+              ? const _ProfileSkeleton()
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SPDetailsBody(id: widget.id.toString()),
+                      const SizedBox(height: 10),
+                      Consumer<CostOfServiceController>(
+                        builder: (context, controller, _) {
+                          if (controller.error != null) {
+                            return _buildStateCard(
+                              icon: Icons.cloud_off_outlined,
+                              title: "Unable to Load Pricing",
+                              subtitle: controller.error!,
+                            );
+                          }
+                          return CostOfServiceCard(
+                            costs: controller.costs,
+                            serviceId: widget.serviceId,
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      Consumer<CostOfServiceImageController>(
+                        builder: (context, controller, _) {
+                          return _buildImageGallerySection(controller);
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      Consumer<SPRatingController>(
+                        builder: (context, controller, _) {
+                          if (controller.ratings.isEmpty) {
+                            return _buildSectionCard(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const _SectionHeader(
+                                    title: "Ratings & Reviews",
+                                    subtitle: "Recent customer feedback",
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 24, horizontal: 16),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade50,
+                                      borderRadius: BorderRadius.circular(16),
+                                      border:
+                                          Border.all(color: Colors.grey.shade200),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
-                                        const Icon(
-                                          Icons.star,
-                                          color: Colors.amber,
-                                          size: 18,
-                                        ),
-                                        const SizedBox(width: 6),
+                                        const Icon(Icons.star_outline_rounded,
+                                            color: Colors.amber, size: 22),
+                                        const SizedBox(width: 8),
                                         Text(
-                                          "${rating.score ?? 0}/5",
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
+                                          "New • No ratings yet",
+                                          style: TextStyle(
+                                            color: Colors.grey.shade600,
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
                                           ),
                                         ),
                                       ],
                                     ),
-                                    const SizedBox(height: 8),
-                                    if ((rating.serviceName ?? "").isNotEmpty)
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 10,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color:
-                                              Kolors.kPrimary.withOpacity(.08),
-                                          borderRadius:
-                                              BorderRadius.circular(20),
-                                        ),
-                                        child: Text(
-                                          rating.serviceName!,
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ),
-                                    if ((rating.review ?? "")
-                                        .trim()
-                                        .isNotEmpty) ...[
-                                      const SizedBox(height: 10),
-                                      Text(
-                                        rating.review!,
-                                        style: const TextStyle(
-                                          color: Colors.black87,
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
+                            );
+                          }
+                          return _buildSectionCard(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const _SectionHeader(
+                                  title: "Ratings & Reviews",
+                                  subtitle: "Recent customer feedback",
+                                ),
+                                const SizedBox(height: 16),
+                                ...controller.ratings.map(
+                                  (rating) => Padding(
+                                    padding: const EdgeInsets.only(bottom: 14),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(14),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.shade50,
+                                        borderRadius: BorderRadius.circular(14),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              const Icon(Icons.star,
+                                                  color: Colors.amber, size: 18),
+                                              const SizedBox(width: 6),
+                                              Text(
+                                                "${rating.score ?? 0}/5",
+                                                style: const TextStyle(
+                                                    fontWeight: FontWeight.bold),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 8),
+                                          if ((rating.serviceName ?? "")
+                                              .isNotEmpty)
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                  horizontal: 10, vertical: 4),
+                                              decoration: BoxDecoration(
+                                                color: Kolors.kPrimary
+                                                    .withOpacity(.08),
+                                                borderRadius:
+                                                    BorderRadius.circular(20),
+                                              ),
+                                              child: Text(
+                                                rating.serviceName!,
+                                                style: const TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.w600),
+                                              ),
+                                            ),
+                                          if ((rating.review ?? "")
+                                              .trim()
+                                              .isNotEmpty) ...[
+                                            const SizedBox(height: 10),
+                                            Text(
+                                              rating.review!,
+                                              style: const TextStyle(
+                                                  color: Colors.black87),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                        ],
+                          );
+                        },
                       ),
-                    );
-                  },
+                    ],
+                  ),
                 ),
-
-
-
-                
-              ],
-            ),
-          ),
         ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () => _goToBooking(context),
-          tooltip: 'Book Selected Provider',
-          backgroundColor: Kolors.kPrimary,
-          child: const Icon(Icons.add_sharp, color: Colors.white),
-        ),
+        floatingActionButton: _isInitialLoading
+            ? null
+            : FloatingActionButton.extended(
+                onPressed: () => _goToBooking(context),
+                backgroundColor: Kolors.kPrimary,
+                icon: const Icon(Icons.calendar_month, color: Colors.white),
+                label: const Text(
+                  'Book Now',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+              ),
       ),
     );
   }
 
   Widget _buildImageGallerySection(CostOfServiceImageController controller) {
-    if (controller.isLoading) {
-      return _buildSectionCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
-            _SectionHeader(
-              title: "Service Photos",
-              subtitle: "Loading portfolio images",
-            ),
-            SizedBox(height: 16),
-            Center(child: CircularProgressIndicator()),
-          ],
-        ),
-      );
-    }
-
     if (controller.images.isEmpty) {
       return _buildSectionCard(
         child: Column(
@@ -356,16 +321,16 @@ Consumer<CostOfServiceController>(
           children: [
             const _SectionHeader(
               title: "Service Photos",
-              subtitle: "Visual examples of providers work",
+              subtitle: "Visual examples of provider's work",
             ),
             const SizedBox(height: 14),
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(.72),
+                color: Colors.grey.shade50,
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: Colors.white.withOpacity(.7)),
+                border: Border.all(color: Colors.grey.shade200),
               ),
               child: Row(
                 children: const [
@@ -373,11 +338,8 @@ Consumer<CostOfServiceController>(
                   SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      "No service images available yet.",
-                      style: TextStyle(
-                        color: Colors.black87,
-                        fontWeight: FontWeight.w500,
-                      ),
+                      "No service photos yet — this provider hasn't uploaded a portfolio.",
+                      style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w500),
                     ),
                   ),
                 ],
@@ -394,7 +356,7 @@ Consumer<CostOfServiceController>(
         children: [
           const _SectionHeader(
             title: "Service Photos",
-            subtitle: "Visual examples of previous work",
+            subtitle: "See their previous work",
           ),
           const SizedBox(height: 14),
           SizedBox(
@@ -405,10 +367,8 @@ Consumer<CostOfServiceController>(
               separatorBuilder: (_, __) => const SizedBox(width: 14),
               itemBuilder: (context, index) {
                 final item = controller.images[index];
-                final imageUrl = item.resolvedImageUrl;
-
                 return _ServiceImageCard(
-                  imageUrl: imageUrl,
+                  imageUrl: item.resolvedImageUrl,
                   imageIndex: index + 1,
                 );
               },
@@ -419,45 +379,31 @@ Consumer<CostOfServiceController>(
     );
   }
 
-Widget _buildStateCard({
-  required IconData icon,
-  required String title,
-  required String subtitle,
-}) {
-  return _buildSectionCard(
-    child: Padding(
-      padding: const EdgeInsets.symmetric(vertical: 20),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            size: 56,
-            color: Colors.grey.shade500,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            subtitle,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade600,
-            ),
-          ),
-        ],
+  Widget _buildStateCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
+    return _buildSectionCard(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 56, color: Colors.grey.shade500),
+            const SizedBox(height: 16),
+            Text(title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Text(subtitle,
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14, color: Colors.grey.shade600)),
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildSectionCard({required Widget child}) {
     return Container(
@@ -484,32 +430,18 @@ class _SectionHeader extends StatelessWidget {
   final String title;
   final String subtitle;
 
-  const _SectionHeader({
-    required this.title,
-    required this.subtitle,
-  });
+  const _SectionHeader({required this.title, required this.subtitle});
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: const TextStyle(
-            color: Colors.black87,
-            fontSize: 17,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
+        Text(title,
+            style: const TextStyle(
+                color: Colors.black87, fontSize: 17, fontWeight: FontWeight.w700)),
         const SizedBox(height: 4),
-        Text(
-          subtitle,
-          style: const TextStyle(
-            color: Colors.black54,
-            fontSize: 13,
-          ),
-        ),
+        Text(subtitle, style: const TextStyle(color: Colors.black54, fontSize: 13)),
       ],
     );
   }
@@ -519,10 +451,7 @@ class _ServiceImageCard extends StatelessWidget {
   final String? imageUrl;
   final int imageIndex;
 
-  const _ServiceImageCard({
-    required this.imageUrl,
-    required this.imageIndex,
-  });
+  const _ServiceImageCard({required this.imageUrl, required this.imageIndex});
 
   @override
   Widget build(BuildContext context) {
@@ -551,14 +480,10 @@ class _ServiceImageCard extends StatelessWidget {
                       if (progress == null) return child;
                       return Container(
                         color: Colors.white,
-                        child: const Center(
-                          child: CircularProgressIndicator(),
-                        ),
+                        child: const Center(child: CircularProgressIndicator()),
                       );
                     },
-                    errorBuilder: (context, error, stackTrace) {
-                      return _imagePlaceholder();
-                    },
+                    errorBuilder: (context, error, stackTrace) => _imagePlaceholder(),
                   )
                 : _imagePlaceholder(),
           ),
@@ -567,10 +492,7 @@ class _ServiceImageCard extends StatelessWidget {
             right: 12,
             bottom: 12,
             child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 10,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
                 color: Colors.black.withOpacity(.45),
                 borderRadius: BorderRadius.circular(14),
@@ -578,10 +500,7 @@ class _ServiceImageCard extends StatelessWidget {
               child: Text(
                 'Portfolio Image $imageIndex',
                 style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                ),
+                    color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
               ),
             ),
           ),
@@ -594,11 +513,76 @@ class _ServiceImageCard extends StatelessWidget {
     return Container(
       color: Colors.white,
       child: const Center(
-        child: Icon(
-          Icons.image_not_supported_outlined,
-          size: 42,
-          color: Colors.black38,
-        ),
+        child: Icon(Icons.image_not_supported_outlined, size: 42, color: Colors.black38),
+      ),
+    );
+  }
+}
+
+/// Full-page skeleton shown once, until every controller has resolved.
+/// This is what replaces the "blank -> flash -> content" sequence.
+class _ProfileSkeleton extends StatefulWidget {
+  const _ProfileSkeleton();
+
+  @override
+  State<_ProfileSkeleton> createState() => _ProfileSkeletonState();
+}
+
+class _ProfileSkeletonState extends State<_ProfileSkeleton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Widget _box({double? width, double height = 16, double radius = 10}) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) {
+        return Container(
+          width: width,
+          height: height,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.35 + 0.25 * _controller.value),
+            borderRadius: BorderRadius.circular(radius),
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 100, 16, 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          _box(width: 110, height: 110, radius: 55),
+          const SizedBox(height: 20),
+          _box(width: 180, height: 20),
+          const SizedBox(height: 10),
+          _box(width: 100, height: 14),
+          const SizedBox(height: 24),
+          _box(width: double.infinity, height: 140, radius: 20),
+          const SizedBox(height: 16),
+          _box(width: double.infinity, height: 90, radius: 20),
+          const SizedBox(height: 16),
+          _box(width: double.infinity, height: 200, radius: 20),
+        ],
       ),
     );
   }

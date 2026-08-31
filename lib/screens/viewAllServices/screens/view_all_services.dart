@@ -39,7 +39,10 @@ void initState() {
   @override
   void dispose() {
     _controller.dispose();
-  
+    _searchController.clear(); // clear input
+    if (mounted) {
+      context.read<ServiceController>().filterServices('');
+    }
     super.dispose();
   }
 

@@ -2,6 +2,7 @@ import 'package:another_flushbar/flushbar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
 import 'package:flutter_application_1/common/widgets/flushbar_service.dart';
+import 'package:flutter_application_1/common/widgets/shimmers/negotiation_card_skeleton.dart';
 import 'package:flutter_application_1/global_util/services/controler/negotiation_badge_store_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/negotiation_by_OrderID_Ctrl.dart';
 import 'package:flutter_application_1/global_util/services/widgets/app_notification_helper.dart';
@@ -131,10 +132,15 @@ void dispose() {
           child: Consumer<NegotationByOrderIDController>(
             builder: (context, ctrl, _) {
               if (ctrl.isLoading) {
-                return const Center(
-                  child: CircularProgressIndicator(color: Kolors.kWhite),
-                );
-              }
+  return ListView.builder(
+    physics: const NeverScrollableScrollPhysics(),
+    padding: const EdgeInsets.symmetric(vertical: 12),
+    itemCount: 5,
+    itemBuilder: (_, index) {
+      return const NegotiationCardSkeleton();
+    },
+  );
+}
 
               if (ctrl.errorMessage != null && ctrl.errorMessage!.isNotEmpty) {
                 return Center(

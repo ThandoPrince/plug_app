@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/const/services/booking_services/view_client_pending_sevices.dart';
 import 'package:flutter_application_1/global_util/services/models/order_service_models/order_service_model.dart';
@@ -36,10 +37,10 @@ class ClientPendingOrdersController extends ChangeNotifier {
   Future<void> fetchPendingOrders({bool forceRefresh = false}) async {
     if (_disposed) return;
 
-    // 🔒 prevent duplicate calls
+    // Prevent duplicate calls
     if (_isLoading) return;
 
-    // 🔥 cache guard
+    // Cache guard
     if (_hasFetched && !forceRefresh) return;
 
     _isLoading = true;
@@ -55,7 +56,12 @@ class ClientPendingOrdersController extends ChangeNotifier {
       _hasFetched = true;
     } catch (e) {
       if (_disposed) return;
-      _errorMessage = e.toString();
+
+      if (kDebugMode) {
+        print("ClientPendingOrdersController error: $e");
+      }
+
+      _errorMessage = _getSafeErrorMessage(e);
     } finally {
       if (_disposed) return;
 
@@ -64,10 +70,29 @@ class ClientPendingOrdersController extends ChangeNotifier {
     }
   }
 
+  // ───────────────────────────── SAFE ERROR ─────────────────────────────
+
+  String _getSafeErrorMessage(Object error) {
+    final message = error.toString();
+
+    if (message.contains("Server timeout")) {
+      return "Server timeout. Please try again.";
+    }
+
+    if (message.contains("Server unreachable")) {
+      return "Server unreachable. Check your internet connection.";
+    }
+
+    if (message.contains("Unable to process")) {
+      return "Unable to process the server response. Please try again.";
+    }
+
+    return "Unable to load pending orders. Please try again.";
+  }
+
   // ───────────────────────────── REFRESH ─────────────────────────────
 
   Future<void> refreshPendingOrders() async {
-    
     await fetchPendingOrders(forceRefresh: true);
   }
 

@@ -29,8 +29,7 @@ class ClientPendingOrdersApi {
               url,
               headers: {
                 "Content-Type": "application/json",
-                if (token != null)
-                  "Authorization": "Bearer $token",
+                if (token != null) "Authorization": "Bearer $token",
               },
             )
             .timeout(_timeout);
@@ -49,14 +48,19 @@ class ClientPendingOrdersApi {
         return [];
       }
 
+      // Any other unsuccessful response
       if (response.statusCode != 200) {
-        throw Exception(_extractError(response));
+        throw Exception(
+          "Failed to load pending orders. Please try again.",
+        );
       }
 
       final decoded = jsonDecode(response.body);
 
       if (decoded is! List) {
-        throw Exception("Invalid pending orders response.");
+        throw Exception(
+          "Unable to load pending orders. Please try again.",
+        );
       }
 
       return decoded
@@ -71,24 +75,20 @@ class ClientPendingOrdersApi {
       throw Exception(
         "Server unreachable. Check your internet connection.",
       );
-    }
-  }
-
-  // =========================
-  // ERROR PARSER
-  // =========================
-  static String _extractError(http.Response response) {
-    try {
-      final decoded = jsonDecode(response.body);
-
-      if (decoded is Map<String, dynamic>) {
-        return decoded["message"] ??
-            decoded["error"] ??
-            decoded["detail"] ??
-            "Failed to load pending orders.";
+    } on FormatException {
+      throw Exception(
+        "Unable to process the server response. Please try again.",
+      );
+    } catch (e) {
+      // Log the actual exception for developers,
+      // but NEVER expose it to the client.
+      if (kDebugMode) {
+        print("ClientPendingOrdersApi error: $e");
       }
-    } catch (_) {}
 
-    return "Failed to load pending orders (${response.statusCode}).";
+      throw Exception(
+        "Unable to load pending orders. Please try again.",
+      );
+    }
   }
 }

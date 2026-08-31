@@ -29,42 +29,44 @@ class ClientAuthApi {
   // =========================
   // REGISTER CLIENT
   // =========================
-  static Future<ClientRegisterResponse> register({
-    required String email,
-    required String mobile,
-    required String password,
-  }) async {
-    final url = Uri.parse("$baseUrl/clientsDB/client/register/");
+// client_auth_api.dart — register()
+static Future<ClientRegisterResponse> register({
+  required String email,
+  required String mobile,
+  required String password,
+}) async {
+  final url = Uri.parse("$baseUrl/clientsDB/client/register/");
 
-    try {
-      final response = await ApiClient.instance.request((token) async {
-        return await http
-            .post(
-              url,
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: jsonEncode({
-                "email_address": email.toLowerCase(),
-                "mobile_number": mobile,
-                "password": password,
-              }),
-            )
-            .timeout(_timeout);
-      }).timeout(_timeout);
+  try {
+    final response = await ApiClient.instance.request((token) async {
+      return await http
+          .post(
+            url,
+            headers: {"Content-Type": "application/json"},
+            body: jsonEncode({
+              "email_address": email.toLowerCase(),
+              "mobile_number": mobile,
+              "password": password,
+            }),
+          )
+          .timeout(_timeout);
+    }).timeout(_timeout);
 
-      final data = jsonDecode(response.body);
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
 
-      if (response.statusCode == 201) {
-        return ClientRegisterResponse.fromJson(data);
-      }
-
-      throw Exception(data.toString());
-
-    } catch (e) {
-      throw _handleError(e);
+    if (response.statusCode == 201) {
+      return ClientRegisterResponse.fromJson(data);
     }
+
+    // Structured, not stringified — no JSON round-trip needed downstream.
+    throw ApiException(statusCode: response.statusCode, body: data);
+
+  } on ApiException {
+    rethrow; // don't let _handleError swallow this into a generic message
+  } catch (e) {
+    throw _handleError(e);
   }
+}
 
   // =========================
   // UPDATE CLIENT DETAILS (PATCH)
@@ -147,4 +149,19 @@ class ClientAuthApi {
       throw _handleError(e);
     }
   }
+}
+
+// api_exception.dart
+class ApiException implements Exception {
+  final int statusCode;
+  final Map<String, dynamic> body;
+
+  ApiException({required this.statusCode, required this.body});
+
+  /// Top-level message the backend sent, e.g. "A user with this email already exists."
+  String? get message => body['message']?.toString();
+
+  /// Field-level validation errors from DRF serializer.errors, e.g. {"email_address": ["..."]}.
+  Map<String, dynamic>? get fieldErrors =>
+      body['errors'] is Map<String, dynamic> ? body['errors'] as Map<String, dynamic> : null;
 }

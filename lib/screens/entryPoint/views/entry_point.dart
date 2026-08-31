@@ -3,17 +3,23 @@ import 'package:another_flushbar/flushbar_helper.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/widgets/custom_button.dart';
-import 'package:flutter_application_1/const/services/registration/logout_api.dart';
+import 'package:flutter_application_1/global_util/services/controler/address_client_ctrl.dart';
+import 'package:flutter_application_1/global_util/services/controler/client_pending_orders_ctrl.dart';
+
 import 'package:flutter_application_1/global_util/services/controler/client_profile_by_email_ctrl.dart';
+import 'package:flutter_application_1/global_util/services/controler/get_client_shipment_ctrl.dart';
+import 'package:flutter_application_1/global_util/services/controler/google_map_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/logout_controller.dart';
+import 'package:flutter_application_1/global_util/services/controler/service_controller.dart';
+import 'package:flutter_application_1/global_util/services/controler/device_capability_controller.dart';
 
 import 'package:flutter_application_1/screens/completed_services/views/completed_services_screen.dart';
+import 'package:flutter_application_1/screens/entryPoint/controller/tab_lifecycle_controller.dart';
 import 'package:flutter_application_1/screens/home/views/google_home_page.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
 import 'package:flutter_vector_icons/flutter_vector_icons.dart';
-
 import 'package:flutter_application_1/common/utils/kcolors.dart';
 import 'package:flutter_application_1/common/widgets/app_style.dart';
 import 'package:flutter_application_1/global_util/services/controler/auth_session_controller.dart';
@@ -24,7 +30,7 @@ import 'package:flutter_application_1/screens/profile/views/profile_screen.dart'
 import 'package:flutter_application_1/screens/schedule/views/scheduled_shipments_screen.dart';
 
 // Import both map engine pages
-import 'package:flutter_application_1/screens/home/views/home_page.dart'; // HERE Maps
+
 // Google Maps
 
 class EntryPoint extends StatefulWidget {
@@ -38,24 +44,48 @@ class _EntryPointState extends State<EntryPoint> {
   late final PageController _pageController;
   bool _isHmsPresent = false;
   bool _checkingHardware = true;
+  MapServiceType? _mapServiceType;
 
+  @override
+  void initState() {
+    super.initState();
 
- @override
-void initState() {
-  super.initState();
+    _pageController = PageController();
+    _checkHardwarePlatform();
 
-  _pageController = PageController();
-  _checkHardwarePlatform();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _prefetchAllTabData();
+    });
+  }
 
-  WidgetsBinding.instance.addPostFrameCallback((_) {
+  Future<void> _prefetchAllTabData() async {
     final clientId = AuthSessionController.instance.clientId;
+    if (clientId == null) return;
 
-    if (clientId != null) {
-      context
-          .read<ClientProfileController>()
-          .fetchClientByEmail(clientId);
+    AuthSessionController.instance.setLoggedIn(true);
 
-          AuthSessionController.instance.setLoggedIn(true);
+    final profileCtrl = context.read<ClientProfileController>();
+    final mapCtrl = context.read<GoogleMapMarkerController>();
+    final serviceCtrl = context.read<ServiceController>();
+
+    final pendingOrdersCtrl = context.read<ClientPendingOrdersController>();
+    final shipmentCtrl = context.read<ShipmentController>();
+    final tabLifecycle = context.read<TabLifecycleController>();
+    final addressCtrl = context.read<AddressClientCtrl>();
+
+    // Fire all tabs' initial data requests in parallel.
+    await Future.wait([
+      profileCtrl.fetchClientByEmail(clientId),
+      serviceCtrl.fetchServices(),
+      mapCtrl.showDefaultAddress(),
+      pendingOrdersCtrl.fetchPendingOrders(),
+      shipmentCtrl.fetchShipmentsByClientEmail(),
+      addressCtrl.fetchAddresses(),
+    ]);
+
+    // Profile's own didChangeDependencies guard uses this — mark it loaded
+    // now so Profile doesn't fire a second, redundant fetch when opened.
+    tabLifecycle.markLoaded(3);
 
     if (kDebugMode) {
       print(
@@ -63,21 +93,17 @@ void initState() {
         "${AuthSessionController.instance.isLoggedIn}",
       );
     }
-    }
-  });
-}
+  }
 
   /// Evaluates device runtime to detect Huawei Mobile Services availability
   Future<void> _checkHardwarePlatform() async {
     try {
-      // Replace with your preferred HMS check plugin code if available, e.g.:
-      // final int result = await HmsApiAvailability().isHMSAvailable();
-      // _isHmsPresent = (result == 0);
-
-      // Fallback placeholder logic for runtime branching setup
-      _isHmsPresent = false;
+      final deviceController = DeviceCapabilityController.instance;
+      _mapServiceType = await deviceController.checkMapServiceAvailability();
+      _isHmsPresent = _mapServiceType == MapServiceType.huawei;
     } catch (_) {
       _isHmsPresent = false;
+      _mapServiceType = MapServiceType.google; // Default to Google on error
     } finally {
       if (mounted) {
         setState(() => _checkingHardware = false);
@@ -88,22 +114,22 @@ void initState() {
   @override
   void dispose() {
     _pageController.dispose();
-  
+
     super.dispose();
   }
 
   void _goToPage(int index) {
-  if (!_pageController.hasClients) return;
-
-  WidgetsBinding.instance.addPostFrameCallback((_) {
     if (!_pageController.hasClients) return;
 
-    final current = _pageController.page?.round() ?? 0;
-    if (current == index) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_pageController.hasClients) return;
 
-    _pageController.jumpToPage(index);
-  });
-}
+      final current = _pageController.page?.round() ?? 0;
+      if (current == index) return;
+
+      _pageController.jumpToPage(index);
+    });
+  }
 
   void _confirmLogout() async {
     showDialog(
@@ -206,31 +232,31 @@ void initState() {
   }
 
   Future<void> _logout() async {
-  final logoutController = LogoutController();
+    final logoutController = LogoutController();
 
-  try {
-    Provider.of<TabIndexNotifier>(context, listen: false).reset();
+    try {
+      Provider.of<TabIndexNotifier>(context, listen: false).reset();
 
-    await logoutController.logout();
+      await logoutController.logout();
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    // Clear session AFTER API call (or inside API if you prefer)
-    await AuthSessionController.instance.clearSession();
+      // Clear session AFTER API call (or inside API if you prefer)
+      await AuthSessionController.instance.clearSession();
 
-    context.go('/login');
+      context.go('/login');
 
-    debugPrint("Client logged out successfully");
-  } catch (e) {
-    debugPrint("Logout failed: $e");
+      debugPrint("Client logged out successfully");
+    } catch (e) {
+      debugPrint("Logout failed: $e");
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    FlushbarHelper.createError(
-      message: "Logout failed. Please try again.",
-    ).show(context);
+      FlushbarHelper.createError(
+        message: "Logout failed. Please try again.",
+      ).show(context);
+    }
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -286,8 +312,8 @@ void initState() {
                     ? const NeverScrollableScrollPhysics()
                     : const BouncingScrollPhysics(),
                 onPageChanged: (index) {
-  tabNotifier.setIndex(index);
-},
+                  tabNotifier.setIndex(index);
+                },
                 children: pages,
               ),
               bottomNavigationBar: _buildBottomNav(tabNotifier),
@@ -299,158 +325,158 @@ void initState() {
   }
 
   /// Drawer
- Widget _buildDrawer(BuildContext context, TabIndexNotifier tabNotifier) {
-  return Consumer<ClientProfileController>(
-    builder: (context, profileCtrl, _) {
-      final profile = profileCtrl.clientProfile;
+  Widget _buildDrawer(BuildContext context, TabIndexNotifier tabNotifier) {
+    return Consumer<ClientProfileController>(
+      builder: (context, profileCtrl, _) {
+        final profile = profileCtrl.clientProfile;
 
-      return Drawer(
-        backgroundColor: Kolors.kPrimary.withOpacity(0.95),
-        child: Column(
-          children: [
+        return Drawer(
+          backgroundColor: Kolors.kPrimary.withOpacity(0.95),
+          child: Column(
+            children: [
 
-            /// ================= HEADER =================
-            Container(
-              height: 200,
-              child: Stack(
-                children: [
-                  Container(
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-          colors: [Kolors.kPrimary, Kolors.kPrimary, Kolors.kWhite],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+              /// ================= HEADER =================
+              Container(
+                height: 200,
+                child: Stack(
+                  children: [
+                    Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+              colors: [Kolors.kPrimary, Kolors.kPrimary, Kolors.kWhite],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+                      ),
                     ),
-                  ),
 
-                  SafeArea(
-  child: Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-    child: InkWell(
-      onTap: () {
-  Navigator.pop(context);
-  _goToPage(3);
-},
-      child: SizedBox(
-        width: double.infinity,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+                    SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: InkWell(
+          onTap: () {
+            Navigator.pop(context);
+            _goToPage(3);
+          },
+          child: SizedBox(
+            width: double.infinity,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
 
-            CircleAvatar(
-              radius: 35,
-              backgroundColor: Colors.white24,
-              backgroundImage:
-                  (profile?.profilePic?.isNotEmpty ?? false)
-                      ? NetworkImage(profile!.profilePic!)
+                CircleAvatar(
+                  radius: 35,
+                  backgroundColor: Colors.white24,
+                  backgroundImage:
+                      (profile?.profilePic?.isNotEmpty ?? false)
+                          ? NetworkImage(profile!.profilePic!)
+                          : null,
+                  child: (profile?.profilePic?.isEmpty ?? true)
+                      ? const Icon(
+                          Ionicons.person,
+                          color: Colors.white,
+                          size: 35,
+                        )
                       : null,
-              child: (profile?.profilePic?.isEmpty ?? true)
-                  ? const Icon(
-                      Ionicons.person,
-                      color: Colors.white,
-                      size: 35,
-                    )
-                  : null,
+                ),
+
+                const SizedBox(height: 16),
+
+                Text(
+                  profile == null
+                      ? "Loading..."
+                      : "${profile.firstName ?? ''} ${profile.lastName ?? ''}"
+                          .trim(),
+                  style: appStyle(18, Colors.white, FontWeight.bold),
+                  overflow: TextOverflow.ellipsis,
+                ),
+
+                const SizedBox(height: 4),
+
+                Text(
+                  profile?.clientProfile?.emailAddress ?? "No email",
+                  style: appStyle(12, Colors.white70, FontWeight.normal),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
-
-            const SizedBox(height: 16),
-
-            Text(
-              profile == null
-                  ? "Loading..."
-                  : "${profile.firstName ?? ''} ${profile.lastName ?? ''}"
-                      .trim(),
-              style: appStyle(18, Colors.white, FontWeight.bold),
-              overflow: TextOverflow.ellipsis,
-            ),
-
-            const SizedBox(height: 4),
-
-            Text(
-              profile?.clientProfile?.emailAddress ?? "No email",
-              style: appStyle(12, Colors.white70, FontWeight.normal),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
+          ),
         ),
       ),
-    ),
-  ),
-)
-                ],
+    )
+                  ],
+                ),
               ),
-            ),
 
-            /// ================= MENU =================
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                children: [
+              /// ================= MENU =================
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  children: [
 
-                  // _buildDrawerTile(
-                  //   icon: Icons.check_circle_outline,
-                  //   title: 'Completed Services',
-                  //   onTap: () {
-                  //     Navigator.pop(context);
-                  //     Navigator.push(
-                  //       context,
-                  //       MaterialPageRoute(
-                  //         builder: (_) => const ClientRatingsScreen(),
-                  //       ),
-                  //     );
-                  //   },
-                  // ),
+                    // _buildDrawerTile(
+                    //   icon: Icons.check_circle_outline,
+                    //   title: 'Completed Services',
+                    //   onTap: () {
+                    //     Navigator.pop(context);
+                    //     Navigator.push(
+                    //       context,
+                    //       MaterialPageRoute(
+                    //         builder: (_) => const ClientRatingsScreen(),
+                    //       ),
+                    //     );
+                    //   },
+                    // ),
 
-                  const Divider(color: Colors.white24),
+                    const Divider(color: Colors.white24),
 
-                  _buildDrawerTile(
-                    icon: Icons.history_rounded,
-                    title: 'Service History',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => ClientRatingsScreen(),
-                        ),
-                      );
-                    },
-                  ),
+                    _buildDrawerTile(
+                      icon: Icons.history_rounded,
+                      title: 'Service History',
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ClientRatingsScreen(),
+                          ),
+                        );
+                      },
+                    ),
 
-                  const Divider(color: Colors.white24),
+                    const Divider(color: Colors.white24),
 
-                ],
+                  ],
+                ),
               ),
-            ),
 
-            /// ================= FOOTER =================
-            const Divider(color: Colors.white24, height: 1),
+              /// ================= FOOTER =================
+              const Divider(color: Colors.white24, height: 1),
 
-            _buildDrawerTile(
-              icon: Icons.logout_rounded,
-              title: 'Logout',
-              onTap: _confirmLogout,
-              color: Colors.redAccent,
-            ),
-
-            const SizedBox(height: 10),
-
-            const Text(
-              "App Version 1.0.0",
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 12,
+              _buildDrawerTile(
+                icon: Icons.logout_rounded,
+                title: 'Logout',
+                onTap: _confirmLogout,
+                color: Colors.redAccent,
               ),
-            ),
 
-            const SizedBox(height: 20),
-          ],
-        ),
-      );
-    },
-  );
-}
+              const SizedBox(height: 10),
+
+              const Text(
+                "App Version 1.0.0",
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 12,
+                ),
+              ),
+
+              const SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   Widget _buildDrawerTile({
     required IconData icon,
@@ -496,11 +522,11 @@ void initState() {
                 GButton(icon: Ionicons.person_outline, text: 'Profile'),
               ],
               selectedIndex: _pageController.hasClients
-    ? (_pageController.page?.round() ?? 0)
-    : tabNotifier.index,
+      ? (_pageController.page?.round() ?? 0)
+      : tabNotifier.index,
               onTabChange: (index) {
-  _goToPage(index);
-},
+        _goToPage(index);
+      },
             ),
           ),
         ),

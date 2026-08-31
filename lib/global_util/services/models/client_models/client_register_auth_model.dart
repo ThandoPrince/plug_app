@@ -23,15 +23,17 @@ class ClientRegisterData {
   final int id;
   final String email;
   final String mobileNumber;
-  final String accessToken;
-  final String refreshToken;
+  final bool requiresEmailVerification;
+  final String otpRequestId;
+  final String verificationToken;
 
   ClientRegisterData({
     required this.id,
     required this.email,
     required this.mobileNumber,
-    required this.accessToken,
-    required this.refreshToken,
+    required this.requiresEmailVerification,
+    required this.otpRequestId,
+    required this.verificationToken,
   });
 
   factory ClientRegisterData.fromJson(
@@ -40,8 +42,10 @@ class ClientRegisterData {
       id: json["id"],
       email: json["email"],
       mobileNumber: json["mobile_number"],
-      accessToken: json["access_token"],
-      refreshToken: json["refresh_token"],
+      requiresEmailVerification:
+          json["requires_email_verification"] ?? false,
+      otpRequestId: json["otp_request_id"],
+      verificationToken: json["verification_token"],
     );
   }
 }

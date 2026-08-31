@@ -36,6 +36,12 @@ class RequestDetailsCard extends StatelessWidget {
       icon: Icons.receipt_long_rounded,
       primaryTextColor: primaryTextColor,
       children: [
+         _IconDetailRow(
+  icon: Icons.tag,
+  label: "Order ID",
+  value: booking.orderId.toString(),
+  color: secondaryTextColor,
+),
         _IconDetailRow(icon: Icons.work_outline, label: "Service Type", value: booking.serviceRequired?.serviceName ?? "N/A", color: secondaryTextColor),
         _IconDetailRow(icon: Icons.calendar_today_outlined, label: "Requested On", value: _formatDate(booking.requestedDateTime), color: secondaryTextColor),
         _IconDetailRow(icon: Icons.attach_money_rounded, label: "Proposal Price", value: "R ${booking.proposalPrice?.toStringAsFixed(2) ?? "TBD"}", color: proposalColor.withOpacity(0.9)),

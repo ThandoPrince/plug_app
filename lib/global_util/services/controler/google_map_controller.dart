@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 
-import 'package:flutter_application_1/global_util/services/controler/address_client_ctrl.dart';
+
 import 'package:flutter_application_1/global_util/services/controler/auth_session_controller.dart';
 import '../models/sp_live_location_model.dart';
 import '../models/client_models/address_client_model.dart';
@@ -59,22 +59,31 @@ bool _defaultLoaded = false;
   // ----------------------------
   // Map Initialization
   // ----------------------------
-  void onMapCreated(
-      GoogleMapController controller, BuildContext context) async {
-    _mapController = controller;
+
+Future<void> preloadMarkerImages() => _ensureMarkerImagesLoaded();
   
 
-_mapController!.setMapStyle(null);
 
-    await _ensureMarkerImagesLoaded();
-    await showDefaultAddress();
-    await restoreMarkers();
+void onMapCreated(GoogleMapController controller, BuildContext context) async {
+  _mapController = controller;
+  _mapController!.setMapStyle(null);
 
-    // Context execution context hook preserved from original
-    if (context.mounted) {
-      final session = context.read<AuthSessionController>();
-    }
+  // Icons are already loaded (see initState preload) — this is now a no-op
+  // thanks to the ??= guards, but keep it for safety on cold paths.
+  await _ensureMarkerImagesLoaded();
+
+  // Give the native platform view a beat to fully attach before the
+  // first addMarker call — avoids the custom icon silently falling back
+  // to BitmapDescriptor.defaultMarker on first render.
+  await Future.delayed(const Duration(milliseconds: 250));
+
+  await showDefaultAddress();
+  await restoreMarkers();
+
+  if (context.mounted) {
+    final session = context.read<AuthSessionController>();
   }
+}
 
   void focusOnUserOrDefault() {
     if (_mapController == null) return;
@@ -147,41 +156,51 @@ void lockClientAnchor() {
   // ----------------------------
   // Default Address Handler
   // ----------------------------
-  Future<void> showDefaultAddress() async {
-    await defAddCtrl.fetchAddresses();
-    
-
-    final defaultAddr = defAddCtrl.addresses.firstWhere(
-      (a) => a.isDefault == true,
-      orElse: () => defAddCtrl.addresses.isNotEmpty
-          ? defAddCtrl.addresses.first
-          : null as AddressClientModel,
-    );
-
-    final coords = LatLng(
-      defaultAddr.address.latitude ?? fallbackCenter.latitude,
-      defaultAddr.address.longitude ?? fallbackCenter.longitude,
-    );
-
-    _defaultLatLng = coords;
-    const MarkerId defaultMarkerId = MarkerId("default_address");
-
-    final Marker defaultMarker = Marker(
-      markerId: defaultMarkerId,
-      position: coords,
-      icon: _defaultIcon ?? BitmapDescriptor.defaultMarker,
-      anchor: const Offset(0.5, 1.0),
-    );
-
-    _markers[defaultMarkerId] = defaultMarker;
-
-    Future.delayed(const Duration(milliseconds: 300), () {
-      _focusCamera(coords);
-    });
-
+Future<void> showDefaultAddress({bool force = false}) async {
+  if (_defaultLoaded && !force) {
+    // Default address already known from an earlier prefetch (e.g. before
+    // the map widget existed) — skip refetching, but still focus the
+    // camera now that a controller may finally be attached.
+    if (_defaultLatLng != null) {
+      _focusCamera(_defaultLatLng!);
+    }
     notifyListeners();
+    return;
   }
 
+  await defAddCtrl.fetchAddresses();
+
+  final defaultAddr = defAddCtrl.addresses.firstWhere(
+    (a) => a.isDefault == true,
+    orElse: () => defAddCtrl.addresses.isNotEmpty
+        ? defAddCtrl.addresses.first
+        : null as AddressClientModel,
+  );
+
+  final coords = LatLng(
+    defaultAddr.address.latitude ?? fallbackCenter.latitude,
+    defaultAddr.address.longitude ?? fallbackCenter.longitude,
+  );
+
+  _defaultLatLng = coords;
+  const MarkerId defaultMarkerId = MarkerId("default_address");
+
+  final Marker defaultMarker = Marker(
+    markerId: defaultMarkerId,
+    position: coords,
+    icon: _defaultIcon ?? BitmapDescriptor.defaultMarker,
+    anchor: const Offset(0.5, 1.0),
+  );
+
+  _markers[defaultMarkerId] = defaultMarker;
+  _defaultLoaded = true;
+
+  Future.delayed(const Duration(milliseconds: 300), () {
+    _focusCamera(coords);
+  });
+
+  notifyListeners();
+}
   // ----------------------------
   // Service Provider Markers Implementation
   // ----------------------------

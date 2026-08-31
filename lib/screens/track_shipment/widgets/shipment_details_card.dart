@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+
 import 'package:flutter_application_1/global_util/services/models/order_service_models/shipment_model.dart';
+import 'package:flutter_application_1/screens/order_details_/views/order_details_screen.dart';
+import 'package:flutter_application_1/screens/schedule/widgets/shipment_action_dialogs.dart';
 import 'card_decoration.dart';
 
 class ShipmentDetailsCard extends StatelessWidget {
@@ -15,14 +18,101 @@ class ShipmentDetailsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Service Details",
-              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                "Service Details",
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 16,
+                ),
+              ),
+
+              PopupMenuButton<String>(
+                padding: EdgeInsets.zero,
+                icon: const Icon(Icons.more_vert),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                onSelected: (value) {
+                  if (value == 'order_details') {
+                    final orderId = shipment.serviceOrdered?.orderId;
+
+                    if (orderId == null) return;
+
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => OrderDetailScreen(
+                          orderId: orderId,
+                        ),
+                      ),
+                    );
+                  } else if (value == 'reschedule') {
+                    showShipmentRescheduleDialog(
+                      context: context,
+                      shipmentId: shipment.shipmentId,
+                    );
+                  }
+                },
+                itemBuilder: (context) => const [
+                  PopupMenuItem<String>(
+                    value: 'order_details',
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.receipt_long_outlined,
+                          size: 20,
+                        ),
+                        SizedBox(width: 10),
+                        Text("Order Details"),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem<String>(
+                    value: 'reschedule',
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.schedule,
+                          size: 20,
+                        ),
+                        SizedBox(width: 10),
+                        Text("Reschedule"),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+
           const Divider(height: 24),
-          _detailItem(Icons.build_circle_outlined, "Job",
-              shipment.serviceOrdered?.serviceRequired?.serviceName),
-          _detailItem(Icons.calendar_month, "Date", shipment.formattedDate),
-          _detailItem(Icons.location_on_rounded, "Destination",
-              shipment.serviceOrdered?.deliveryAddress?.formattedAddress),
+
+          _detailItem(
+            Icons.build_circle_outlined,
+            "Job",
+            shipment.serviceOrdered?.serviceRequired?.serviceName,
+          ),
+
+          _detailItem(
+            Icons.tag,
+            "Order ID",
+            shipment.serviceOrdered?.orderId?.toString() ?? 'N/A',
+          ),
+
+          _detailItem(
+            Icons.calendar_month,
+            "Date",
+            shipment.formattedDate,
+          ),
+
+          _detailItem(
+            Icons.location_on_rounded,
+            "Destination",
+            shipment.serviceOrdered?.deliveryAddress?.formattedAddress,
+          ),
         ],
       ),
     );
@@ -46,8 +136,8 @@ class ShipmentDetailsCard extends StatelessWidget {
                         color: Colors.grey.shade500,
                         fontWeight: FontWeight.bold)),
                 Text(value ?? '-',
-                    style:
-                        const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: 14)),
               ],
             ),
           ),

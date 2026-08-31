@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/widgets/custom_button.dart';
 import 'package:flutter_application_1/common/widgets/flushbar_service.dart';
+import 'package:flutter_application_1/common/widgets/shimmers/order_body_skeleton.dart';
 import 'package:flutter_application_1/global_util/services/controler/cancel_order_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/client_pending_orders_ctrl.dart';
 import 'package:flutter_application_1/screens/client_pending_orders_details/views/edit_pending_order_screen.dart';
@@ -11,19 +12,35 @@ import 'package:provider/provider.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
 import 'package:flutter_application_1/global_util/services/controler/client_pending_orders_detail_ctrl.dart';
 
-class PendingOrderDetailScreen extends StatefulWidget {
+class OrderDetailScreen extends StatefulWidget {
   final int orderId;
 
-  const PendingOrderDetailScreen({
+  const OrderDetailScreen({
     super.key,
     required this.orderId,
   });
 
   @override
-  State<PendingOrderDetailScreen> createState() => _PendingOrderDetailScreenState();
+  State<OrderDetailScreen> createState() => _OrderDetailScreenState();
 }
 
-class _PendingOrderDetailScreenState extends State<PendingOrderDetailScreen> {
+class _OrderDetailScreenState extends State<OrderDetailScreen> {
+  @override
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final detailCtrl = context.read<ClientPendingOrdersDetailCtrl>();
+
+      final alreadyLoaded = detailCtrl.booking?.orderId == widget.orderId &&
+          detailCtrl.errorMessage == null;
+
+      if (!alreadyLoaded) {
+        detailCtrl.fetchBookingByOrderID(widget.orderId);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final primaryColor = Kolors.kPrimary ?? Colors.blue.shade800;
@@ -31,17 +48,15 @@ class _PendingOrderDetailScreenState extends State<PendingOrderDetailScreen> {
 
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(
-          create: (_) => ClientPendingOrdersDetailCtrl()
-            ..fetchBookingByOrderID(widget.orderId),
-        ),
+        // ClientPendingOrdersDetailCtrl is the app-level singleton from
+        // main.dart — not provided here. See PendingOrderDetailScreen
+        // for why a local ChangeNotifierProvider(create: ...) caused a
+        // refetch on every visit.
         ChangeNotifierProvider(
           create: (_) => CancelOrderController(),
         ),
       ],
-      child: Consumer2<
-          ClientPendingOrdersDetailCtrl,
-          CancelOrderController>(
+      child: Consumer2<ClientPendingOrdersDetailCtrl, CancelOrderController>(
         builder: (context, detailCtrl, cancelCtrl, child) {
           final hasData = !detailCtrl.isLoading &&
               detailCtrl.errorMessage == null &&
@@ -60,94 +75,62 @@ class _PendingOrderDetailScreenState extends State<PendingOrderDetailScreen> {
                 ),
               ),
               iconTheme: const IconThemeData(color: Colors.white),
-              // actions: [
-              //   if (hasData)
-              //     PopupMenuButton<String>(
-              //       icon: const Icon(Icons.more_vert, color: Colors.white),
-              //       onSelected: (value) {
-                      
-
-                      
-              //       },
-                    
-              //       // itemBuilder: (_) => const [
-              //       //   PopupMenuItem(
-              //       //     value: 'edit',
-              //       //     child: Row(
-              //       //       children: [
-              //       //         Icon(Icons.edit, size: 20),
-              //       //         SizedBox(width: 8),
-              //       //         Text('Edit Order'),
-              //       //       ],
-              //       //     ),
-              //       //   ),
-                      
-              //       // ],
-              //     ),
-              // ],
             ),
             body: Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-          colors: [Kolors.kPrimary, Kolors.kPrimary, Kolors.kWhite],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+                  colors: [Kolors.kPrimary, Kolors.kPrimary, Kolors.kWhite],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
               ),
               child: Builder(
                 builder: (_) {
                   if (detailCtrl.isLoading) {
-                    return const Center(
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                      ),
-                    );
+                    return const OrderBodySkeleton();
                   }
 
                   if (detailCtrl.errorMessage != null ||
                       detailCtrl.booking == null) {
                     return ListView(
-  physics: const AlwaysScrollableScrollPhysics(),
-  children: [
-    const SizedBox(height: 120),
-    Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(
-          Icons.event_busy_outlined,
-          size: 100,
-          color: Colors.white.withOpacity(0.6),
-        ),
-        const SizedBox(height: 20),
-
-        const Text(
-          "Booking Not Found",
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-          textAlign: TextAlign.center,
-        ),
-
-        const SizedBox(height: 10),
-
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Text(
-            detailCtrl.errorMessage ??
-                "No booking found. Please try again or refresh the page.",
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.8),
-              fontSize: 14,
-            ),
-          ),
-        ),
-      ],
-    ),
-  ],
-);
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      children: [
+                        const SizedBox(height: 120),
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.event_busy_outlined,
+                              size: 100,
+                              color: Colors.white.withOpacity(0.6),
+                            ),
+                            const SizedBox(height: 20),
+                            const Text(
+                              "Booking Not Found",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 10),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 24),
+                              child: Text(
+                                detailCtrl.errorMessage ??
+                                    "No booking found. Please try again or refresh the page.",
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.8),
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    );
                   }
 
                   return OrderBody(
@@ -162,6 +145,4 @@ class _PendingOrderDetailScreenState extends State<PendingOrderDetailScreen> {
       ),
     );
   }
-
-
 }

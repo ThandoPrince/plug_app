@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
+import 'package:flutter_application_1/common/widgets/shimmers/services_list_skeleton.dart';
 import 'package:flutter_application_1/global_util/services/controler/service_controller.dart';
-import 'package:flutter_application_1/screens/view_all_sp_service/views/view_sp_ass_service_screen.dart';
+
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -13,7 +14,7 @@ class ServicesListWidget extends StatelessWidget {
     return Consumer<ServiceController>(
       builder: (context, controller, _) {
         if (controller.isLoading) {
-          return const Center(child: CircularProgressIndicator());
+          return const ServicesListSkeleton();
         }
 
         if (controller.error != null) {

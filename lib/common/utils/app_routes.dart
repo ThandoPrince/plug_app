@@ -6,17 +6,21 @@ import 'package:flutter_application_1/screens/Onboarding/terms_of_use/views/priv
 import 'package:flutter_application_1/screens/Onboarding/terms_of_use/views/terms_of_use_screen.dart';
 import 'package:flutter_application_1/screens/View_SP_Profile_Request/views/viewSP_Profile_requestScreen.dart';
 import 'package:flutter_application_1/screens/address/views/address_creation_screen.dart';
+import 'package:flutter_application_1/screens/auth/views/login_otp_verification_screen.dart';
+import 'package:flutter_application_1/screens/auth/views/otp_verification_screen.dart';
 import 'package:flutter_application_1/screens/location/views/address_screen.dart';
 import 'package:flutter_application_1/screens/address/views/address_verification_screen.dart';
 import 'package:flutter_application_1/screens/auth/views/auth_creation_screen.dart';
 import 'package:flutter_application_1/screens/auth/views/client_details_patch_screen.dart';
 import 'package:flutter_application_1/screens/auth/views/login_page.dart';
 import 'package:flutter_application_1/screens/entryPoint/views/entry_point.dart';
+import 'package:flutter_application_1/screens/location/views/existing_address_verify.dart';
 import 'package:flutter_application_1/screens/location/views/location_screen.dart';
 import 'package:flutter_application_1/screens/location/views/new_address_verification_screen.dart';
 import 'package:flutter_application_1/screens/notifications/views/notifications_screen.dart';
+import 'package:flutter_application_1/screens/reset_password/views/reset_password_confirm_screen.dart';
 import 'package:flutter_application_1/screens/reset_password/views/reset_password_screen.dart';
-import 'package:flutter_application_1/screens/splash/spash_screen.dart';
+
 import 'package:flutter_application_1/screens/viewAllServices/screens/view_all_services.dart';
 import 'package:flutter_application_1/screens/view_all_sp_service/views/view_sp_ass_service_screen.dart';
 import 'package:go_router/go_router.dart';
@@ -65,6 +69,11 @@ GoRouter createRouter(String initialLocation) {
     GoRoute(
       path: '/addressVerificationUpload',
       builder: (context, state) => const AddressVerificationUploadScreen(),
+    ),
+
+    GoRoute(
+      path: '/existingAddressVerification',
+      builder: (context, state) => const ExistingAddressVerificationScreen(),
     ),
 
   GoRoute(
@@ -165,6 +174,21 @@ GoRoute(
       path: '/login',
       builder: (context, state) => const AuthLoginScreen(),
     ),
+
+    GoRoute(
+  path: '/otpVerification',
+  builder: (context, state) => const OtpVerificationScreen(),
+),
+
+GoRoute(
+  path: '/loginOtpVerification',
+  builder: (context, state) => const LoginOtpVerificationScreen(),
+),
+
+GoRoute(
+  path: '/resetPasswordConfirm',
+  builder: (context, state) => const ResetPasswordConfirmScreen(),
+),
 
         GoRoute(
       path: '/location',

@@ -4,9 +4,11 @@ import 'package:flutter_application_1/common/widgets/flushbar_service.dart';
 import 'package:flutter_application_1/global_util/services/controler/address_client_ctrl.dart';
 import 'package:flutter_application_1/global_util/services/controler/auth_session_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/google_map_controller.dart';
-import 'package:flutter_application_1/global_util/services/controler/home_here_map_controller.dart';
+
 import 'package:flutter_application_1/global_util/services/controler/patch_default_address_controller.dart';
+import 'package:flutter_application_1/global_util/services/models/client_models/address_client_model.dart';
 import 'package:flutter_application_1/screens/location/widgets/address_list_view.dart';
+import 'package:flutter_application_1/screens/location/widgets/delete_address_dialog.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -21,42 +23,107 @@ class _LocationScreenState extends State<LocationScreen> {
   int? selectedAddressId;
 
   @override
-  void initState() {
-    super.initState();
-    Future.microtask(() {
-     
+void initState() {
+  super.initState();
+}
 
-      Future.microtask(() {
-  context.read<AddressClientCtrl>().fetchAddresses();
-});
-    });
+  AddressClientModel? get _selectedAddress {
+    if (selectedAddressId == null) return null;
+    final addresses = context.read<AddressClientCtrl>().addresses;
+    for (final a in addresses) {
+      if (a.id == selectedAddressId) return a;
+    }
+    return null;
   }
+
+  bool get _isSelectedAddressDefault => _selectedAddress?.isDefault ?? false;
 
   void _patchDefaultAddress(int addressId) async {
     final patchController = context.read<PatchDefaultAddressController>();
-    
     final addressCtrl = context.read<AddressClientCtrl>();
-
     final googleMapCtrl = context.read<GoogleMapMarkerController>();
 
     await patchController.setDefault(addressId);
     addressCtrl.resetCache();
-await addressCtrl.refresh();
- 
-    await googleMapCtrl.showDefaultAddress();
-    FlushbarService.success(
-      context,
-      "Default address updated successfully",
-    );
+    await addressCtrl.refresh();
+
+    if (!mounted) return;
+    await googleMapCtrl.showDefaultAddress(force: true);
+
+    if (!mounted) return;
+    FlushbarService.success(context, "Default address updated successfully");
     setState(() {
-      selectedAddressId = null; // reset selection after patch
+      selectedAddressId = null;
     });
+  }
+
+  Future<void> _deleteAddress(int addressId) async {
+    await showDeleteAddressDialog(
+      context: context,
+      addressId: addressId,
+      onDeleted: () async {
+        if (!mounted) return;
+        setState(() {
+          selectedAddressId = null;
+        });
+      },
+    );
+  }
+
+  Future<void> _verifyAddress(AddressClientModel address) async {
+    await GoRouter.of(context).push<bool>(
+      '/existingAddressVerification',
+      extra: {
+        'client_address_id': address.id,
+        'unit_number': address.address.unitNumber,
+      },
+    );
+
+    if (!mounted) return;
+    // Refresh regardless of whether verification finished or was
+    // skipped ("Maybe Later"), in case anything changed server-side.
+    await _refreshAddresses();
+  }
+
+  Future<void> _applyForSuperUser(AddressClientModel address) async {
+    await GoRouter.of(context).push<bool>(
+      '/existingAddressVerification',
+      extra: {
+        'client_address_id': address.id,
+        'unit_number': address.address.unitNumber,
+        // Distinguishes "apply for super user" from the standard
+        // "verify this address" flow — the destination screen
+        // branches on this to show different copy/steps and call
+        // a different submit action.
+        'purpose': 'super_user_application',
+      },
+    );
+
+    if (!mounted) return;
+    await _refreshAddresses();
+  }
+
+  Future<void> _refreshAddresses() async {
+    final addressCtrl = context.read<AddressClientCtrl>();
+    final googleMapCtrl = context.read<GoogleMapMarkerController>();
+
+    addressCtrl.resetCache();
+    await addressCtrl.refresh();
+
+    if (!mounted) return;
+      await googleMapCtrl.showDefaultAddress(force: true);
   }
 
   @override
   Widget build(BuildContext context) {
     const Color primaryColor = Kolors.kPrimary;
-    const Color secondaryColor = Kolors.kSecondaryLight;
+    
+
+    context.watch<AddressClientCtrl>();
+
+    final hasSelection = selectedAddressId != null;
+    final isDefault = _isSelectedAddressDefault;
+    final showActions = hasSelection && !isDefault;
 
     return Scaffold(
       appBar: AppBar(
@@ -68,19 +135,52 @@ await addressCtrl.refresh();
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
-          if (selectedAddressId != null)
+          if (showActions) ...[
+            IconButton(
+              icon: Icon(Icons.delete_outline,
+                  color: Kolors.kOffWhite.withOpacity(.8)),
+              onPressed: () => _deleteAddress(selectedAddressId!),
+            ),
             IconButton(
               icon: Icon(Icons.check, color: Kolors.kOffWhite.withOpacity(.8)),
               onPressed: () => _patchDefaultAddress(selectedAddressId!),
-            )
+            ),
+          ],
         ],
       ),
       extendBodyBehindAppBar: true,
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          final session = context.read<AuthSessionController>();
+        onPressed: () async {
           final id = AuthSessionController.instance.clientId;
-          GoRouter.of(context).push('/main_addaddress?email=$id');
+
+          final result = await GoRouter.of(context).push<Object?>(
+            '/main_addaddress?email=$id',
+          );
+
+          if (!mounted) return;
+
+          if (result == true) {
+            await _refreshAddresses();
+            return;
+          }
+
+          if (result is Map) {
+            final addressId = result['address_id'] as int?;
+            final unitNumber = result['unit_number'] as String?;
+
+            if (!mounted || addressId == null) return;
+
+            await GoRouter.of(context).push<bool>(
+              '/addressVerification',
+              extra: {
+                'client_address_id': addressId,
+                'unit_number': unitNumber,
+              },
+            );
+
+            if (!mounted) return;
+            await _refreshAddresses();
+          }
         },
         backgroundColor: primaryColor,
         foregroundColor: Colors.white,
@@ -89,28 +189,30 @@ await addressCtrl.refresh();
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-          colors: [Kolors.kPrimary, Kolors.kPrimary, Kolors.kWhite],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+            colors: [Kolors.kPrimary, Kolors.kPrimary, Kolors.kWhite],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
         ),
         child: SafeArea(
           child: RefreshIndicator(
-  color: Kolors.kPrimary,
-  onRefresh: () => context.read<AddressClientCtrl>().refresh(),
-  child: AddressListView(
-    selectedAddressId: selectedAddressId,
-    onSelect: (id) {
-      setState(() {
-        if (selectedAddressId == id) {
-          selectedAddressId = null;
-        } else {
-          selectedAddressId = id;
-        }
-      });
-    },
-  ),
-),
+            color: Kolors.kPrimary,
+            onRefresh: () => context.read<AddressClientCtrl>().refresh(),
+            child: AddressListView(
+              selectedAddressId: selectedAddressId,
+              onSelect: (id) {
+                setState(() {
+                  if (selectedAddressId == id) {
+                    selectedAddressId = null;
+                  } else {
+                    selectedAddressId = id;
+                  }
+                });
+              },
+              onVerify: _verifyAddress,
+              onApplySuperUser: _applyForSuperUser,
+            ),
+          ),
         ),
       ),
     );

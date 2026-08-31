@@ -1,13 +1,15 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/common/widgets/flushbar_service.dart';
 import 'package:flutter_application_1/global_util/services/controler/auth_login_controller.dart';
-import 'package:flutter_application_1/global_util/services/controler/get_client_auth_controller.dart';
+
 import 'package:flutter_application_1/screens/Onboarding/Widgets/back_to_exit_widget.dart';
-import 'package:flutter_application_1/screens/auth/widgets/success_overlay_widget.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_application_1/common/widgets/custom_button.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class AuthLoginScreen extends StatefulWidget {
   const AuthLoginScreen({super.key});
@@ -30,13 +32,12 @@ class _AuthLoginScreenState extends State<AuthLoginScreen> {
   @override
   void dispose() {
     LoginController.instance.emailController.removeListener(_onInputChanged);
-    LoginController.instance.clear();
     super.dispose();
   }
 
   void _onInputChanged() {
     final text = LoginController.instance.emailController.text.trim();
-    
+
     if (text.isEmpty) {
       if (_isPhoneInput) setState(() => _isPhoneInput = false);
       return;
@@ -56,7 +57,9 @@ class _AuthLoginScreenState extends State<AuthLoginScreen> {
       if (text.startsWith('0') && text.length > 1) {
         final formatted = '+27${text.substring(1)}';
         _updateControllerText(formatted);
-      } else if (!text.startsWith('+') && !text.startsWith('27') && text.isNotEmpty) {
+      } else if (!text.startsWith('+') &&
+          !text.startsWith('27') &&
+          text.isNotEmpty) {
         final formatted = '+27$text';
         _updateControllerText(formatted);
       } else if (text.startsWith('27') && text.length > 2) {
@@ -65,6 +68,36 @@ class _AuthLoginScreenState extends State<AuthLoginScreen> {
       }
     }
   }
+
+
+  Future<void> _openWebsite() async {
+  final uri = Uri.parse('https://plugwebsite-production.up.railway.app/');
+
+  try {
+    final launched = await launchUrl(
+      uri,
+      mode: LaunchMode.externalApplication,
+    );
+
+    if (!launched && mounted) {
+      FlushbarService.error(
+        context,
+        'Unable to open the website.',
+      );
+    }
+  } catch (e) {
+    if (kDebugMode) {
+      debugPrint('❌ Failed to open website: $e');
+    }
+
+    if (!mounted) return;
+
+    FlushbarService.error(
+      context,
+      'Unable to open the website.',
+    );
+  }
+}
 
   void _updateControllerText(String formattedText) {
     final controller = LoginController.instance.emailController;
@@ -80,26 +113,19 @@ class _AuthLoginScreenState extends State<AuthLoginScreen> {
   Widget build(BuildContext context) {
     const primaryColor = Kolors.kPrimary;
 
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider<LoginController>.value(
-          value: LoginController.instance,
-        ),
-        ChangeNotifierProvider<GetClientAuthController>(
-          create: (_) => GetClientAuthController(),
-        ),
-      ],
-      child: Consumer2<LoginController, GetClientAuthController>(
-        builder: (context, loginController, authController, _) {
+    return ChangeNotifierProvider<LoginController>.value(
+      value: LoginController.instance,
+      child: Consumer<LoginController>(
+        builder: (context, loginController, _) {
           return DoubleBackToExit(
             child: Scaffold(
               body: Container(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-          colors: [Kolors.kPrimary, Kolors.kPrimary, Kolors.kWhite],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+                    colors: [Kolors.kPrimary, Kolors.kPrimary, Kolors.kWhite],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                 ),
                 child: SafeArea(
                   child: Column(
@@ -110,7 +136,55 @@ class _AuthLoginScreenState extends State<AuthLoginScreen> {
                           physics: const BouncingScrollPhysics(),
                           child: Column(
                             children: [
-                              SizedBox(height: 80.h),
+
+                              SizedBox(height: 20.h),
+
+Row(
+  crossAxisAlignment: CrossAxisAlignment.center,
+  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  children: [
+    // Plug icon
+   Container(
+  width: 56,
+  height: 56,
+  padding: const EdgeInsets.all(8),
+  decoration: BoxDecoration(
+    color: Colors.transparent, // Fully transparent
+    borderRadius: BorderRadius.circular(14),
+  ),
+  child: Image.asset(
+    'assets/icons/plug_splash.png',
+    fit: BoxFit.contain,
+  ),
+),
+
+    // Help / Contact Us
+    TextButton.icon(
+      onPressed: _openWebsite,
+      style: TextButton.styleFrom(
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(
+          horizontal: 8,
+          vertical: 6,
+        ),
+        minimumSize: Size.zero,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      icon: const Icon(
+        Icons.help_outline_rounded,
+        size: 18,
+      ),
+      label: const Text(
+        "Help",
+        style: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    ),
+  ],
+),
+                              SizedBox(height: 40.h),
 
                               // ---- Header ----
                               Text(
@@ -147,15 +221,19 @@ class _AuthLoginScreenState extends State<AuthLoginScreen> {
                               Align(
                                 alignment: Alignment.centerRight,
                                 child: Padding(
-                                  padding: const EdgeInsets.only(top: 8.0, right: 4.0),
+                                  padding: const EdgeInsets.only(
+                                      top: 8.0, right: 4.0),
                                   child: TextButton(
-                                    onPressed: () => context.push('/reset_password'),
+                                    onPressed: () =>
+                                        context.push('/reset_password'),
                                     style: TextButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 12, vertical: 8),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(8),
                                       ),
-                                      foregroundColor: Colors.white.withOpacity(0.2),
+                                      foregroundColor:
+                                          Colors.white.withOpacity(0.2),
                                     ),
                                     child: Text(
                                       'Forgot Password?',
@@ -186,46 +264,32 @@ class _AuthLoginScreenState extends State<AuthLoginScreen> {
                                 onTap: () async {
                                   FocusScope.of(context).unfocus();
 
-                                  final success = await loginController.login();
+                                  // Password step only. On success this
+                                  // just means "identifier + password are
+                                  // correct" — a verification token has
+                                  // been stashed and an OTP has been sent.
+                                  // The actual session isn't set until the
+                                  // OTP screen calls
+                                  // LoginOtpController.verifyOtp().
+                                  final success = await loginController
+                                      .login();
 
-                                  if (success) {
-                                    final email = loginController
-                                        .emailController.text
-                                        .trim().toLowerCase();
+                                      
 
-                                    SuccessOverlay.show(
-                                      context,
-                                      message:
-                                          "Welcome back! We are preparing your profile.",
-                                    );
+                                  if (!context.mounted || !success) return;
 
-                                    await context
-                                        .read<GetClientAuthController>()
-                                        .loadClientAuth(email);
+                                  
+if (!context.mounted || !success) return;
 
-                                    await Future.delayed(
-                                        const Duration(seconds: 2));
 
-                                    if (!mounted) return;
-
-                                    Navigator.of(context).pop(); // dismiss overlay
-
-                                    final profileState = context
-                                        .read<GetClientAuthController>()
-                                        .clientAuth
-                                        ?.profileStatus;
-
-                                    if (profileState == "in-details") {
-                                      context.go(
-                                          '/clientDetailsPatch?email=$email');
-                                    } else if (profileState == "in-address") {
-                                      context.go('/addaddress?email=$email');
-                                    } else if (profileState == "completed") {
-                                      context.go('/entryPoint');
-                                    } else {
-                                      context.go('/entryPoint');
-                                    }
-                                  }
+final profileState =
+    loginController.challenge?.data.isProfileCompleted;
+loginController.clearSensitiveFields();
+if (profileState == "in-email-verification") {
+  context.go('/otpVerification');
+} else {
+  context.go('/loginOtpVerification');
+}
                                 },
                                 btnColor: primaryColor,
                                 btnHieght: 58.h,
@@ -273,14 +337,15 @@ class _AuthLoginScreenState extends State<AuthLoginScreen> {
   Widget _buildEmailField(LoginController controller) {
     return TextFormField(
       controller: controller.emailController,
-      keyboardType: TextInputType.emailAddress, // Better for showing mixed text/keyboard layouts
+      keyboardType: TextInputType
+          .emailAddress, // Better for showing mixed text/keyboard layouts
       style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600),
       decoration: InputDecoration(
         hintText: "Email Address or Mobile Number",
         errorText: controller.emailError,
         prefixIcon: Icon(
-          _isPhoneInput ? Icons.phone_android_outlined : Icons.email_outlined, 
-          color: Kolors.kPrimary, 
+          _isPhoneInput ? Icons.phone_android_outlined : Icons.email_outlined,
+          color: Kolors.kPrimary,
           size: 20,
         ),
         filled: true,
@@ -307,7 +372,8 @@ class _AuthLoginScreenState extends State<AuthLoginScreen> {
             _obscurePassword ? Icons.visibility_off : Icons.visibility,
             color: Kolors.kPrimary,
           ),
-          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+          onPressed: () =>
+              setState(() => _obscurePassword = !_obscurePassword),
         ),
         filled: true,
         fillColor: Colors.grey.shade50,

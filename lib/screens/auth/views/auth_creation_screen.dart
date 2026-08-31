@@ -1,13 +1,16 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
 import 'package:flutter_application_1/common/widgets/custom_button.dart';
+import 'package:flutter_application_1/common/widgets/flushbar_service.dart';
 import 'package:flutter_application_1/common/widgets/reusable_text.dart';
 import 'package:flutter_application_1/global_util/services/controler/client_auth_controller.dart';
 import 'package:flutter_application_1/screens/Onboarding/Widgets/back_to_exit_widget.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class AuthCreationScreen extends StatefulWidget {
   const AuthCreationScreen({super.key});
@@ -18,6 +21,27 @@ class AuthCreationScreen extends StatefulWidget {
 
 class _AuthCreationScreenState extends State<AuthCreationScreen> {
   bool _isPasswordVisible = false;
+
+  Future<void> _openWebsite() async {
+    final uri = Uri.parse('https://plugwebsite-production.up.railway.app/');
+
+    try {
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+
+      if (!launched && mounted) {
+        FlushbarService.error(context, 'Unable to open the website.');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Failed to open website: $e');
+      }
+      if (!mounted) return;
+      FlushbarService.error(context, 'Unable to open the website.');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,10 +57,10 @@ class _AuthCreationScreenState extends State<AuthCreationScreen> {
               height: double.infinity,
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
-          colors: [Kolors.kPrimary, Kolors.kPrimary, Kolors.kWhite],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+                  colors: [Kolors.kPrimary, Kolors.kPrimary, Kolors.kWhite],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
               ),
               child: SafeArea(
                 child: Column(
@@ -48,7 +72,48 @@ class _AuthCreationScreenState extends State<AuthCreationScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            SizedBox(height: 50.h),
+                            SizedBox(height: 20.h),
+
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Container(
+  width: 56,
+  height: 56,
+  padding: const EdgeInsets.all(8),
+  decoration: BoxDecoration(
+    color: Colors.transparent, // Fully transparent
+    borderRadius: BorderRadius.circular(14),
+  ),
+  child: Image.asset(
+    'assets/icons/plug_splash.png',
+    fit: BoxFit.contain,
+  ),
+),
+                                TextButton.icon(
+                                  onPressed: _openWebsite,
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 6),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  icon: const Icon(Icons.help_outline_rounded,
+                                      size: 18),
+                                  label: const Text(
+                                    "Help",
+                                    style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600),
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            SizedBox(height: 30.h),
 
                             // --- Header ---
                             Text(
@@ -111,24 +176,28 @@ class _AuthCreationScreenState extends State<AuthCreationScreen> {
                                     isPasswordVisible: _isPasswordVisible,
                                     onTogglePassword: () {
                                       setState(() {
-                                        _isPasswordVisible = !_isPasswordVisible;
+                                        _isPasswordVisible =
+                                            !_isPasswordVisible;
                                       });
                                     },
                                     errorText: provider.fieldErrors['password'],
                                   ),
                                   SizedBox(height: 16.h),
                                   _buildTextField(
-                                    controller: provider.confirmPasswordController,
+                                    controller:
+                                        provider.confirmPasswordController,
                                     hint: "Confirm Password",
                                     icon: Icons.lock_outline_rounded,
                                     isPassword: true,
                                     isPasswordVisible: _isPasswordVisible,
                                     onTogglePassword: () {
                                       setState(() {
-                                        _isPasswordVisible = !_isPasswordVisible;
+                                        _isPasswordVisible =
+                                            !_isPasswordVisible;
                                       });
                                     },
-                                    errorText: provider.fieldErrors['confirmPassword'],
+                                    errorText:
+                                        provider.fieldErrors['confirmPassword'],
                                   ),
                                 ],
                               ),
@@ -162,7 +231,8 @@ class _AuthCreationScreenState extends State<AuthCreationScreen> {
 
                     // --- Bottom Actions (Now safely reads from same consumer) ---
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 35.w, vertical: 20.h),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 35.w, vertical: 20.h),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -179,8 +249,7 @@ class _AuthCreationScreenState extends State<AuthCreationScreen> {
                                     final success = await provider.register();
 
                                     if (context.mounted && success) {
-                                      context.go(
-                                          '/clientDetailsPatch?email=${provider.emailController.text.trim()}');
+                                      context.go('/otpVerification');
                                     }
                                   },
                                   btnColor: primaryColor,
@@ -242,7 +311,8 @@ class _AuthCreationScreenState extends State<AuthCreationScreen> {
       style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: const TextStyle(color: Colors.grey, fontWeight: FontWeight.normal),
+        hintStyle:
+            const TextStyle(color: Colors.grey, fontWeight: FontWeight.normal),
         prefixIcon: Icon(icon, color: Kolors.kPrimary, size: 20),
         filled: true,
         fillColor: Colors.grey.shade50,

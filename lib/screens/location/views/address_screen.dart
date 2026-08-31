@@ -4,10 +4,11 @@ import 'package:flutter_application_1/common/utils/kcolors.dart';
 import 'package:flutter_application_1/common/widgets/flushbar_service.dart';
 import 'package:flutter_application_1/global_util/services/controler/address_a_creation_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/address_client_ctrl.dart';
-
-import 'package:flutter_application_1/global_util/services/controler/auth_session_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/google_map_controller.dart';
-import 'package:flutter_application_1/global_util/services/controler/home_here_map_controller.dart';
+
+
+
+
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_google_places_hoc081098/flutter_google_places_hoc081098.dart';
@@ -352,52 +353,140 @@ class MainAddAddressScreen extends StatelessWidget {
         btnWidth: double.infinity,
         radius: 16,
         onTap: (!ctrl.isValidAddress || ctrl.isLoading)
-            ? null
-            : () async {
-              
-                final result = await ctrl.postResidentialAddress();
+    ? null
+    : () async {
+        final result = await ctrl.postResidentialAddress();
 
-                if (kDebugMode) {
-                  print("RESULT: $result");
-                }
-print("CTRL ERROR: ${ctrl.error}");
-if (!context.mounted) return;
+        if (kDebugMode) {
+          print("RESULT: $result");
+          print("CTRL ERROR: ${ctrl.error}");
+        }
 
-                if (result == null) {
-  FlushbarService.error(
-    context,
-    ctrl.error ?? "Failed to add address.",
-  );
+        if (!context.mounted) return;
+
+        if (result == null) {
+          FlushbarService.error(
+            context,
+            ctrl.error ?? "Failed to add address.",
+          );
+          return;
+        }
+
+        final data = result["data"];
+
+        if (data == null) {
+          FlushbarService.error(
+            context,
+            "Address was added but the response was invalid.",
+          );
+          return;
+        }
+
+        final dynamic rawVerified = data["is_verified"];
+
+        final bool isVerified =
+            rawVerified == true ||
+            rawVerified.toString().toLowerCase() == 'true';
+
+        final int addressId =
+            data["id"] ??
+            (data["address"] is Map
+                ? data["address"]["id"]
+                : data["address"]) ??
+            0;
+
+        final String? unitNumber =
+            data["address"] is Map
+                ? data["address"]["unit_number"]
+                : ctrl.unitNumberController.text;
+
+        // --------------------------------------------------
+        // REFRESH ADDRESS DATA
+        // --------------------------------------------------
+
+        final addressCtrl =
+            context.read<AddressClientCtrl>();
+
+        final mapCtrl =
+            context.read<GoogleMapMarkerController>();
+
+        addressCtrl.resetCache();
+        await addressCtrl.refresh();
+
+        if (!context.mounted) return;
+
+          await mapCtrl.showDefaultAddress(force: true);
+
+        if (!context.mounted) return;
+
+        // --------------------------------------------------
+        // ADDRESS ALREADY VERIFIED
+        // --------------------------------------------------
+
+       if (isVerified) {
+  await _showVerificationSuccessDialog(context);
+
+  if (!context.mounted) return;
+
+  context.pop(true);
   return;
 }
 
-                final data = result["data"];
-                if (data == null) return;
+        // --------------------------------------------------
+        // ADDRESS NOT VERIFIED
+        // --------------------------------------------------
+final bool? verificationChoice = await _showVerificationDialog(
+  context,
+  addressId,
+  unitNumber,
+);
 
-                final dynamic rawVerified = data["is_verified"];
-                final bool isVerified = (rawVerified == true || rawVerified.toString().toLowerCase() == 'true');
-                final int addressId = data["id"] ?? (data["address"] is Map ? data["address"]["id"] : data["address"]) ?? 0;
-                final String? unitNumber = data["address"] is Map ? data["address"]["unit_number"] : ctrl.unitNumberController.text;
+if (!context.mounted) return;
 
-             
-    final addressCtrl = context.read<AddressClientCtrl>();
-    final mapCtrl = context.read<GoogleMapMarkerController>(); 
+// ==========================================
+// MAYBE LATER
+// ==========================================
+if (verificationChoice == false) {
+  addressCtrl.resetCache();
+  await addressCtrl.refresh();
 
-    await addressCtrl.fetchAddresses();
-    await mapCtrl.showDefaultAddress();
+  if (!context.mounted) return;
 
- 
+    await mapCtrl.showDefaultAddress(force: true);
 
-                if (!isVerified) {
-                  _showVerificationDialog(
-                    context,
-                    addressId,
-                    unitNumber,
-                  );
-                } else {
-                  context.pop();
-                }
-              },
+  if (!context.mounted) return;
+
+  // Close MainAddAddressScreen and tell
+  // LocationScreen the address was created.
+  context.pop(true);
+  return;
+}
+
+// ==========================================
+// VERIFY NOW
+// ==========================================
+if (verificationChoice == true) {
+  // --------------------------------------------------
+  // REMOVE MainAddAddressScreen FROM THE STACK
+
+  // So first pop MainAddAddressScreen, then push
+  // AddressVerificationScreen from LocationScreen.
+  //
+
+  if (!context.mounted) return;
+
+  // Close MainAddAddressScreen first.
+  context.pop({
+  "address_created": true,
+  "open_verification": true,
+  "address_id": addressId,
+  "unit_number": unitNumber,
+});
+
+
+  return;
+}
+      },
       ),
     );
   }
@@ -406,79 +495,346 @@ if (!context.mounted) return;
   // VERIFICATION DIALOG
   // ===============================
 
- void _showVerificationDialog(
-  BuildContext parentContext,
+Future<bool?> _showVerificationDialog(
+  BuildContext context,
   int clientAddressId,
   String? unitNumber,
 ) {
-  showDialog(
-    context: parentContext,
+  return showGeneralDialog<bool>(
+    context: context,
     barrierDismissible: false,
-    builder: (dialogContext) => AlertDialog(
-      backgroundColor: Colors.white,
-      surfaceTintColor: Colors.transparent,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
-      title: const Text(
-        "Verify Address",
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          fontSize: 22,
-          fontWeight: FontWeight.w900,
-        ),
-      ),
-      content: const Text(
-        "Your address is not verified yet.\n\n"
-        "Would you like to upload verification documents now?",
-        textAlign: TextAlign.center,
-      ),
-      actions: [
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            GradientBtn(
-              text: "VERIFY NOW",
-              btnColor: Colors.lightBlueAccent,
-              btnHieght: 50,
-              btnWidth: double.infinity,
-              radius: 12,
-              onTap: () {
-                Navigator.of(dialogContext).pop();
-
-                if (!parentContext.mounted) return;
-
-                parentContext.push(
-                  "/addressVerification",
-                  extra: {
-                    "client_address_id": clientAddressId,
-                    "unit_number": unitNumber,
+    barrierColor: Colors.black54,
+    transitionDuration: const Duration(milliseconds: 350),
+    pageBuilder: (
+      dialogContext,
+      animation,
+      secondaryAnimation,
+    ) {
+      return Center(
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 25),
+            padding: const EdgeInsets.fromLTRB(24, 28, 24, 22),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // ==========================================
+                // SUCCESS ANIMATION
+                // ==========================================
+                TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0.0, end: 1.0),
+                  duration: const Duration(milliseconds: 600),
+                  curve: Curves.elasticOut,
+                  builder: (context, value, child) {
+                    return Transform.scale(
+                      scale: value,
+                      child: child,
+                    );
                   },
-                );
-              },
+                  child: Container(
+                    height: 78,
+                    width: 78,
+                    decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.10),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Container(
+                      margin: const EdgeInsets.all(8),
+                      decoration: const BoxDecoration(
+                        color: Colors.green,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.check_rounded,
+                        color: Colors.white,
+                        size: 38,
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // ==========================================
+                // SUCCESS TITLE
+                // ==========================================
+                const Text(
+                  "Address Added Successfully!",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 21,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.black87,
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                // ==========================================
+                // VERIFICATION STATUS
+                // ==========================================
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 7,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.10),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.pending_outlined,
+                        color: Colors.orange,
+                        size: 17,
+                      ),
+                      SizedBox(width: 6),
+                      Text(
+                        "Verification Pending",
+                        style: TextStyle(
+                          color: Colors.orange,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                const Text(
+                  "Your address has been saved successfully. "
+                  "However, it still needs to be verified.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.black54,
+                    height: 1.45,
+                  ),
+                ),
+
+                const SizedBox(height: 8),
+
+                const Text(
+                  "Would you like to upload your verification "
+                  "documents now?",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.black54,
+                    height: 1.45,
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // ==========================================
+                // VERIFY NOW
+                // ==========================================
+                GradientBtn(
+                  text: "VERIFY NOW",
+                  btnColor: Colors.lightBlueAccent,
+                  btnHieght: 50,
+                  btnWidth: double.infinity,
+                  radius: 12,
+                  onTap: () {
+                   
+
+                    Navigator.of(dialogContext).pop(true);
+                  },
+                ),
+
+                const SizedBox(height: 10),
+
+                // ==========================================
+                // MAYBE LATER
+                // ==========================================
+                GradientBtn(
+                  text: "MAYBE LATER",
+                  textColor: Colors.black,
+                  btnColor: Colors.grey,
+                  btnHieght: 50,
+                  btnWidth: double.infinity,
+                  radius: 12,
+                  onTap: () {
+                    
+
+                    Navigator.of(dialogContext).pop(false);
+                  },
+                ),
+              ],
             ),
-            const SizedBox(height: 10),
-            GradientBtn(
-              text: "MAYBE LATER",
-              textColor: Colors.black,
-              btnColor: Colors.grey,
-              btnHieght: 50,
-              btnWidth: double.infinity,
-              radius: 12,
-              onTap: () {
-                Navigator.of(dialogContext).pop();
-              },
-            ),
-          ],
+          ),
         ),
-      ],
-    ),
+      );
+    },
+
+    // ==========================================
+    // DIALOG ENTRANCE ANIMATION
+    // ==========================================
+    transitionBuilder: (
+      context,
+      animation,
+      secondaryAnimation,
+      child,
+    ) {
+      final curvedAnimation = CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeOutBack,
+      );
+
+      return FadeTransition(
+        opacity: animation,
+        child: ScaleTransition(
+          scale: Tween<double>(
+            begin: 0.85,
+            end: 1.0,
+          ).animate(curvedAnimation),
+          child: child,
+        ),
+      );
+    },
   );
 }
 
 // ===============================
 // SUCCESS OVERLAY
 // ===============================
+
+
+Future<void> _showVerificationSuccessDialog(
+  BuildContext context,
+) async {
+  await showGeneralDialog(
+    context: context,
+    barrierDismissible: false,
+    barrierColor: Colors.black54,
+    transitionDuration: const Duration(milliseconds: 350),
+    pageBuilder: (
+      dialogContext,
+      animation,
+      secondaryAnimation,
+    ) {
+      return Center(
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 25),
+            padding: const EdgeInsets.fromLTRB(24, 30, 24, 24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0.0, end: 1.0),
+                  duration: const Duration(milliseconds: 650),
+                  curve: Curves.elasticOut,
+                  builder: (context, value, child) {
+                    return Transform.scale(
+                      scale: value,
+                      child: child,
+                    );
+                  },
+                  child: Container(
+                    height: 82,
+                    width: 82,
+                    decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.10),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Container(
+                      margin: const EdgeInsets.all(8),
+                      decoration: const BoxDecoration(
+                        color: Colors.green,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.check_rounded,
+                        color: Colors.white,
+                        size: 42,
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 22),
+
+                const Text(
+                  "Address Added!",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 23,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.black87,
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                const Text(
+                  "Your address has been successfully "
+                  "added and is now ready to use.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.black54,
+                    height: 1.5,
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                GradientBtn(
+                  text: "DONE",
+                  btnColor: Kolors.kPrimary,
+                  btnHieght: 50,
+                  btnWidth: double.infinity,
+                  radius: 12,
+                  onTap: () {
+                    Navigator.of(dialogContext).pop();
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    },
+    transitionBuilder: (
+      context,
+      animation,
+      secondaryAnimation,
+      child,
+    ) {
+      final curved = CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeOutBack,
+      );
+
+      return FadeTransition(
+        opacity: animation,
+        child: ScaleTransition(
+          scale: Tween<double>(
+            begin: 0.8,
+            end: 1.0,
+          ).animate(curved),
+          child: child,
+        ),
+      );
+    },
+  );
+}
 
 
 }

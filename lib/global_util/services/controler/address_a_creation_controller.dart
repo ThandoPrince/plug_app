@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/const/services/registration/address_creation_helper.dart';
+import 'package:flutter_application_1/const/services/registration/a_address_creation_helper.dart';
 import 'package:flutter_google_places_hoc081098/google_maps_webservice_places.dart';
 
 class AddressACreationController with ChangeNotifier {
@@ -112,9 +112,15 @@ void dispose() {
       }
     }
 
-    latitudeController.text = result.geometry?.location.lat.toString() ?? "";
+final latitude = result.geometry?.location.lat;
+final longitude = result.geometry?.location.lng;
 
-    longitudeController.text = result.geometry?.location.lng.toString() ?? "";
+if (latitude == null || longitude == null) {
+  throw Exception("Google Maps did not return valid coordinates.");
+}
+
+latitudeController.text = latitude.toStringAsFixed(7);
+longitudeController.text = longitude.toStringAsFixed(7);
 
     notifyListeners();
   }
@@ -163,8 +169,8 @@ Future<Map<String, dynamic>?> postResidentialAddress() async {
         "administrative_area_level_1": stateController.text.trim(),
         "country": countryController.text.trim(),
         "postal_code": postalCodeController.text.trim(),
-        "latitude": double.parse(latitudeController.text),
-        "longitude": double.parse(longitudeController.text),
+        "latitude": _formatCoordinate(latitudeController.text),
+"longitude": _formatCoordinate(longitudeController.text),
         "building_type": buildingType,
         "unit_number": unitNumberController.text.trim(),
         "access_notes": accessNotesController.text.trim(),
@@ -178,7 +184,7 @@ Future<Map<String, dynamic>?> postResidentialAddress() async {
     debugPrint("========== ADDRESS REQUEST ==========");
     debugPrint(jsonEncode(payload));
 
-    final response = await AddressCreationHelper.addClientAddress(
+    final response = await AAddressCreationHelper.addClientAddress(
       data: payload,
      
     );
@@ -198,12 +204,41 @@ Future<Map<String, dynamic>?> postResidentialAddress() async {
     final bool success = decodedBody["success"] == true;
 
     if (!success) {
-      error = decodedBody["message"] ??
-          decodedBody["detail"] ??
-          "Failed to add address";
+  final errors = decodedBody["errors"];
 
-      return null;
+  // Handle DRF validation errors
+  if (errors is Map<String, dynamic>) {
+    final nonFieldErrors = errors["non_field_errors"];
+
+    if (nonFieldErrors is List && nonFieldErrors.isNotEmpty) {
+      error = nonFieldErrors.first.toString();
+    } else {
+      // Handle field-specific errors
+      final messages = <String>[];
+
+      errors.forEach((field, value) {
+        if (value is List) {
+          for (final message in value) {
+            messages.add(message.toString());
+          }
+        } else {
+          messages.add(value.toString());
+        }
+      });
+
+      if (messages.isNotEmpty) {
+        error = messages.join("\n");
+      }
     }
+  }
+
+  // Fallback to the normal API message
+  error ??= decodedBody["message"] ??
+      decodedBody["detail"] ??
+      "Failed to add address";
+
+  return null;
+}
 
     // ✅ SUCCESS PATH
     error = null;
@@ -220,6 +255,16 @@ Future<Map<String, dynamic>?> postResidentialAddress() async {
     isLoading = false;
     notifyListeners();
   }
+}
+
+String _formatCoordinate(String value) {
+  final coordinate = double.tryParse(value);
+
+  if (coordinate == null) {
+    throw FormatException("Invalid coordinate: $value");
+  }
+
+  return coordinate.toStringAsFixed(7);
 }
 
 }

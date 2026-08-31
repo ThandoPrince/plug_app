@@ -40,6 +40,8 @@ class _SessionEtaCardState extends State<SessionEtaCard> {
 
   @override
   Widget build(BuildContext context) {
+
+    
     final statusUI = getSessionStatusUI(
       sessionStatus: widget.session.sessionStatus,
       isInsideGeofence: widget.controller.isInsideGeofence,

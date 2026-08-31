@@ -1,7 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
+import 'package:flutter_application_1/global_util/services/controler/fallback_map_controller_impl.dart';
 import 'package:flutter_application_1/global_util/services/controler/get_client_shipment_ctrl.dart';
+import 'package:flutter_application_1/global_util/services/controler/google_map_controller_impl.dart';
 import 'package:flutter_application_1/global_util/services/controler/google_shipment_route_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/session_location_ping_controller.dart';
 
@@ -10,7 +12,7 @@ import 'package:flutter_application_1/screens/ratings/views/ratings_screen.dart'
 import 'package:flutter_application_1/screens/schedule/widgets/go_to_schedule_helper.dart';
 import 'package:flutter_application_1/screens/sessions/widgets/session_details_card.dart';
 import 'package:flutter_application_1/screens/sessions/widgets/session_eta_card.dart';
-import 'package:flutter_application_1/screens/sessions/widgets/session_map_section.dart';
+import 'package:flutter_application_1/screens/sessions/widgets/session_map_section_adaptive.dart';
 import 'package:flutter_application_1/screens/sessions/widgets/session_provider_card.dart';
 import 'package:provider/provider.dart';
 
@@ -28,77 +30,80 @@ class SessionScreen extends StatefulWidget {
 }
 
 class _SessionScreenState extends State<SessionScreen> {
-
-
   late ShipmentController shipmentController;
   late VoidCallback shipmentListener;
   late ClientSessionLocationPingController pingController;
   
+  late GoogleMapControllerImpl _googleMapController;
+  late FallbackMapControllerImpl _fallbackMapController;
+  bool _controllersInitialized = false;
 
   bool _navigated = false;
 
   @override
-void initState() {
-  super.initState();
+  void initState() {
+    super.initState();
+    
+    _googleMapController = GoogleMapControllerImpl();
+    _fallbackMapController = FallbackMapControllerImpl();
+    _controllersInitialized = true;
 
-   final shipmentId = widget.session.shipment?.shipmentId;
-  if (shipmentId != null) {
-    widget.googleShipmentRouteController.startRealtime(shipmentId);
-  }
+    final shipmentId = widget.session.shipment?.shipmentId;
+    if (shipmentId != null) {
+      widget.googleShipmentRouteController.startRealtime(shipmentId);
+    }
 
-  
-  pingController = context.read<ClientSessionLocationPingController>();
+    pingController = context.read<ClientSessionLocationPingController>();
 
-  
     _initializeSession();
 
     shipmentController = context.read<ShipmentController>();
 
-  shipmentListener = () {
-    if (!mounted || _navigated) return;
+    shipmentListener = () {
+      if (!mounted || _navigated) return;
 
-    if (shipmentController.completedSessionShipmentId !=
-        widget.session.shipment!.shipmentId) {
-      return;
-    }
+      if (shipmentController.completedSessionShipmentId !=
+          widget.session.shipment!.shipmentId) {
+        return;
+      }
 
-    _navigated = true;
+      _navigated = true;
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => RatingScreen(
-          sessionId: widget.session.sessionId!,
-         
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => RatingScreen(
+            sessionId: widget.session.sessionId!,
+            
+          ),
         ),
-      ),
+      );
+    };
+
+    shipmentController.addListener(shipmentListener);
+  }
+
+  Future<void> _initializeSession() async {
+    await pingController.initSession(
+      id: widget.session.sessionId!,
+      backendCheckinTime: widget.session.checkinTime,
     );
-  };
 
-  shipmentController.addListener(shipmentListener);
-}
+    if (!mounted) return;
 
-Future<void> _initializeSession() async {
-  await pingController.initSession(
-    id: widget.session.sessionId!,
-    backendCheckinTime: widget.session.checkinTime,
-  );
+    widget.googleShipmentRouteController.setInitialPing(
+      pingController.latestPing,
+    );
 
-  if (!mounted) return;
-
-  widget.googleShipmentRouteController.setInitialPing(
-    pingController.latestPing,
-  );
-
-  widget.googleShipmentRouteController.startElapsedTimer(
-  widget.session.checkinTime!,
-);
-}
-
-
+    widget.googleShipmentRouteController.startElapsedTimer(
+      widget.session.checkinTime!,
+    );
+  }
 
   @override
   void dispose() {
+    _googleMapController.dispose();
+    _fallbackMapController.dispose();
     shipmentController.removeListener(shipmentListener);
     super.dispose();
   }
@@ -108,10 +113,12 @@ Future<void> _initializeSession() async {
     return AnimatedBuilder(
       animation: widget.googleShipmentRouteController,
       builder: (context, child) {
-        return WillPopScope(
-          onWillPop: () async {
-            goToSchedule(context);
-            return false;
+        return PopScope(
+          canPop: false,
+          onPopInvoked: (didPop) {
+            if (!didPop) {
+              goToSchedule(context);
+            }
           },
           child: Scaffold(
             backgroundColor: const Color(0xFFF8F9FA),
@@ -127,6 +134,7 @@ Future<void> _initializeSession() async {
                 ),
               ),
               leading: IconButton(
+                color: Colors.white,
                 icon: const Icon(Icons.arrow_back),
                 onPressed: () => goToSchedule(context),
               ),
@@ -134,9 +142,11 @@ Future<void> _initializeSession() async {
             body: Stack(
               children: [
                 Positioned.fill(
-                  child: GeofenceMapSection(
+                  child: AdaptiveSessionMapSection(
                     controller: widget.googleShipmentRouteController,
                     session: widget.session,
+                    googleMapController: _googleMapController,
+                    fallbackMapController: _fallbackMapController,
                   ),
                 ),
                 DraggableScrollableSheet(
@@ -183,18 +193,19 @@ Future<void> _initializeSession() async {
                             ),
                             const SizedBox(height: 16),
                             if (widget.session.shipment?.serviceOrdered
-                                    ?.providerForService?.provider !=
-                                null) ...[
-                              SessionProviderCard(
-                                provider: widget
-                                    .session
-                                    .shipment!
-                                    .serviceOrdered!
-                                    .providerForService!
-                                    .provider,
-                              ),
-                              const SizedBox(height: 16),
-                            ],
+        ?.providerForService?.provider !=
+    null) ...[
+  SessionProviderCard(
+    provider: widget
+        .session
+        .shipment!
+        .serviceOrdered!
+        .providerForService!
+        .provider,
+    service: widget.session.shipment!.serviceOrdered!, // ← add this
+  ),
+  const SizedBox(height: 16),
+],
                             SessionDetailsCard(
                               session: widget.session,
                             ),

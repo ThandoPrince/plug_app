@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
 import 'package:flutter_application_1/global_util/services/models/cost_of_service_model.dart';
 
-class CostOfServiceCard extends StatefulWidget {
+class CostOfServiceCard extends StatelessWidget {
   final List<CostOfServiceModel> costs;
   final int? serviceId;
 
@@ -13,34 +13,27 @@ class CostOfServiceCard extends StatefulWidget {
   });
 
   @override
-  State<CostOfServiceCard> createState() => _CostOfServiceCardState();
-}
-
-class _CostOfServiceCardState extends State<CostOfServiceCard> {
-  @override
   Widget build(BuildContext context) {
-    final filteredCosts = widget.serviceId == null
-        ? widget.costs
-        : widget.costs
-             .where((cost) =>
-             cost.basePrice != null)
-            .toList();
+    final filteredCosts = serviceId == null
+        ? costs
+        : costs.where((cost) => cost.basePrice != null).toList();
 
     if (filteredCosts.isEmpty) {
-      return const SizedBox.shrink(); // Hide if no data
+      return const SizedBox.shrink();
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Padding(
-          padding: EdgeInsets.fromLTRB(18, 20, 18, 12),
+          padding: EdgeInsets.fromLTRB(2, 4, 2, 12),
           child: Row(
             children: [
-              Icon(Icons.payments_outlined, color: Kolors.kPrimary, size: 22),
+              Icon(Icons.local_offer_outlined,
+                  color: Kolors.kPrimary, size: 22),
               SizedBox(width: 10),
               Text(
-                "Service Pricing",
+                "Pricing & Offers",
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w900,
@@ -51,17 +44,18 @@ class _CostOfServiceCardState extends State<CostOfServiceCard> {
             ],
           ),
         ),
-        ...filteredCosts.map((cost) => _buildCostItem(cost)),
+        ...filteredCosts.map(_buildCostItem),
       ],
     );
   }
 
   Widget _buildCostItem(CostOfServiceModel cost) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.symmetric(vertical: 6),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Kolors.kPrimary.withOpacity(0.08)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.04),
@@ -72,46 +66,36 @@ class _CostOfServiceCardState extends State<CostOfServiceCard> {
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Kolors.kSecondaryLight.withOpacity(0.4),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Kolors.kSecondaryLight.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.payments_outlined,
+                  color: Kolors.kPrimary, size: 22),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
                     cost.basePrice != null
                         ? 'R ${cost.basePrice!.toStringAsFixed(2)}'
                         : 'Contact for Price',
                     style: const TextStyle(
                       color: Kolors.kPrimary,
                       fontWeight: FontWeight.w900,
-                      fontSize: 14,
+                      fontSize: 16,
                     ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            
-            if (cost.notes != null && cost.notes!.isNotEmpty) ...[
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 10),
-                child: Divider(height: 1, color: Color(0xFFF1F1F1)),
-              ),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(Icons.info_outline, size: 14, color: Colors.grey),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
+                  if (cost.notes != null && cost.notes!.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(
                       cost.notes!,
                       style: TextStyle(
                         fontSize: 13,
@@ -119,29 +103,11 @@ class _CostOfServiceCardState extends State<CostOfServiceCard> {
                         fontStyle: FontStyle.italic,
                       ),
                     ),
-                  ),
+                  ],
                 ],
               ),
-            ],
+            ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBadge(String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontSize: 11,
-          fontWeight: FontWeight.bold,
         ),
       ),
     );

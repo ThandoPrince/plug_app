@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
+import 'package:flutter_application_1/common/widgets/shimmers/client_ratings_skeleton.dart';
 import 'package:flutter_application_1/global_util/services/controler/completed_service_controller.dart';
 import 'package:flutter_application_1/screens/completed_services/completed_services_details/views/completed_services_details_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -54,91 +55,90 @@ void initState() {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        title: Text(
-          'Service History',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 18.sp,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
+Widget build(BuildContext context) {
+  return Scaffold(
+    body: Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
           colors: [Kolors.kPrimary, Kolors.kPrimary, Kolors.kWhite],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        ),
-        child: Consumer<ClientRatingsController>(
-          builder: (context, controller, child) {
-            if (controller.isLoading) {
-              return const Center(child: CircularProgressIndicator(color: Colors.white));
-            }
-
-            if (controller.ratings.isEmpty) {
-  return ListView(
-    physics: const AlwaysScrollableScrollPhysics(),
-    children: [
-      const SizedBox(height: 120),
-      Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.check_circle_outline,
-            size: 100,
-            color: Colors.white.withOpacity(0.6),
-          ),
-          const SizedBox(height: 20),
-          const Text(
-            "No Completed Services",
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Kolors.kWhite,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 10),
-          Text(
-            "Once your services are completed, they will appear here.",
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              color: Kolors.kWhite.withOpacity(0.8),
+      ),
+      child: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) => [
+          SliverAppBar(
+            floating: true,   // shows immediately on scroll-up, doesn't wait to reach top
+            snap: true,       // completes the show/hide animation once triggered
+            elevation: 0,
+            backgroundColor: Colors.transparent,
+            iconTheme: const IconThemeData(color: Colors.white),
+            title: Text(
+              'Service History',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18.sp,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],
-      ),
-    ],
-  );
-}
+        body: Consumer<ClientRatingsController>(
+          builder: (context, controller, child) {
+            if (controller.isLoading) {
+              return const ClientRatingsSkeleton();
+            }
+
+            if (controller.ratings.isEmpty) {
+              return ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: [
+                  const SizedBox(height: 120),
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.check_circle_outline,
+                        size: 100,
+                        color: Colors.white.withOpacity(0.6),
+                      ),
+                      const SizedBox(height: 20),
+                      const Text(
+                        "No Completed Services",
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Kolors.kWhite,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        "Once your services are completed, they will appear here.",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Kolors.kWhite.withOpacity(0.8),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              );
+            }
 
             return RefreshIndicator(
-  onRefresh: () async {
-    await controller.refresh();
-  },
-  color: Colors.white,
-  backgroundColor: Kolors.kPrimary,
-  child: ListView.separated(
-    physics: const AlwaysScrollableScrollPhysics(),
-    padding: EdgeInsets.fromLTRB(
-      16.w,
-      kToolbarHeight + 40.h,
-      16.w,
-      20.h,
-    ),
-    itemCount: controller.ratings.length,
-    separatorBuilder: (context, index) => SizedBox(height: 12.h),
-    itemBuilder: (_, index) {
+              onRefresh: () async {
+                await controller.refresh();
+              },
+              color: Colors.white,
+              backgroundColor: Kolors.kPrimary,
+              child: ListView.separated(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 20.h),
+                itemCount: controller.ratings.length,
+                separatorBuilder: (context, index) => SizedBox(height: 12.h),
+                itemBuilder: (_, index) {
       final rating = controller.ratings[index];
       final provider = rating.session?.shipment?.serviceOrdered
           ?.providerForService?.provider;
@@ -148,8 +148,12 @@ void initState() {
               ?.serviceName ??
               "Service";
 
+              final orderId =
+          rating.session?.shipment?.serviceOrdered?.orderId ?? "UNKNOWN";
+
+
       final status =
-          rating.session?.sessionStatus ?? "Completed";
+          rating.session?.sessionStatus ?? "UNKNOWN";
 
       int score = 0;
       if (rating.score != null) {
@@ -206,25 +210,49 @@ void initState() {
                     ],
                   ),
                   Text(
-                    provider?.fullName ?? 'Unknown',
-                    style: TextStyle(
-                      color: Colors.black38,
-                      fontSize: 13.sp,
-                    ),
-                  ),
-                  SizedBox(height: 4.h),
-                  Row(
-                    children: List.generate(
-                      5,
-                      (i) => Icon(
-                        Icons.star,
-                        size: 12.sp,
-                        color: i < score
-                            ? Colors.orangeAccent
-                            : Colors.white30,
-                      ),
-                    ),
-                  ),
+  provider?.fullName ?? 'Unknown',
+  style: TextStyle(
+    color: Colors.black38,
+    fontSize: 13.sp,
+  ),
+),
+
+SizedBox(height: 3.h),
+
+Row(
+  children: [
+    Icon(
+      Icons.tag,
+      size: 11.sp,
+      color: Colors.black38,
+    ),
+    SizedBox(width: 3.w),
+    Text(
+      orderId.toString(),
+      style: TextStyle(
+        color: Colors.black38,
+        fontSize: 11.sp,
+        fontWeight: FontWeight.w500,
+      ),
+    ),
+  ],
+),
+
+SizedBox(height: 4.h),
+
+Row(
+  children: List.generate(
+    5,
+    (i) => Icon(
+      Icons.star,
+      size: 12.sp,
+      color: i < score
+          ? Colors.orangeAccent
+          : Colors.white30,
+    ),
+  ),
+),
+      
                 ],
               ),
             ),
@@ -244,7 +272,7 @@ void initState() {
           },
         ),
       ),
-    );
+  ));
   }
 
   Widget _buildGlassListItem({required Widget child, required VoidCallback onTap}) {

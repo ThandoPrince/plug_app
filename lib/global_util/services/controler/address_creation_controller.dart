@@ -118,8 +118,15 @@ class AddressCreationController with ChangeNotifier {
       }
     }
 
-    latitudeController.text = result.geometry?.location.lat.toString() ?? "";
-    longitudeController.text = result.geometry?.location.lng.toString() ?? "";
+    final latitude = result.geometry?.location.lat;
+final longitude = result.geometry?.location.lng;
+
+if (latitude == null || longitude == null) {
+  throw Exception("Google Maps did not return valid coordinates.");
+}
+
+latitudeController.text = latitude.toStringAsFixed(7);
+longitudeController.text = longitude.toStringAsFixed(7);
 
     notifyListeners();
   }
@@ -162,8 +169,8 @@ class AddressCreationController with ChangeNotifier {
           "administrative_area_level_1": stateController.text.trim(),
           "country": countryController.text.trim(),
           "postal_code": postalCodeController.text.trim(),
-          "latitude": double.parse(latitudeController.text),
-          "longitude": double.parse(longitudeController.text),
+          "latitude": _formatCoordinate(latitudeController.text),
+"longitude": _formatCoordinate(longitudeController.text),
           "building_type": buildingType,
           "unit_number": unitNumberController.text.trim(),
           "access_notes": accessNotesController.text.trim(),
@@ -220,6 +227,15 @@ class AddressCreationController with ChangeNotifier {
     }
   }
 
+String _formatCoordinate(String value) {
+  final coordinate = double.tryParse(value);
+
+  if (coordinate == null) {
+    throw FormatException("Invalid coordinate: $value");
+  }
+
+  return coordinate.toStringAsFixed(7);
+}
 
 
  

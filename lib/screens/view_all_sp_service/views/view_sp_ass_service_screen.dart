@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
 
 import 'package:flutter_application_1/common/widgets/flushbar_service.dart';
+import 'package:flutter_application_1/common/widgets/shimmers/provider_list_skeleton.dart';
 import 'package:flutter_application_1/screens/booking/views/MultiProviderBookingScreen.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_application_1/const/services/sp_api.dart';
@@ -192,9 +193,7 @@ class _ServiceProvidersByServiceScreenState
     future: _futureProviders,
     builder: (context, snapshot) {
       if (snapshot.connectionState == ConnectionState.waiting) {
-        return const Center(
-          child: CircularProgressIndicator(color: Colors.white),
-        );
+        return const ProviderListSkeleton();
       }
 
       if (snapshot.hasError) {

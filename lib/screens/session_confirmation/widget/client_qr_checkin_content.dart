@@ -108,6 +108,7 @@ class _ClientQrCheckinContentState extends State<ClientQrCheckinContent> {
     }
 
     final order = controller.token!.shipment?.serviceOrdered;
+    
     final int? orderId = order?.orderId;
 
     final double backendFinalPrice =

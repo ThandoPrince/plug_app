@@ -2,23 +2,24 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_application_1/global_util/services/api_client.dart';
-import 'package:flutter_application_1/global_util/services/models/client_models/address_client_model.dart';
+import 'package:flutter_application_1/global_util/services/models/client_models/household_model.dart';
+
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
 class HouseholdApiHelper {
-  static final String _baseUrl = dotenv.env['API_BASE_URL'] ?? '';
+  static final String baseUrl = dotenv.env['API_BASE_URL'] ?? '';
   static const Duration _timeout = Duration(seconds: 15);
 
   // =========================
   // GET HOUSEHOLD MEMBERS
   // =========================
-  static Future<List<AddressClientModel>> getHouseholdMembers(
+  static Future<List<HouseHoldModel>> getHouseholdMembers(
     int clientAddressId,
   ) async {
     final uri = Uri.parse(
-      '$_baseUrl/client-address/$clientAddressId/household-members/',
+      '$baseUrl/client-address/$clientAddressId/household-members/',
     );
 
     try {
@@ -59,7 +60,7 @@ class HouseholdApiHelper {
 
       return data
           .whereType<Map<String, dynamic>>()
-          .map(AddressClientModel.fromJson)
+          .map(HouseHoldModel.fromJson)
           .toList();
     } on TimeoutException {
       throw Exception("Server timeout. Please try again.");

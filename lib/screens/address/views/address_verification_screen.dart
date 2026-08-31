@@ -24,6 +24,7 @@ class _AddressVerificationUploadScreenState
     extends State<AddressVerificationUploadScreen> {
   File? _proofFile;
   File? _idFile;
+  File? _videoFile;
 
   Future<void> _pickImage(ImageSource source, bool isId, AddressVerificationController ctrl) async {
     final picker = ImagePicker();
@@ -38,6 +39,25 @@ class _AddressVerificationUploadScreenState
           _proofFile = File(file.path);
           ctrl.setProofOfResidence(_proofFile!);
         }
+      });
+    }
+  }
+
+  // Liveness video is always recorded live via the camera — never picked
+  // from the gallery — since the point is to prove the person is present
+  // right now, not that a video of them exists somewhere.
+  Future<void> _recordLivenessVideo(AddressVerificationController ctrl) async {
+    final picker = ImagePicker();
+    final file = await picker.pickVideo(
+      source: ImageSource.camera,
+      preferredCameraDevice: CameraDevice.front,
+      maxDuration: const Duration(seconds: 15),
+    );
+    if (file != null) {
+      HapticFeedback.mediumImpact();
+      setState(() {
+        _videoFile = File(file.path);
+        ctrl.setLivenessVideo(_videoFile!);
       });
     }
   }
@@ -108,7 +128,7 @@ class _AddressVerificationUploadScreenState
                                   ),
                                   SizedBox(height: 8.h),
                                   Text(
-                                    "To keep our community safe, please upload a clear photo of the documents below.",
+                                    "To keep our community safe, please upload a clear photo of the documents below and record a short selfie video.",
                                     style: TextStyle(fontSize: 14.sp, color: Colors.grey.shade600, height: 1.4),
                                   ),
                                   SizedBox(height: 30.h),
@@ -129,6 +149,17 @@ class _AddressVerificationUploadScreenState
                                     file: _idFile,
                                     onTap: () => _pickImage(ImageSource.gallery, true, ctrl),
                                   ),
+
+                                  SizedBox(height: 16.h),
+
+                                  _buildUploadTile(
+                                    title: "Liveness Video",
+                                    subtitle: "Record a short selfie video — face clearly visible",
+                                    file: _videoFile,
+                                    icon: Ionicons.videocam_outline,
+                                    onTap: () => _recordLivenessVideo(ctrl),
+                                  ),
+
                                   SizedBox(height: 40.h),
 
                                   if (ctrl.error != null)
@@ -213,7 +244,13 @@ class _AddressVerificationUploadScreenState
     );
   }
 
-  Widget _buildUploadTile({required String title, required String subtitle, File? file, required VoidCallback onTap}) {
+  Widget _buildUploadTile({
+    required String title,
+    required String subtitle,
+    File? file,
+    required VoidCallback onTap,
+    IconData icon = Ionicons.camera_outline,
+  }) {
     bool hasFile = file != null;
 
     return GestureDetector(
@@ -243,7 +280,7 @@ class _AddressVerificationUploadScreenState
                 border: Border.all(color: hasFile ? Kolors.kPrimary : Colors.grey.shade300),
               ),
               child: Icon(
-                hasFile ? Ionicons.checkmark_circle : Ionicons.camera_outline,
+                hasFile ? Ionicons.checkmark_circle : icon,
                 color: hasFile ? Colors.white : Colors.grey.shade400,
                 size: 26,
               ),
@@ -273,7 +310,10 @@ class _AddressVerificationUploadScreenState
   
 
   Widget _buildBottomAction(AddressVerificationController ctrl, int id) {
-  bool isReady = _idFile != null && _proofFile != null && !ctrl.isLoading;
+  bool isReady = _idFile != null &&
+      _proofFile != null &&
+      _videoFile != null &&
+      !ctrl.isLoading;
 
   return Container(
     padding: EdgeInsets.only(

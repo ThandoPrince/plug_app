@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/const/services/client_services/households_api_helper.dart';
-import 'package:flutter_application_1/global_util/services/models/client_models/address_client_model.dart';
+
+import 'package:flutter_application_1/global_util/services/models/client_models/household_model.dart';
 
 
 class HouseholdController extends ChangeNotifier {
-  List<AddressClientModel> _members = [];
+  List<HouseHoldModel> _members = [];
   bool _isLoading = false;
   String? _error;
 
-  List<AddressClientModel> get members => _members;
+  List<HouseHoldModel> get members => _members;
   bool get isLoading => _isLoading;
   String? get error => _error;
 

@@ -1,13 +1,16 @@
-
 import 'package:flutter_application_1/global_util/services/controler/address_a_creation_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/cancel_order_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/cancel_shipment_controller.dart';
+import 'package:flutter_application_1/global_util/services/controler/client_otp_controller.dart';
+import 'package:flutter_application_1/global_util/services/controler/client_otp_login_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/client_profile_update_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/completed_service_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/cost_of_service_byemail_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/cost_of_service_image_controller.dart';
+import 'package:flutter_application_1/global_util/services/controler/deactivate_address_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/get_client_auth_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/google_map_controller.dart';
+import 'package:flutter_application_1/global_util/services/controler/household_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/logout_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/negotiation_badge_store_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/negotiation_realtime_controller.dart';
@@ -16,6 +19,7 @@ import 'package:flutter_application_1/global_util/services/controler/reject_nego
 import 'package:flutter_application_1/global_util/services/controler/reset_password_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/shipment_reshedule_controler.dart';
 import 'package:flutter_application_1/global_util/services/controler/sp_rating_controller.dart';
+import 'package:flutter_application_1/global_util/services/controler/super_user_deactivate_address_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/update_final_price_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/update_order_service_controller.dart';
 import 'package:flutter_application_1/screens/Onboarding/controllers/onboarding_notifiers.dart';
@@ -39,6 +43,7 @@ import 'package:flutter_application_1/global_util/services/controler/client_prof
 import 'package:flutter_application_1/global_util/services/controler/confirm_session_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/create_booking_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/def_add_controller.dart';
+import 'package:flutter_application_1/global_util/services/controler/device_capability_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/get_client_shipment_ctrl.dart';
 import 'package:flutter_application_1/global_util/services/controler/home_here_map_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/home_refresh_ctrl.dart';
@@ -96,6 +101,8 @@ List<SingleChildWidget> appProviders = [
   ChangeNotifierProvider(create: (_) => LocationController()),
   ChangeNotifierProvider(create: (_) => PatchOrderFinalPriceController()),
   ChangeNotifierProvider(create: (_) => LocationPermissionCtrl()),
+   ChangeNotifierProvider(create: (_) => ClientOtpController()),
+   ChangeNotifierProvider(create: (_) => LoginOtpController()),
   ChangeNotifierProvider(create: (_) => CostOfServiceImageController()),
   ChangeNotifierProvider(create: (_) => UpdateOrderServiceController()),
   ChangeNotifierProvider(
@@ -108,6 +115,17 @@ List<SingleChildWidget> appProviders = [
   ChangeNotifierProvider(create: (_) => ClientRatingsController()),
   ChangeNotifierProvider(create: (_) => NegotiatedPriceController()),
   ChangeNotifierProvider(create: (_) => ClientStartRoundController()),
+  ChangeNotifierProvider<DeactivateAddressController>(
+        create: (_) => DeactivateAddressController(),
+      ),
+
+      ChangeNotifierProvider<HouseholdController>(
+        create: (_) => HouseholdController(),
+      ),
+
+      ChangeNotifierProvider(create: (_) => SuperUserDeactivateAddressController()),
+
+      
 ChangeNotifierProvider<DefAddController>(
   create: (_) => DefAddController(),
   child: MultiProvider(
@@ -115,10 +133,12 @@ ChangeNotifierProvider<DefAddController>(
       ChangeNotifierProvider<SPByAddressController>(
         create: (_) => SPByAddressController(),
       ),
-     
+      
       ChangeNotifierProvider<ServiceController>(
         create: (_) => ServiceController(),
       ),
+
+      
 
       
       // HomeRefreshController depends on SPByAddressController + HereMapMarkerController + DefAddController
@@ -161,4 +181,5 @@ spAddrCtrl: SpAddressControllerByID()
   ChangeNotifierProvider(create: (_) => ClientSessionLocationPingController()),
   ChangeNotifierProvider(create: (_) => ClientProfileUpdateController ()),
   ChangeNotifierProvider(create: (_) => RatingController()),
+  ChangeNotifierProvider(create: (_) => DeviceCapabilityController.instance),
 ];

@@ -2,21 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
 import 'package:flutter_application_1/global_util/services/models/cost_of_service_model.dart';
 
-class CostOfService extends StatefulWidget {
+class CostAOfService extends StatefulWidget {
   final List<CostOfServiceModel> costs;
   final int? serviceId;
 
-  const CostOfService({
+  const CostAOfService({
     super.key,
     required this.costs,
     this.serviceId,
   });
 
   @override
-  State<CostOfService> createState() => _CostOfServiceState();
+  State<CostAOfService> createState() => _CostAOfServiceState();
 }
 
-class _CostOfServiceState extends State<CostOfService> {
+class _CostAOfServiceState extends State<CostAOfService> {
   @override
   Widget build(BuildContext context) {
     final filteredCosts = widget.serviceId == null

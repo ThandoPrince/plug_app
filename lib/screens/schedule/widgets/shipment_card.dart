@@ -30,6 +30,7 @@ class _ShipmentScheduleCardState extends State<ShipmentScheduleCard> {
   @override
   Widget build(BuildContext context) {
     final order = widget.shipment.serviceOrdered;
+    final orderId = order?.orderId;
 
     return Container(
       decoration: BoxDecoration(
@@ -88,18 +89,37 @@ class _ShipmentScheduleCardState extends State<ShipmentScheduleCard> {
             ),
 
             // Details
-            _buildDetailRow(Icons.event_note_rounded, widget.shipment.formattedDate, 'Scheduled Date'),
-            const SizedBox(height: 12),
-            _buildDetailRow(Icons.access_time_filled_rounded, widget.shipment.formattedTime, 'Arrival Time'),
+            // Details
+_buildDetailRow(
+  Icons.tag,
+  orderId?.toString() ?? 'N/A',
+  'Order ID',
+),
 
-            if (order?.providerForService != null) ...[
-              const SizedBox(height: 12),
-              _buildDetailRow(
-                Icons.person_pin_rounded,
-                _cleanProviderName(order!.providerForService.toString()),
-                'Service Provider',
-              ),
-            ],
+const SizedBox(height: 12),
+
+_buildDetailRow(
+  Icons.event_note_rounded,
+  widget.shipment.formattedDate,
+  'Scheduled Date',
+),
+
+const SizedBox(height: 12),
+
+_buildDetailRow(
+  Icons.access_time_filled_rounded,
+  widget.shipment.formattedTime,
+  'Arrival Time',
+),
+
+if (order?.providerForService != null) ...[
+  const SizedBox(height: 12),
+  _buildDetailRow(
+    Icons.person_pin_rounded,
+    _cleanProviderName(order!.providerForService.toString()),
+    'Service Provider',
+  ),
+],
 
             const SizedBox(height: 24),
 
@@ -129,7 +149,7 @@ final routeController = GoogleShipmentRouteController(
   shipmentController: widget.shipmentController,
 );
   /// 🚀 1. IN TRANSIT or ARRIVED → TRACK ROUTE
-  if (shipmentStatus == 'in_transit' || shipmentStatus == 'arrived' || shipmentStatus == 'rescheduled') {
+  if (shipmentStatus == 'in_transit' || shipmentStatus == 'arrived' || shipmentStatus == 'rescheduled' || shipmentStatus == 'pending' ) {
     Navigator.push(
       context,
       MaterialPageRoute(

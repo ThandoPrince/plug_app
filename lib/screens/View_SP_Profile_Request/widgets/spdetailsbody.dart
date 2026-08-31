@@ -2,291 +2,208 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
 import 'package:flutter_application_1/common/utils/url_utils.dart';
 import 'package:flutter_application_1/global_util/services/controler/sp_by_email_controller.dart';
+import 'package:flutter_application_1/global_util/services/controler/sp_rating_controller.dart';
 import 'package:flutter_application_1/screens/profile/widgets/full_screen_image_viewer.dart';
 import 'package:provider/provider.dart';
 
-class SPDetailsBody extends StatefulWidget {
+class SPDetailsBody extends StatelessWidget {
   final String id;
 
   const SPDetailsBody({super.key, required this.id});
 
-  @override
-  State<SPDetailsBody> createState() => _SPDetailsBodyState();
-}
-
-class _SPDetailsBodyState extends State<SPDetailsBody> {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final providerId = int.tryParse(widget.id);
-      if (providerId != null) {
-        Provider.of<ServiceProviderByEmailController>(context, listen: false)
-            .fetchProviderByEmail(providerId);
-      }
-    });
-  }
-
-  Widget _buildState({
-  required IconData icon,
-  required String title,
- required String subtitle,
-}) {
-  return Center(
-    child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            size: 90,
-            color: Kolors.kPrimary.withOpacity(.7),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF263238),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            subtitle,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 15,
-              color: Colors.blueGrey.shade600,
-              height: 1.4,
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
-}
+  // NOTE: no initState/fetch here anymore. The parent screen
+  // (ServiceProviderDetailsScreen) already fetches this provider and
+  // hands the SAME controller instance down via ChangeNotifierProvider.value.
+  // Fetching again here caused the controller to re-enter its loading
+  // state right after finishing, which is what produced the flicker.
 
   @override
   Widget build(BuildContext context) {
     return Consumer<ServiceProviderByEmailController>(
       builder: (context, controller, _) {
-        if (controller.isLoading) {
-          return const Center(
-              child: CircularProgressIndicator(color: Kolors.kPrimary));
+        final provider = controller.provider;
+
+        if (provider == null) {
+          return const SizedBox.shrink(); // parent's skeleton covers this case
         }
 
-        if (controller.error != null) {
-  final error = controller.error!.toLowerCase();
-
-  IconData icon = Icons.cloud_off_outlined;
-  String title = "Unable to Load Provider";
-  String subtitle = "Something went wrong. Please try again.";
-
-  if (error.contains("socket") ||
-      error.contains("network") ||
-      error.contains("internet")) {
-    icon = Icons.wifi_off;
-    title = "No Internet Connection";
-    subtitle = "Please connect to the internet and try again.";
-  } else if (error.contains("timeout")) {
-    icon = Icons.access_time;
-    title = "Request Timed Out";
-    subtitle = "The server took too long to respond.";
-  } else if (error.contains("500") ||
-      error.contains("502") ||
-      error.contains("503") ||
-      error.contains("server")) {
-    icon = Icons.cloud_off_outlined;
-    title = "Server Unavailable";
-    subtitle = "We're unable to reach the server right now.";
-  }
-
-  return _buildState(
-    icon: icon,
-    title: title,
-    subtitle: subtitle,
-  );
-}
-
-        final provider = controller.provider;
-        if (provider == null) {
-  return _buildState(
-    icon: Icons.person_search_outlined,
-    title: "Provider Not Found",
-    subtitle: "We couldn't find the requested provider.",
-  );
-}
-
-
-
         final imageUrl = getFullImageUrl(provider.profileImage);
+        final reviewCount = context.watch<SPRatingController>().ratings.length;
 
         return Stack(
+          clipBehavior: Clip.none,
           children: [
-            // 1. Top Background Gradient
             Container(
-              height: 200,
+              height: 190,
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [Kolors.kPrimary, Kolors.kSecondaryLight],
                 ),
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(32),
+                  bottomRight: Radius.circular(32),
+                ),
               ),
             ),
-
-            // 2. Content
-            SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 100, 20, 20),
-              child: Column(
-                children: [
-                  // Profile Card
-                  Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(28),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.08),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
+            Padding(
+              padding: const EdgeInsets.only(top: 90),
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(28),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 80),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            provider.fullName.toString().toUpperCase(),
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
+                              color: Color(0xFF263238),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        const Tooltip(
+                          message: "Verified Provider",
+                          child: Icon(Icons.verified,
+                              color: Kolors.kPrimary, size: 20),
                         ),
                       ],
                     ),
-                    child: Column(
-                      children: [
-                        const SizedBox(
-                            height: 80), // Space for overlapping image
-                        Text(
-                          provider.fullName.toString().toUpperCase(),
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w900,
-                            color: Color(0xFF263238),
+                    const SizedBox(height: 6),
+                    Text(
+                      "Trusted local service provider",
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.blueGrey.shade400,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.star, color: Colors.orange, size: 18),
+                          const SizedBox(width: 4),
+                          Text(
+                            provider.rating?.toString() ?? "N/A",
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.star,
-                                color: Colors.orange, size: 20),
-                            const SizedBox(width: 4),
-                            Text(
-                              provider.rating?.toString() ?? "N/A",
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
+                          const SizedBox(width: 4),
+                          Text(
+                            reviewCount > 0 ? "($reviewCount reviews)" : "(new provider)",
+                            style: const TextStyle(color: Colors.grey, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 30, vertical: 20),
+                      child: Divider(thickness: 1, color: Color(0xFFECEFF1)),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(25, 0, 25, 25),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _infoTile(Icons.person_outline_rounded, "Gender",
+                              provider.gender.toString()),
+                          _infoTile(Icons.cake_outlined, "Birthday",
+                              provider.dob.toString()),
+                          const SizedBox(height: 20),
+                          const Text(
+                            'About Provider',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 18,
+                              color: Color(0xFF263238),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            provider.description ?? "No description available.",
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: Colors.blueGrey.shade600,
+                              height: 1.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Positioned(
+              top: 40,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: GestureDetector(
+                  onTap: imageUrl != null
+                      ? () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => FullScreenImageViewer(
+                                image: NetworkImage(imageUrl),
                               ),
                             ),
-                            const Text(" (Rating)",
-                                style: TextStyle(color: Colors.grey)),
-                          ],
-                        ),
-
-                        const Padding(
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 30, vertical: 20),
-                          child:
-                              Divider(thickness: 1, color: Color(0xFFECEFF1)),
-                        ),
-
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(25, 0, 25, 25),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              
-                              _infoTile(Icons.person_outline_rounded, "Gender",
-                                  provider.gender.toString()),
-                              _infoTile(Icons.cake_outlined, "Birthday",
-                                  provider.dob.toString()),
-
-                              const SizedBox(height: 20),
-                              const Text(
-                                'About Provider',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 18,
-                                  color: Color(0xFF263238),
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              Text(
-                                provider.description ??
-                                    "No description available.",
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  color: Colors.blueGrey.shade600,
-                                  height: 1.5,
-                                ),
-                              ),
-                              
-
-                              // Action Button
-                              
-                            ],
-                          ),
+                          );
+                        }
+                      : null,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 5),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, 5),
                         ),
                       ],
                     ),
-                  ),
-                ],
-              ),
-            ),
-
-            // 3. Floating Profile Image
-            Positioned(
-  top: 50,
-  left: 0,
-  right: 0,
-  child: Center(
-    child: GestureDetector(
-      onTap: imageUrl != null
-          ? () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => FullScreenImageViewer(
-                    image: NetworkImage(imageUrl),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(100),
+                      child: imageUrl != null
+                          ? Image.network(
+                              imageUrl,
+                              width: 110,
+                              height: 110,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => _defaultImage(),
+                            )
+                          : _defaultImage(),
+                    ),
                   ),
                 ),
-              );
-            }
-          : null,
-      child: Container(
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.white, width: 5),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 5),
+              ),
             ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(100),
-          child: imageUrl != null
-              ? Image.network(
-                  imageUrl,
-                  width: 110,
-                  height: 110,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) =>
-                      _defaultImage(),
-                )
-              : _defaultImage(),
-        ),
-      ),
-    ),
-  ),
-),
           ],
         );
       },
@@ -302,54 +219,41 @@ class _SPDetailsBodyState extends State<SPDetailsBody> {
     );
   }
 
-  
-
- Widget _infoTile(IconData icon, String label, String value) {
-  return Padding(
-    padding: const EdgeInsets.only(bottom: 16),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: Kolors.kSecondaryLight.withOpacity(0.5),
-            borderRadius: BorderRadius.circular(12),
+  Widget _infoTile(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Kolors.kSecondaryLight.withOpacity(0.5),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, size: 22, color: Kolors.kPrimary),
           ),
-          child: Icon(icon, size: 22, color: Kolors.kPrimary),
-        ),
-        const SizedBox(width: 16),
-
-        // ✅ THIS IS THE IMPORTANT FIX
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.blueGrey.shade300,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                value,
-                softWrap: true,
-                overflow: TextOverflow.visible,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF455A64),
-                ),
-              ),
-            ],
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label,
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.blueGrey.shade300,
+                        fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                Text(value,
+                    softWrap: true,
+                    overflow: TextOverflow.visible,
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF455A64))),
+              ],
+            ),
           ),
-        ),
-      ],
-    ),
-  );
-}
-
+        ],
+      ),
+    );
+  }
 }

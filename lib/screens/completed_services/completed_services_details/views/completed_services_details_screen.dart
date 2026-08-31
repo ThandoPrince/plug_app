@@ -19,6 +19,7 @@ class ClientRatingDetailsScreen extends StatelessWidget {
     final order = shipment?.serviceOrdered;
     final provider = order?.providerForService?.provider;
     final service = order?.serviceRequired;
+    final orderId = order?.orderId;
 
     final durationSec = rating.session?.durationSeconds ?? 0;
     final durationText = "${(durationSec / 60).floor()}m ${durationSec % 60}s";
@@ -111,6 +112,11 @@ class ClientRatingDetailsScreen extends StatelessWidget {
                   title: "Service Times",
                   child: Column(
                     children: [
+                      _buildDetailRow(
+        Icons.tag,
+        "Order ID",
+        orderId?.toString() ?? 'N/A',
+      ),
                       _buildDetailRow(Icons.calendar_today_outlined, "Check-in",
                           checkinTime),
                       _buildDetailRow(
