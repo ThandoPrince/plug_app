@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 
+import 'package:flutter_application_1/common/utils/kcolors.dart';
+
 class CommonErrorState extends StatelessWidget {
-  final Future<void> Function() onRefresh;
+  final Future Function()? onRefresh;
   final String title;
   final String message;
   final IconData icon;
 
   const CommonErrorState({
     super.key,
-    required this.onRefresh,
+    this.onRefresh,
     this.title = "Something went wrong",
     this.message = "Please try again later.",
     this.icon = Icons.error_outline_rounded,
@@ -16,58 +18,56 @@ class CommonErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return RefreshIndicator(
+    return _buildStateView(
+      icon: icon,
+      title: title,
+      subtitle: message,
       onRefresh: onRefresh,
+    );
+  }
+
+  Widget _buildStateView({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    Future Function()? onRefresh,
+  }) {
+    return RefreshIndicator(
+      color: Kolors.kPrimary,
+      backgroundColor: Colors.white,
+      onRefresh: onRefresh ?? () async {},
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
           const SizedBox(height: 120),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24,
-                vertical: 28,
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 100,
+                color: Colors.white.withOpacity(0.6),
               ),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(.08),
-                    blurRadius: 12,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
+              const SizedBox(height: 20),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
               ),
-              child: Column(
-                children: [
-                  Icon(
-                    icon,
-                    size: 64,
-                    color: Colors.grey.shade500,
-                  ),
-                  const SizedBox(height: 18),
-                  Text(
-                    title,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    message,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.grey.shade700,
-                      fontSize: 15,
-                    ),
-                  ),
-                ],
+              const SizedBox(height: 10),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 14,
+                ),
+                textAlign: TextAlign.center,
               ),
-            ),
+            ],
           ),
         ],
       ),

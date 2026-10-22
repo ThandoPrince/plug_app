@@ -24,7 +24,7 @@ Future<dynamic> showHelpCenterBottomSheet(BuildContext context) {
     builder: (BuildContext sheetContext) {
       Future<void> openWebsite() async {
         final uri = Uri.parse(
-          'https://plugwebsite-production.up.railway.app/',
+          'https://plugprovider.co.za/',
         );
 
         try {
@@ -143,7 +143,7 @@ Future<dynamic> showHelpCenterBottomSheet(BuildContext context) {
                       children: [
                         _ContactRow(
                           icon: MaterialCommunityIcons.email_outline,
-                          text: 't.p.tshabalala98@gmail.com',
+                          text: 'support@plugprovider.co.za',
                         ),
                         _HelpDivider(),
                         _ContactRow(

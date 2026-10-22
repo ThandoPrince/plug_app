@@ -27,7 +27,7 @@ class NegotiationByOrderidApi {
                 if (token != null) "Authorization": "Bearer $token",
               },
             )
-            .timeout(const Duration(seconds: 12));
+            .timeout(const Duration(seconds: 60));
       });
 
       // =========================

@@ -1,7 +1,8 @@
-import 'package:another_flushbar/flushbar_helper.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
 import 'package:flutter_application_1/common/widgets/custom_button.dart';
+import 'package:flutter_application_1/common/widgets/flushbar_service.dart';
 import 'package:flutter_application_1/global_util/services/controler/confirm_session_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/update_final_price_controller.dart';
 import 'package:flutter_application_1/screens/schedule/widgets/go_to_schedule_helper.dart';
@@ -123,31 +124,65 @@ class _ClientQrCheckinContentState extends State<ClientQrCheckinContent> {
           const SizedBox(height: 20),
 
       if (!_interactionEnabled(controller))
-        Container(
-          width: double.infinity,
-          margin: const EdgeInsets.only(bottom: 20),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: Colors.red.shade50,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.red.shade200),
-          ),
-          child: const Row(
-            children: [
-              Icon(Icons.lock_outline, color: Colors.red),
-              SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  "This check-in session has expired. Please go back and refresh for a new Token.",
-                  style: TextStyle(
-                    color: Colors.red,
-                    fontWeight: FontWeight.w600,
-                  ),
+  Container(
+    width: double.infinity,
+    margin: const EdgeInsets.only(bottom: 20),
+    padding: const EdgeInsets.all(14),
+    decoration: BoxDecoration(
+      color: Colors.red.shade50,
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: Colors.red.shade200),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Row(
+          children: [
+            Icon(Icons.lock_outline, color: Colors.red),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                "This check-in session has expired.",
+                style: TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-            ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: controller.isRefreshing
+                ? null
+                : () => controller.refreshToken(),
+            icon: controller.isRefreshing
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Icon(Icons.refresh, size: 18),
+            label: Text(controller.isRefreshing ? "Refreshing..." : "Refresh Token"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Kolors.kPrimary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
           ),
         ),
+      ],
+    ),
+  ),
+
           Container(
             decoration: BoxDecoration(
               color: Colors.white,
@@ -248,17 +283,17 @@ class _ClientQrCheckinContentState extends State<ClientQrCheckinContent> {
       if (!context.mounted) return;
 
       if (patchCtrl.error != null) {
-        FlushbarHelper.createError(
-          message: patchCtrl.error!,
-          duration: const Duration(seconds: 3),
-        ).show(context);
+        FlushbarService.error(
+          context,
+          patchCtrl.error!,
+        );
 
         patchCtrl.clearState();
       } else if (patchCtrl.successMessage != null) {
-        FlushbarHelper.createSuccess(
-          message: patchCtrl.successMessage!,
-          duration: const Duration(seconds: 3),
-        ).show(context);
+        FlushbarService.success(
+          context,
+          patchCtrl.successMessage!,
+        );
 
         patchCtrl.clearState();
       }
@@ -289,9 +324,9 @@ class _ClientQrCheckinContentState extends State<ClientQrCheckinContent> {
   final checkinController = context.read<ClientCheckinController>();
 
   if (checkinController.isExpired) {
-    FlushbarHelper.createError(
-      message: "This QR code has expired. Please go back and refresh.",
-    ).show(context);
+    FlushbarService.error(context,
+      "This QR code has expired. Please go back or refresh.",
+    );
     return;
   }
 
@@ -403,10 +438,7 @@ class _ClientQrCheckinContentState extends State<ClientQrCheckinContent> {
         _localFinalPriceOverride = newPrice;
       });
 
-      FlushbarHelper.createSuccess(
-        message:
-            'Final price updated to R ${newPrice.toStringAsFixed(2)}. Payment type: $_paymentTypeLabel.',
-      ).show(context);
+      
     }
   }
 
@@ -475,10 +507,11 @@ void initState() {
       _textController.text.trim().replaceAll(',', '.'),
     );
 
-    if (parsed == null || parsed < 0) {
-      FlushbarHelper.createError(
-        message: 'Please enter a valid non-negative number.',
-      ).show(context);
+    if (parsed == null || parsed < 0 || parsed == 0) {
+      FlushbarService.error(
+        context,
+        'Please enter a valid non-negative number.',
+      );
       return;
     }
 

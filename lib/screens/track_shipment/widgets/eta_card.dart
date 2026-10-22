@@ -59,117 +59,75 @@ class EtaCard extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: routeController,
-      builder: (context, _) {
-        final route = routeController.activeRoute;
+Widget build(BuildContext context) {
+  return AnimatedBuilder(
+    animation: routeController,
+    builder: (context, _) {
+      final route = routeController.activeRoute;
+      final normalizedStatus = _normalizeStatus(routeController.shipmentStatus);
+      final statusUI = getShipmentStatusUI(routeController.shipmentStatus);
 
-        final statusUI = getShipmentStatusUI(routeController.shipmentStatus);
+      // These statuses never have route data — there's nothing to wait
+      // on, so skip the skeleton entirely and go straight to placeholders
+      // instead of showing a loading state that will never resolve into
+      // real numbers.
+      const noRouteExpectedStatuses = {'pending', 'rescheduled', 'not_in_transit'};
+      final noRouteExpected = noRouteExpectedStatuses.contains(normalizedStatus);
 
-       final isInitialLoad = routeController.isLoading || routeController.isInitializing;
+      final isInitialLoad = routeController.isLoading || routeController.isInitializing;
 
-if (isInitialLoad && route == null) {
-  return Container(
-    height: 100,
-    padding: const EdgeInsets.symmetric(
-      horizontal: 20,
-      vertical: 16,
-    ),
-    decoration: cardDecoration(),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
-      children: [
-        _buildSkeletonMetric(
-          iconWidth: 24,
-          valueWidth: 55,
-          labelWidth: 45,
-        ),
-
-        Container(
-          width: 1,
-          height: 45,
-          color: Colors.grey.shade200,
-        ),
-
-        _buildSkeletonMetric(
-          iconWidth: 24,
-          valueWidth: 45,
-          labelWidth: 30,
-        ),
-
-        Container(
-          width: 1,
-          height: 45,
-          color: Colors.grey.shade200,
-        ),
-
-        _buildSkeletonMetric(
-          iconWidth: 24,
-          valueWidth: 65,
-          labelWidth: 40,
-        ),
-      ],
-    ),
-  );
-}
-
-        // No route yet is a normal state (provider hasn't started
-        // moving / no route created server-side yet) — NOT an error, so
-        // this card stays visible rather than being hidden or replaced.
-        // Showing "0.0 km" / "0 min" in that case would be actively
-        // misleading (it reads as "you have arrived"), so show an
-        // honest placeholder instead until real numbers exist.
-        final hasRoute = route != null;
-
-        final distanceLabel = hasRoute
-            ? "${(route.distanceMeters / 1000).toStringAsFixed(1)} km"
-            : "--";
-
-        final etaLabel = hasRoute
-            ? "${(route.durationSeconds / 60).round()} min"
-            : "--";
-
+      if (isInitialLoad && route == null && !noRouteExpected) {
         return Container(
-          padding: const EdgeInsets.all(20),
+          height: 100,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           decoration: cardDecoration(),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildMetric(
-                Icons.directions_car,
-                distanceLabel,
-                'Distance',
-              ),
-
-              VerticalDivider(
-                color: Colors.grey.shade200,
-                thickness: 1,
-              ),
-
-              _buildMetric(
-                Icons.access_time_rounded,
-                etaLabel,
-                'ETA',
-              ),
-
-              VerticalDivider(
-                color: Colors.grey.shade200,
-                thickness: 1,
-              ),
-
-              _buildMetric(
-                statusUI.icon,
-                statusUI.label,
-                'Status',
-                color: statusUI.color,
-              ),
+              _buildSkeletonMetric(iconWidth: 24, valueWidth: 55, labelWidth: 45),
+              Container(width: 1, height: 45, color: Colors.grey.shade200),
+              _buildSkeletonMetric(iconWidth: 24, valueWidth: 45, labelWidth: 30),
+              Container(width: 1, height: 45, color: Colors.grey.shade200),
+              _buildSkeletonMetric(iconWidth: 24, valueWidth: 65, labelWidth: 40),
             ],
           ),
         );
-      },
-    );
-  }
+      }
+
+      // No route yet is a normal state (provider hasn't started moving /
+      // no route created server-side yet, or the status simply never
+      // produces route data) — NOT an error, so this card stays visible
+      // rather than being hidden or replaced. Showing "0.0 km" / "0 min"
+      // in that case would be actively misleading (it reads as "you have
+      // arrived"), so show an honest placeholder instead until real
+      // numbers exist.
+      final hasRoute = route != null;
+
+      final distanceLabel = hasRoute
+          ? "${(route.distanceMeters / 1000).toStringAsFixed(1)} km"
+          : "--";
+
+      final etaLabel = hasRoute
+          ? "${(route.durationSeconds / 60).round()} min"
+          : "--";
+
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: cardDecoration(),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildMetric(Icons.directions_car, distanceLabel, 'Distance'),
+            VerticalDivider(color: Colors.grey.shade200, thickness: 1),
+            _buildMetric(Icons.access_time_rounded, etaLabel, 'ETA'),
+            VerticalDivider(color: Colors.grey.shade200, thickness: 1),
+            _buildMetric(statusUI.icon, statusUI.label, 'Status', color: statusUI.color),
+          ],
+        ),
+      );
+    },
+  );
+}
 
 
   Widget _buildSkeletonMetric({

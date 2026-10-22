@@ -9,20 +9,28 @@ import 'package:flutter_application_1/global_util/services/models/client_models/
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
+class AddressesPage {
+  final List<AddressClientModel> items;
+  final bool hasNext;
+  const AddressesPage(this.items, this.hasNext);
+}
+
 class AddressClientsApi {
   static final String baseUrl = dotenv.env['API_BASE_URL'] ?? '';
 
-  static const Duration _timeout = Duration(seconds: 15);
+  static const Duration _timeout = Duration(seconds: 60);
 
   // =========================
-  // GET CLIENT ADDRESSES
+  // GET CLIENT ADDRESSES (paginated)
   // =========================
-  static Future<List<AddressClientModel>> getAddressClients() async {
+  static Future<AddressesPage> getAddressesPage({
+    int page = 1,
+    int pageSize = 15,
+  }) async {
     final clientId = AuthSessionController.instance.clientId;
 
-    final url = Uri.parse(
-      '$baseUrl/clientsDB/client-addresses/$clientId/',
-    );
+    final url = Uri.parse('$baseUrl/clientsDB/client-addresses/$clientId/')
+        .replace(queryParameters: {'page': '$page', 'page_size': '$pageSize'});
 
     try {
       final response = await ApiClient.instance.request((token) async {
@@ -31,47 +39,36 @@ class AddressClientsApi {
               url,
               headers: {
                 "Content-Type": "application/json",
-                if (token != null)
-                  "Authorization": "Bearer $token",
+                if (token != null) "Authorization": "Bearer $token",
               },
             )
             .timeout(_timeout);
       }).timeout(_timeout);
 
-      if (kDebugMode) {
-        print("========== CLIENT ADDRESSES ==========");
-        print("URL: $url");
-        print("STATUS: ${response.statusCode}");
-        print("BODY: ${response.body}");
-        print("======================================");
-      }
+      if (kDebugMode) print("CLIENT ADDRESSES ${response.statusCode} $url");
 
-      if (response.statusCode == 404) {
-        return [];
-      }
+      // Past page 1, a 404 means "no more". On page 1 it means no addresses.
+      if (response.statusCode == 404) return const AddressesPage([], false);
 
       if (response.statusCode != 200) {
         throw Exception(_extractError(response));
       }
 
       final decoded = jsonDecode(response.body);
-
-      if (decoded is! List) {
+      if (decoded is! Map<String, dynamic> || decoded['results'] is! List) {
         throw Exception("Invalid response format.");
       }
 
-      return decoded
+      final items = (decoded['results'] as List)
           .whereType<Map<String, dynamic>>()
           .map(AddressClientModel.fromJson)
           .toList();
+
+      return AddressesPage(items, decoded['next'] != null);
     } on TimeoutException {
-      throw Exception(
-        "Server timeout. Please try again.",
-      );
+      throw Exception("Server timeout. Please try again.");
     } on SocketException {
-      throw Exception(
-        "Server unreachable. Check your internet connection.",
-      );
+      throw Exception("Server unreachable. Check your internet connection.");
     }
   }
 
@@ -93,8 +90,7 @@ class AddressClientsApi {
               url,
               headers: {
                 "Content-Type": "application/json",
-                if (token != null)
-                  "Authorization": "Bearer $token",
+                if (token != null) "Authorization": "Bearer $token",
               },
               body: jsonEncode({
                 "client_address_id": clientAddressId,
@@ -104,24 +100,16 @@ class AddressClientsApi {
       }).timeout(_timeout);
 
       if (kDebugMode) {
-        print("========== SET DEFAULT ADDRESS ==========");
-        print("URL: $url");
-        print("STATUS: ${response.statusCode}");
-        print("BODY: ${response.body}");
-        print("=========================================");
+        print("SET DEFAULT ADDRESS ${response.statusCode} $url");
       }
 
       if (response.statusCode != 200) {
         throw Exception(_extractError(response));
       }
     } on TimeoutException {
-      throw Exception(
-        "Server timeout. Please try again.",
-      );
+      throw Exception("Server timeout. Please try again.");
     } on SocketException {
-      throw Exception(
-        "Server unreachable. Check your internet connection.",
-      );
+      throw Exception("Server unreachable. Check your internet connection.");
     }
   }
 

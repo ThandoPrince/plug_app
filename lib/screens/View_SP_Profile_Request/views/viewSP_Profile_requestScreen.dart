@@ -49,6 +49,8 @@ class _ServiceProviderDetailsScreenState
     _loadData();
   }
 
+
+
   Future<void> _loadData() async {
     // Run the rating + provider fetches together instead of sequentially,
     // and only ONCE each (the duplicate fetchProviderByEmail call was part
@@ -154,7 +156,7 @@ class _ServiceProviderDetailsScreenState
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      SPDetailsBody(id: widget.id.toString()),
+                      SPDetailsBody(id: widget.id.toString() , providerServiceId: widget.serviceId),
                       const SizedBox(height: 10),
                       Consumer<CostOfServiceController>(
                         builder: (context, controller, _) {

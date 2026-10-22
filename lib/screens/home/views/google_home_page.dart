@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
 import 'package:flutter_application_1/common/widgets/app_style.dart';
 import 'package:flutter_application_1/common/widgets/reusable_text.dart';
-import 'package:flutter_application_1/common/widgets/shimmers/service_bar_skeleton.dart';
+
 import 'package:flutter_application_1/global_util/services/controler/google_map_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/service_controller.dart';
+import 'package:flutter_application_1/global_util/services/widgets/home_refresh.dart';
+
 import 'package:flutter_application_1/global_util/services/widgets/services_icons.dart';
 import 'package:flutter_application_1/screens/Onboarding/Widgets/back_to_exit_widget.dart';
 import 'package:flutter_application_1/screens/home/widgets/scroll_down_only_physics.dart';
@@ -39,8 +41,7 @@ class _GoogleHomeMapPageState extends State<GoogleHomeMapPage>
   // GoogleHomeMapPage
   Future<void> _refresh() async {
     final serviceCtrl = Provider.of<ServiceController>(context, listen: false);
-    final mapCtrl =
-        Provider.of<GoogleMapMarkerController>(context, listen: false);
+    final mapCtrl = Provider.of<GoogleMapMarkerController>(context, listen: false);
 
     await serviceCtrl.fetchServices();
     await mapCtrl.showDefaultAddress(force: true);
@@ -48,12 +49,24 @@ class _GoogleHomeMapPageState extends State<GoogleHomeMapPage>
     if (mapCtrl.selectedServiceId != null) {
       await mapCtrl.showServiceProviders(mapCtrl.selectedServiceId!);
     }
+
+    // Sync markers to our controllers
+    _syncMarkersFromMapCtrl(mapCtrl);
+  }
+
+  void _syncMarkersFromMapCtrl(GoogleMapMarkerController mapCtrl) {
+    if (!_controllersInitialized) return;
+    
+    // The GoogleMapMarkerController manages its own markers
+    // For the adaptive widget, we just need to ensure the controllers are ready
+    // The actual map rendering will use the GoogleMapMarkerController's markers
+    // when on Google Maps, and fallback will show a static representation
   }
 
   @override
   void initState() {
     super.initState();
-
+    
     // Initialize our controllers
     _googleMapController = GoogleMapControllerImpl();
     _fallbackMapController = FallbackMapControllerImpl();
@@ -89,10 +102,9 @@ class _GoogleHomeMapPageState extends State<GoogleHomeMapPage>
                 builder: (_, mapCtrl, __) {
                   return AdaptiveMapWidget(
   googleMapController: _googleMapController,
-  fallbackMapController: _fallbackMapController,
-  googleMapsApiKey: dotenv.env['GOOGLE_API_KEY'],
+
   initialMarkers: mapCtrl.markers,
-  onMapCreated: (controller) => mapCtrl.onMapCreated(controller, context), // <-- add this
+  onMapCreated: (controller) => mapCtrl.onMapCreated(controller, context),
   initialCameraPosition: CameraPosition(
     target: mapCtrl.markers.isNotEmpty
         ? mapCtrl.markers.first.position
@@ -127,17 +139,19 @@ class _GoogleHomeMapPageState extends State<GoogleHomeMapPage>
                     ),
                     child: SafeArea(
                       bottom: false,
-                      child: RefreshIndicator(
-                        key: _refreshKey,
-                        onRefresh: _refresh,
-                        child: SingleChildScrollView(
-                          physics: const ScrollDownOnlyPhysics(),
-                          child: Padding(
-                            padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 12.h),
-                            child: _buildServiceBar(),
-                          ),
-                        ),
-                      ),
+                     child: RefreshIndicator(
+  key: _refreshKey,
+  onRefresh: _refresh,
+  color: Kolors.kPrimary,       // spinner color — matches GenericLoadingRefresh
+  backgroundColor: Colors.white, // indicator's circular backdrop
+  child: SingleChildScrollView(
+    physics: const ScrollDownOnlyPhysics(),
+    child: Padding(
+      padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 12.h),
+      child: _buildServiceBar(),
+    ),
+  ),
+),
                     ),
                   ),
                 ),
@@ -228,117 +242,138 @@ class _GoogleHomeMapPageState extends State<GoogleHomeMapPage>
             ],
           ),
           SizedBox(height: 12.h),
-          if (serviceCtrl.isLoading)
-            const ServiceBarSkeleton()
-          else if (serviceCtrl.error != null)
-            SizedBox(
-              height: 76.h,
-              child: Center(
-                child: Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 16.w,
-                    vertical: 10.h,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.06),
-                    borderRadius: BorderRadius.circular(12.r),
-                    border: Border.all(
-                      color: Colors.red.withOpacity(0.15),
+          HomeLoadingRefresh(
+  isLoading: serviceCtrl.isLoading,
+  onRefresh: _refresh,
+  child: Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      if (serviceCtrl.error != null)
+        SizedBox(
+          height: 76.h,
+          child: Center(
+            child: Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: 16.w,
+                vertical: 10.h,
+              ),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.06),
+                borderRadius: BorderRadius.circular(12.r),
+                border: Border.all(
+                  color: Colors.red.withOpacity(0.15),
+                ),
+              ),
+              child: Column(
+  mainAxisSize: MainAxisSize.min,
+  children: [
+    Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          Icons.error_outline_rounded,
+          color: Colors.red.shade600,
+          size: 20.sp,
+        ),
+        SizedBox(width: 8.w),
+        Text(
+          "Error fetching services",
+          style: TextStyle(
+            color: Colors.red.shade700,
+            fontSize: 12.sp,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    ),
+    SizedBox(height: 4.h),
+    Text(
+      "Pull down to refresh",
+      style: TextStyle(
+        color: Kolors.kDark.withOpacity(0.6),
+        fontSize: 11.sp,
+        fontWeight: FontWeight.w400,
+      ),
+    ),
+  ],
+),
+            ),
+          ),
+        )
+      else
+        Padding(
+          padding: EdgeInsets.symmetric(vertical: 4.h),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            clipBehavior: Clip.none,
+            child: Row(
+              children: serviceCtrl.featuredServices.map((service) {
+                final isSelected =
+                    mapCtrl.selectedServiceId == service.serviceId;
+
+                return Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 5.w),
+                  child: GestureDetector(
+                    onTap: () {
+                      if (isSelected) {
+                        mapCtrl.clearSelection();
+                        mapCtrl.removeSpMarkers();
+                      } else {
+                        mapCtrl.selectService(service.serviceId);
+                        mapCtrl.showServiceProviders(
+                          service.serviceId,
+                        );
+                      }
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(
+                        milliseconds: 250,
+                      ),
+                      curve: Curves.easeInOut,
+                      width: 94.w,
+                      height: 76.h,
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? Colors.white
+                            : Colors.white.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(16.r),
+                        boxShadow: isSelected
+                            ? [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.15),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ]
+                            : [],
+                        border: Border.all(
+                          color: isSelected
+                              ? Colors.white
+                              : Colors.white.withOpacity(0.05),
+                          width: 1,
+                        ),
+                      ),
+                      child: Center(
+                        child: FittedBox(
+                          fit: BoxFit.contain,
+                          child: ServicesIcons.fromServiceModel(
+                            service: service,
+                            isSelected: isSelected,
+                            onTap: null,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.error_outline_rounded,
-                        color: Colors.red.shade600,
-                        size: 20.sp,
-                      ),
-                      SizedBox(width: 8.w),
-                      Text(
-                        "Error fetching services",
-                        style: TextStyle(
-                          color: Colors.red.shade700,
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            )
-          else
-            Padding(
-              padding: EdgeInsets.symmetric(vertical: 4.h),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                clipBehavior: Clip.none,
-                child: Row(
-                  children: serviceCtrl.featuredServices.map((service) {
-                    final isSelected =
-                        mapCtrl.selectedServiceId == service.serviceId;
-
-                    return Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 5.w),
-                      child: GestureDetector(
-                        onTap: () {
-                          if (isSelected) {
-                            mapCtrl.clearSelection();
-                            mapCtrl.removeSpMarkers();
-                          } else {
-                            mapCtrl.selectService(service.serviceId);
-                            mapCtrl.showServiceProviders(
-                              service.serviceId,
-                            );
-                          }
-                        },
-                        child: AnimatedContainer(
-                          duration: const Duration(
-                            milliseconds: 250,
-                          ),
-                          curve: Curves.easeInOut,
-                          width: 94.w,
-                          height: 76.h,
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? Colors.white
-                                : Colors.white.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(16.r),
-                            boxShadow: isSelected
-                                ? [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.15),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 4),
-                                    )
-                                  ]
-                                : [],
-                            border: Border.all(
-                              color: isSelected
-                                  ? Colors.white
-                                  : Colors.white.withOpacity(0.05),
-                              width: 1,
-                            ),
-                          ),
-                          child: Center(
-                            child: FittedBox(
-                              fit: BoxFit.contain,
-                              child: ServicesIcons.fromServiceModel(
-                                service: service,
-                                isSelected: isSelected,
-                                onTap: null,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ),
+                );
+              }).toList(),
             ),
+          ),
+        ),
+    ],
+  ),
+),
           SizedBox(height: 12.h),
           InkWell(
             onTap: () => context.push("/viewAllServices"),

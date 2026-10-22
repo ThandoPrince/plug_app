@@ -22,6 +22,10 @@ class ClientPendingOrdersController extends ChangeNotifier {
 
   bool _hasFetched = false;
 
+  // Prevents a silent refresh from racing a foreground fetch (or another
+  // silent refresh) and clobbering state out of order.
+  bool _isSilentRefreshing = false;
+
   @override
   void dispose() {
     _disposed = true;
@@ -67,6 +71,45 @@ class ClientPendingOrdersController extends ChangeNotifier {
 
       _isLoading = false;
       _safeNotify();
+    }
+  }
+
+  // ───────────────────────────── SILENT REFRESH ─────────────────────────────
+
+  /// Re-fetches in the background without touching isLoading, so the list
+  /// already on screen doesn't flash a skeleton/spinner. Use this for
+  /// socket-triggered refreshes (a round arrived, a negotiation was
+  /// accepted) where the user is looking at a perfectly fine list and a
+  /// full loading state would just be visual noise.
+  ///
+  /// Errors are swallowed on purpose — a background refresh failing
+  /// shouldn't blank out or error-state a list that's currently showing
+  /// valid (if slightly stale) data. The existing errorMessage/isLoading
+  /// machinery is left untouched for the next real foreground fetch.
+  Future<void> refreshSilently() async {
+    if (_disposed) return;
+
+    // Don't stack silent refreshes, and don't step on a real foreground
+    // fetch that's already in flight — let that one finish and win.
+    if (_isSilentRefreshing || _isLoading) return;
+
+    _isSilentRefreshing = true;
+
+    try {
+      final orders = await api.fetchPendingOrdersByClientEmail();
+
+      if (_disposed) return;
+
+      _pendingOrders = orders;
+      _hasFetched = true;
+      _safeNotify();
+    } catch (e) {
+      if (kDebugMode) {
+        print("ClientPendingOrdersController silent refresh error: $e");
+      }
+      // Intentionally not setting _errorMessage here.
+    } finally {
+      _isSilentRefreshing = false;
     }
   }
 

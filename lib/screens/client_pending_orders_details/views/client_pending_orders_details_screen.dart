@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/widgets/shimmers/order_body_skeleton.dart';
 import 'package:flutter_application_1/global_util/services/controler/cancel_order_controller.dart';
+import 'package:flutter_application_1/global_util/services/controler/order_updates_badge_controller.dart';
 import 'package:flutter_application_1/screens/client_pending_orders_details/views/edit_pending_order_screen.dart';
 import 'package:flutter_application_1/screens/client_pending_orders_details/widgets/action_dialog.dart';
 import 'package:flutter_application_1/screens/client_pending_orders_details/widgets/action_sheet.dart';
@@ -24,26 +25,30 @@ class PendingOrderDetailScreen extends StatefulWidget {
 }
 
 class _PendingOrderDetailScreenState extends State<PendingOrderDetailScreen> {
-  @override
-  void initState() {
-    super.initState();
+@override
+void initState() {
+  super.initState();
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final detailCtrl = context.read<ClientPendingOrdersDetailCtrl>();
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (!mounted) return;
 
-      // Only refetch if we don't already have this exact order loaded —
-      // otherwise reopening the same order's detail screen (e.g.
-      // navigating back and forward, or a rebuild triggered elsewhere)
-      // would silently kick off a redundant network call and briefly
-      // flash the skeleton over data that was already correct.
-      final alreadyLoaded = detailCtrl.booking?.orderId == widget.orderId &&
-          detailCtrl.errorMessage == null;
+    final detailCtrl = context.read<ClientPendingOrdersDetailCtrl>();
 
-      if (!alreadyLoaded) {
-        detailCtrl.fetchBookingByOrderID(widget.orderId);
-      }
-    });
-  }
+    // Only refetch if we don't already have this exact order loaded —
+    // otherwise reopening the same order's detail screen (e.g.
+    // navigating back and forward, or a rebuild triggered elsewhere)
+    // would silently kick off a redundant network call and briefly
+    // flash the skeleton over data that was already correct.
+    final alreadyLoaded = detailCtrl.booking?.orderId == widget.orderId &&
+        detailCtrl.errorMessage == null;
+
+    if (!alreadyLoaded) {
+      detailCtrl.fetchBookingByOrderID(widget.orderId);
+    }
+
+
+  });
+}
 
   @override
   Widget build(BuildContext context) {

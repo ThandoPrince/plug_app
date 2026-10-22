@@ -12,7 +12,7 @@ import 'package:flutter_application_1/global_util/services/controler/auth_sessio
 class AuthLoginApi {
   final String baseUrl = dotenv.env['API_BASE_URL'] ?? '';
 
-  static const Duration _timeout = Duration(seconds: 30);
+  static const Duration _timeout = Duration(seconds: 60);
 
   // =========================
   // LOGIN (STEP 1: password check)

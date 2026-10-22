@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/global_util/services/controler/client_pending_orders_ctrl.dart';
 import 'package:flutter_application_1/screens/entryPoint/controller/bottom_tab_notifier.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
@@ -159,14 +160,19 @@ class BookingSuccessOverlay {
                                   ),
                                 ),
                                 onPressed: onPressed ??
-                                    () {
-                                     Navigator.of(context).pop(); // close overlay
+    () {
+      Navigator.of(context).pop(); // close overlay
 
-    context.read<TabIndexNotifier>().reset();
-                                        
+      // Refresh the pending-orders tab so the new booking shows up
+      // immediately without the user having to pull-to-refresh.
+      context.read<ClientPendingOrdersController>()
+          .fetchPendingOrders(forceRefresh: true);
 
-                                      context.go('/entryPoint');
-                                    },
+
+      context.read<TabIndexNotifier>().setIndex(1);
+
+      context.go('/entryPoint');
+    },
                                 child: Text(
                                   buttonText,
                                   style: TextStyle(

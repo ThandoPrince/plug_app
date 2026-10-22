@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_application_1/global_util/services/api_client.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
@@ -11,20 +12,23 @@ import 'package:flutter_application_1/global_util/services/models/client_models/
 class ClientAuthApi {
   static final String baseUrl = dotenv.env['API_BASE_URL'] ?? '';
 
-  static const Duration _timeout = Duration(seconds: 15);
+  static const Duration _timeout = Duration(seconds: 60);
 
   // =========================
   // ERROR HANDLER
   // =========================
   static Exception _handleError(Object e) {
-    if (e is TimeoutException) {
-      return Exception("Server timeout. Please try again.");
-    }
-    if (e is SocketException) {
-      return Exception("Server unreachable. Check your internet connection.");
-    }
-    return Exception("Unexpected error occurred.");
+  if (e is TimeoutException) {
+    return Exception("Server timeout. Please try again.");
   }
+  if (e is SocketException) {
+    return Exception("Server unreachable. Check your internet connection.");
+  }
+  if (kDebugMode) {
+    debugPrint("Unhandled error in ClientAuthApi: $e");
+  }
+  return Exception("Unexpected error occurred.");
+}
 
   // =========================
   // REGISTER CLIENT

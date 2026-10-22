@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/widgets/custom_button.dart';
+import 'package:flutter_application_1/common/widgets/shimmers/negotiation_sheet_skeleton.dart';
 import 'package:flutter_application_1/global_util/services/controler/client_negotiation_round_start_ctrl.dart';
+import 'package:flutter_application_1/global_util/services/controler/negotiation_badge_store_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/negotiation_realtime_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/reject_negociation_controller.dart';
+import 'package:flutter_application_1/screens/entryPoint/controller/bottom_tab_notifier.dart';
+import 'package:flutter_application_1/screens/negotiations/widgets/negotiation_accepted_view.dart';
+import 'package:flutter_application_1/screens/negotiations/widgets/negotiation_controller_cache.dart';
 import 'package:flutter_application_1/screens/sp_profile/views%20copy/viewSP_Profile_Screen.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:another_flushbar/flushbar.dart';
 
 import 'package:flutter_application_1/common/utils/kcolors.dart';
-import 'package:flutter_application_1/global_util/services/models/order_service_models/negotiation_model.dart';
+
 import 'package:flutter_application_1/global_util/services/models/order_service_models/negotiation_round_model.dart';
 import 'package:flutter_application_1/global_util/services/controler/negotiation_by_negoID_ctrl.dart';
 
@@ -36,14 +41,48 @@ class _NegotiationDetailSheetState extends State<NegotiationDetailSheet> {
   late final NegotiationRealtimeController _realtimeCtrl;
 
   @override
-  void initState() {
-    super.initState();
+void initState() {
+  super.initState();
+  _scrollController.addListener(_onScroll);
+  NegotiationBadgeStore.global.setActive(widget.negotiationId); // or context.read
+NegotiationBadgeStore.global.markRead(widget.negotiationId);
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final realtime = context.read<NegotiationRealtimeController>();
-      realtime.connect(widget.negotiationId, _handleSocketEvent);
-    });
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    final realtime = context.read<NegotiationRealtimeController>();
+    realtime.connect(widget.negotiationId, _handleSocketEvent);
+  });
+}
+
+NegotiationByIdController get _negoCtrl =>
+    NegotiationControllerCache.instance.controllerFor(widget.negotiationId);
+
+void _onScroll() {
+  if (!_scrollController.hasClients) return;
+  // Reversed list: extentAfter is the older end of the chat.
+  if (_scrollController.position.extentAfter < 200) _loadOlder();
+}
+
+Future<void> _loadOlder({bool retry = false}) async {
+  final added = await _negoCtrl.loadOlderRounds(
+    widget.negotiationId,
+    retry: retry,
+  );
+  if (!mounted || added.isEmpty) return;
+  _prependOlder(added);
+}
+
+void _prependOlder(List<NegotiationRound> older) {
+  final shown = {for (final r in _displayedRounds) r.id};
+  final fresh = older.where((r) => !shown.contains(r.id)).toList();
+  if (fresh.isEmpty) return;
+
+  final oldLen = _displayedRounds.length;
+  setState(() => _displayedRounds.insertAll(0, fresh));
+  // Older rounds sit at the far (top) end of the reversed list.
+  for (var k = 0; k < fresh.length; k++) {
+    _listKey.currentState?.insertItem(oldLen + k, duration: Duration.zero);
   }
+}
 
   @override
   void didChangeDependencies() {
@@ -52,96 +91,73 @@ class _NegotiationDetailSheetState extends State<NegotiationDetailSheet> {
   }
 
   void _handleSocketEvent(Map<String, dynamic> event) {
-    final type = event["type"];
+  final type = event["type"];
 
-    if (type == "negotiation_counter_offer" ||
-        type == "negotiation_round_created") {
-      final data = event["data"];
-      final round = NegotiationRound.fromJson(data);
+  if (type == "negotiation_counter_offer" ||
+      type == "negotiation_round_created") {
+    final data = event["data"];
+    final roundJson = data["round"];
+    if (roundJson == null) return;
 
-      // Route through the merge step instead of appending directly —
-      // this is what stops the client's own optimistic bubble from
-      // getting duplicated when the server echoes it back over the socket.
-      _mergeServerRounds([round]);
-    }
+    final round = NegotiationRound.fromJson(roundJson);
+
+    context.read<NegotiationByIdController>().applyIncomingRound(round);
+
+    // Merge into the currently-displayed list too, for the live view.
+    _mergeServerRounds([round]);
   }
+}
 
   @override
-  void dispose() {
-    _scrollController.dispose();
-    _messageController.dispose();
-    _priceController.dispose();
-    super.dispose();
-  }
+void dispose() {
+  NegotiationBadgeStore.global.markRead(widget.negotiationId);
+  NegotiationBadgeStore.global.setActive(null);
+  _realtimeCtrl.disconnectSilently();
+  _scrollController.dispose();
+  _messageController.dispose();
+  
 
-  void _updateRounds(List<NegotiationRound> newRounds) {
-    final roundsToAdd = newRounds.skip(_displayedRounds.length).toList();
-    for (var round in roundsToAdd) {
-      _displayedRounds.add(round);
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _listKey.currentState?.insertItem(
-          _displayedRounds.length - 1,
-          duration: const Duration(milliseconds: 300),
-        );
-        _scrollToBottom();
-      });
-    }
-  }
+  _priceController.dispose();
+  super.dispose();
+}
 
-  /// Reconciles rounds coming from the server (via refetch OR the realtime
-  /// socket) against what's already on screen.
-  ///
-  /// - If a server round's id is already displayed, skip it.
-  /// - If there's a pending/sent local bubble with no id yet that matches
-  ///   this server round (same sender, price, message), replace it in place
-  ///   — this is how an optimistic bubble gets "confirmed" without ever
-  ///   duplicating.
-  /// - Otherwise it's a genuinely new round (e.g. the provider's reply) —
-  ///   append it with the normal insert animation.
-  void _mergeServerRounds(List<NegotiationRound> serverRounds) {
-    for (final serverRound in serverRounds) {
-      final alreadyDisplayed = _displayedRounds.any(
-        (r) => r.id != null && r.id == serverRound.id,
+void _initDisplayed(List<NegotiationRound> rounds) {
+  _displayedRounds.addAll(rounds);
+}
+
+
+
+bool _isSending = false;
+
+void _mergeServerRounds(List<NegotiationRound> serverRounds) {
+  for (final serverRound in serverRounds) {
+    final alreadyDisplayed = _displayedRounds.any(
+      (r) => r.id != null && r.id == serverRound.id,
+    );
+    if (alreadyDisplayed) continue;
+
+    setState(() {
+      _displayedRounds.add(serverRound);
+      _listKey.currentState?.insertItem(
+        0,
+        duration: const Duration(milliseconds: 300),
       );
-      if (alreadyDisplayed) continue;
-
-      final pendingIndex = _displayedRounds.indexWhere(
-        (r) =>
-            r.id == null &&
-            r.localId != null &&
-            r.senderType == serverRound.senderType &&
-            r.offeredPrice == serverRound.offeredPrice &&
-            (r.message ?? '') == (serverRound.message ?? ''),
-      );
-
-      if (pendingIndex != -1) {
-        setState(() {
-          _displayedRounds[pendingIndex] = serverRound;
-        });
-      } else {
-        setState(() {
-          _displayedRounds.add(serverRound);
-          _listKey.currentState?.insertItem(
-            _displayedRounds.length - 1,
-            duration: const Duration(milliseconds: 300),
-          );
-        });
-        _scrollToBottom();
-      }
-    }
+    });
+    _scrollToBottom();
   }
+}
 
   void _scrollToBottom() {
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent + 60,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
-    });
-  }
+  Future.delayed(const Duration(milliseconds: 100), () {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+  });
+}
 
   void _showTopNotification(String message, {bool isError = false}) {
     Flushbar(
@@ -232,236 +248,150 @@ class _NegotiationDetailSheetState extends State<NegotiationDetailSheet> {
     );
   }
 
-  /// Optimistic send: bubble appears instantly, then we reconcile with
-  /// whatever the refetch / socket brings back.
-  Future<void> _sendRound(
-    ClientStartRoundController clientCtrl,
-    NegotiationByIdController negoCtrl,
-  ) async {
-    final msg = _messageController.text.trim();
-    final priceText = _priceController.text.trim();
-    final price = double.tryParse(priceText);
+Future<void> _submitRound(
+  ClientStartRoundController clientCtrl,
+  NegotiationByIdController negoCtrl, {
+  required double price,
+  String? message,
+  bool clearFields = true,
+  String successText = "Round sent successfully",
+}) async {
+  if (_isSending) return;
+  setState(() => _isSending = true);
 
-    if (price == null) {
-      _showTopNotification("Please enter a valid price", isError: true);
+  try {
+    final success = await clientCtrl.sendRound(
+      negotiationId: widget.negotiationId,
+      offeredPrice: price,
+      message: message,
+    );
+    if (!mounted) return;
+
+    if (!success) {
+      _showTopNotification(
+        clientCtrl.errorMessage ?? "Failed to send round",
+        isError: true,
+      );
       return;
     }
 
-    _messageController.clear();
-    _priceController.clear();
-
-    final tempId = 'temp_${DateTime.now().microsecondsSinceEpoch}';
-    final tempRound = NegotiationRound(
-      negotiationId: widget.negotiationId,
-      senderType: 'client',
-      offeredPrice: price,
-      message: msg.isEmpty ? null : msg,
-      createdAt: DateTime.now(),
-      localId: tempId,
-      localStatus: RoundLocalStatus.sending,
-    );
-
-    // 1. Show the bubble immediately — no await before this.
-    setState(() {
-      _displayedRounds.add(tempRound);
-      _listKey.currentState?.insertItem(
-        _displayedRounds.length - 1,
-        duration: const Duration(milliseconds: 300),
-      );
-    });
-    _scrollToBottom();
-
-    // 2. Fire the request in the background.
-    final success = await clientCtrl.sendRound(
-      negotiationId: widget.negotiationId,
-      offeredPrice: price,
-      message: msg,
-    );
-
-    if (!mounted) return;
-
-    final idx = _displayedRounds.indexWhere((r) => r.localId == tempId);
-    if (idx == -1) return; // bubble already reconciled by socket, nothing to do
-
-    if (success) {
-      setState(() {
-        _displayedRounds[idx] =
-            _displayedRounds[idx].copyWith(localStatus: RoundLocalStatus.confirmed);
-      });
-
-      // The API doesn't return the created round, so refetch to get the
-      // real id — _mergeServerRounds will swap our temp bubble for it
-      // rather than duplicating.
-      await negoCtrl.fetchNegotiationById(widget.negotiationId);
-      if (!mounted) return;
-      _mergeServerRounds(negoCtrl.negotiation?.rounds ?? []);
-
-      _showTopNotification("Round sent successfully");
-    } else {
-      setState(() {
-        _displayedRounds[idx] =
-            _displayedRounds[idx].copyWith(localStatus: RoundLocalStatus.failed);
-      });
-      _showTopNotification(clientCtrl.errorMessage ?? "Failed to send round", isError: true);
+    if (clearFields) {
+      _messageController.clear();
+      _priceController.clear();
     }
-  }
 
-  Future<void> _retryPendingRound(
-    String localId,
-    ClientStartRoundController clientCtrl,
-    NegotiationByIdController negoCtrl,
-  ) async {
-    final idx = _displayedRounds.indexWhere((r) => r.localId == localId);
-    if (idx == -1) return;
-    final round = _displayedRounds[idx];
-
-    setState(() {
-      _displayedRounds[idx] = round.copyWith(localStatus: RoundLocalStatus.sending);
-    });
-
-    final success = await clientCtrl.sendRound(
-      negotiationId: widget.negotiationId,
-      offeredPrice: round.offeredPrice ?? 0,
-      message: round.message,
-    );
-
+    await negoCtrl.fetchNegotiationById(widget.negotiationId, force: true);
     if (!mounted) return;
+    _mergeServerRounds(negoCtrl.negotiation?.rounds ?? []);
 
-    final idx2 = _displayedRounds.indexWhere((r) => r.localId == localId);
-    if (idx2 == -1) return;
-
-    if (success) {
-      setState(() {
-        _displayedRounds[idx2] =
-            _displayedRounds[idx2].copyWith(localStatus: RoundLocalStatus.confirmed);
-      });
-      await negoCtrl.fetchNegotiationById(widget.negotiationId);
-      if (!mounted) return;
-      _mergeServerRounds(negoCtrl.negotiation?.rounds ?? []);
-    } else {
-      setState(() {
-        _displayedRounds[idx2] =
-            _displayedRounds[idx2].copyWith(localStatus: RoundLocalStatus.failed);
-      });
-      _showTopNotification(clientCtrl.errorMessage ?? "Still failed to send", isError: true);
-    }
+    _showTopNotification(successText);
+  } finally {
+    if (mounted) setState(() => _isSending = false);
   }
+}
 
-  void _discardPendingRound(String localId) {
-    final idx = _displayedRounds.indexWhere((r) => r.localId == localId);
-    if (idx == -1) return;
-
-    final removed = _displayedRounds.removeAt(idx);
-    _listKey.currentState?.removeItem(
-      idx,
-      (context, animation) => _buildRoundBubble(removed, animation),
-      duration: const Duration(milliseconds: 200),
-    );
+Future<void> _sendRound(
+  ClientStartRoundController clientCtrl,
+  NegotiationByIdController negoCtrl,
+) async {
+  final price = double.tryParse(_priceController.text.trim());
+  if (price == null) {
+    _showTopNotification("Please enter a valid price", isError: true);
+    return;
   }
+  await _submitRound(
+    clientCtrl,
+    negoCtrl,
+    price: price,
+    message: _messageController.text.trim(),
+  );
+}
+
+/// Accept = a round at the provider's last price with the message "Accepted".
+Future<void> _acceptProviderPrice(
+  ClientStartRoundController clientCtrl,
+  NegotiationByIdController negoCtrl,
+  double providerPrice,
+) async {
+  await _submitRound(
+    clientCtrl,
+    negoCtrl,
+    price: providerPrice,
+    message: "Accepted",
+    clearFields: false,
+    successText: "Offer accepted",
+  );
+}
+
+
 
   Widget _buildRoundBubble(NegotiationRound round, Animation<double> animation) {
-    final isClient = round.senderType == "client";
-    final isFailed = round.isFailed;
-    final isSending = round.isPending;
+  final isClient = round.senderType == "client";
 
-    Widget bubble = Container(
-      padding: const EdgeInsets.all(12),
-      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
-      constraints: const BoxConstraints(maxWidth: 250),
-      decoration: BoxDecoration(
-        color: isFailed
-            ? Colors.red.shade50
-            : isClient
-                ? Colors.blue.shade100
-                : Colors.grey.shade200,
-        border: isFailed ? Border.all(color: Colors.red.shade300) : null,
-        borderRadius: BorderRadius.only(
-          topLeft: const Radius.circular(12),
-          topRight: const Radius.circular(12),
-          bottomLeft: Radius.circular(isClient ? 12 : 0),
-          bottomRight: Radius.circular(isClient ? 0 : 12),
-        ),
+  final bubble = Container(
+    padding: const EdgeInsets.all(12),
+    margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+    constraints: const BoxConstraints(maxWidth: 250),
+    decoration: BoxDecoration(
+      color: isClient ? Colors.blue.shade100 : Colors.grey.shade200,
+      borderRadius: BorderRadius.only(
+        topLeft: const Radius.circular(12),
+        topRight: const Radius.circular(12),
+        bottomLeft: Radius.circular(isClient ? 12 : 0),
+        bottomRight: Radius.circular(isClient ? 0 : 12),
       ),
-      child: Opacity(
-        opacity: isSending ? 0.6 : 1.0,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (round.message != null && round.message!.isNotEmpty)
+          Text(round.message!,
+              style: const TextStyle(fontSize: 14, color: Colors.black87)),
+        const SizedBox(height: 4),
+        Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            if (round.message != null && round.message!.isNotEmpty)
-              Text(round.message!, style: const TextStyle(fontSize: 14, color: Colors.black87)),
-            const SizedBox(height: 4),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  "R${round.offeredPrice?.toStringAsFixed(2) ?? 'N/A'}",
-                  style: const TextStyle(fontSize: 12, color: Colors.black87),
-                ),
-                const SizedBox(width: 6),
-                if (isSending)
-                  const SizedBox(
-                    width: 10,
-                    height: 10,
-                    child: CircularProgressIndicator(strokeWidth: 1.5),
-                  )
-                else if (isFailed)
-                  Icon(Icons.error_outline, size: 13, color: Colors.red.shade600)
-                else
-                  Text(
-                    round.createdAt != null
-                        ? DateFormat('HH:mm, dd MMM').format(round.createdAt!)
-                        : 'N/A',
-                    style: const TextStyle(fontSize: 12, color: Colors.black87),
-                  ),
-                if (isFailed) ...[
-                  const SizedBox(width: 6),
-                  Text(
-                    'Tap to retry',
-                    style: TextStyle(fontSize: 11, color: Colors.red.shade600),
-                  ),
-                ],
-              ],
+            Text(
+              "R${round.offeredPrice?.toStringAsFixed(2) ?? 'N/A'}",
+              style: const TextStyle(fontSize: 12, color: Colors.black87),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              round.createdAt != null
+                  ? DateFormat('HH:mm, dd MMM').format(round.createdAt!.toLocal())
+                  : '',
+              style: const TextStyle(fontSize: 12, color: Colors.black87),
             ),
           ],
         ),
-      ),
-    );
+      ],
+    ),
+  );
 
-    if (isFailed && round.localId != null) {
-      final clientCtrl = context.read<ClientStartRoundController>();
-      final negoCtrl = context.read<NegotiationByIdController>();
-      bubble = GestureDetector(
-        onTap: () => _retryPendingRound(round.localId!, clientCtrl, negoCtrl),
-        onLongPress: () => _discardPendingRound(round.localId!),
-        child: bubble,
-      );
-    }
-
-    return SizeTransition(
-      sizeFactor: animation,
-      child: Align(
-        alignment: isClient ? Alignment.centerRight : Alignment.centerLeft,
-        child: bubble,
-      ),
-    );
-  }
+  return SizeTransition(
+    sizeFactor: animation,
+    child: Align(
+      alignment: isClient ? Alignment.centerRight : Alignment.centerLeft,
+      child: bubble,
+    ),
+  );
+}
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(
-            create: (_) => NegotiationByIdController()
-              ..fetchNegotiationById(widget.negotiationId)),
-        ChangeNotifierProvider(create: (_) => ClientStartRoundController()),
-      ],
+       providers: [
+    ChangeNotifierProvider.value(
+      value: NegotiationControllerCache.instance.controllerFor(widget.negotiationId)
+        ..fetchNegotiationById(widget.negotiationId), // no-op if already cached
+    ),
+    ChangeNotifierProvider(create: (_) => ClientStartRoundController()),
+  ],
       child: Consumer2<NegotiationByIdController, ClientStartRoundController>(
         builder: (context, negoCtrl, clientCtrl, _) {
           if (negoCtrl.isLoading) {
-            return const Center(
-              child: CircularProgressIndicator(color: Kolors.kPrimary),
-            );
-          }
+  return const NegotiationSheetSkeleton();
+}
 
           if (negoCtrl.errorMessage != null) {
             return Center(
@@ -476,11 +406,35 @@ class _NegotiationDetailSheetState extends State<NegotiationDetailSheet> {
           if (negotiation == null) {
             return const Center(child: Text("No negotiation details found."));
           }
+         if ((negotiation.status ?? '').toLowerCase() == 'accepted') {
+  return NegotiationAcceptedView(
+    onGoToSchedule: () {
+      // Capture what we need from parentContext before anything pops —
+      // once navigation starts, contexts along the stack can become
+      // unreliable to read from.
+      final rootNavigator = Navigator.of(widget.parentContext);
+      final tabNotifier =
+          Provider.of<TabIndexNotifier>(widget.parentContext, listen: false);
+
+      // Close the modal sheet itself first.
+      Navigator.of(context).pop();
+
+      // Then pop every pushed screen (NegotiationsByOrderidScreen,
+      // PendingOrderDetailScreen) back down to EntryPoint, and only then
+      // switch tabs — otherwise the tab change happens underneath screens
+      // still stacked on top of it, invisible until the user backs out.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        rootNavigator.popUntil((route) => route.isFirst);
+        tabNotifier.setIndex(2);
+      });
+    },
+  );
+}
 
           final allRounds = negotiation.rounds ?? [];
-          if (_displayedRounds.isEmpty) {
-            _updateRounds(allRounds);
-          }
+if (_displayedRounds.isEmpty) {
+  _initDisplayed(allRounds);
+}
 
           // Reading the last displayed round (which now includes optimistic
           // bubbles instantly) is what flips the banner to "waiting" the
@@ -488,6 +442,9 @@ class _NegotiationDetailSheetState extends State<NegotiationDetailSheet> {
           final lastRoundIsProvider = _displayedRounds.isNotEmpty
               ? _displayedRounds.last.senderType == "provider"
               : false;
+
+              final providerPrice =
+    lastRoundIsProvider ? _displayedRounds.last.offeredPrice : null;
 
           return Column(
             children: [
@@ -523,68 +480,124 @@ class _NegotiationDetailSheetState extends State<NegotiationDetailSheet> {
               ),
               const Divider(height: 1),
 
-              Expanded(
-                child: AnimatedList(
-                  key: _listKey,
-                  controller: _scrollController,
-                  initialItemCount: _displayedRounds.length,
-                  itemBuilder: (context, index, animation) {
-                    if (index >= _displayedRounds.length) return const SizedBox();
-                    return _buildRoundBubble(_displayedRounds[index], animation);
-                  },
-                ),
-              ),
+              // Older-rounds indicator above the list
+if (negoCtrl.isLoadingOlder)
+  const LinearProgressIndicator(minHeight: 2)
+else if (negoCtrl.hasOlderError)
+  TextButton(
+    onPressed: () => _loadOlder(retry: true),
+    child: const Text("Couldn't load earlier messages. Tap to retry"),
+  ),
+
+Expanded(
+  child: AnimatedList(
+    key: _listKey,
+    controller: _scrollController,
+    reverse: true,
+    initialItemCount: _displayedRounds.length,
+    itemBuilder: (context, index, animation) {
+      final i = _displayedRounds.length - 1 - index;
+      if (i < 0 || i >= _displayedRounds.length) return const SizedBox();
+      return _buildRoundBubble(_displayedRounds[i], animation);
+    },
+  ),
+),
 
               if (lastRoundIsProvider)
                 Consumer<ClientStartRoundController>(
                   builder: (context, clientCtrl, _) {
                     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
                     return Padding(
-                      padding: EdgeInsets.only(
-                          left: 16, right: 16, bottom: bottomInset + 8, top: 8),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            flex: 2,
-                            child: TextField(
-                              controller: _messageController,
-                              decoration: const InputDecoration(
-                                hintText: 'Message...',
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.all(Radius.circular(12)),
-                                ),
-                                contentPadding:
-                                    EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          SizedBox(
-                            width: 100,
-                            child: TextField(
-                              controller: _priceController,
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(decimal: true),
-                              decoration: const InputDecoration(
-                                hintText: 'Price',
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.all(Radius.circular(12)),
-                                ),
-                                contentPadding:
-                                    EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          // No isLoading gate — send is instant now, the
-                          // bubble itself carries the pending/failed state.
-                          ElevatedButton(
-                            onPressed: () => _sendRound(clientCtrl, negoCtrl),
-                            child: const Text("Send"),
-                          ),
-                        ],
-                      ),
-                    );
+  padding: EdgeInsets.only(
+      left: 16, right: 16, bottom: bottomInset + 8, top: 8),
+  child: Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      if (providerPrice != null)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size.fromHeight(48),
+                backgroundColor: Colors.green.shade600,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onPressed: _isSending
+                  ? null
+                  : () => _acceptProviderPrice(
+                      clientCtrl, negoCtrl, providerPrice),
+              child: _isSending
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
+                    )
+                  : Text(
+                      "Accept R${providerPrice.toStringAsFixed(2)}",
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+            ),
+          ),
+        ),
+      Row(
+        children: [
+          Expanded(
+            flex: 2,
+            child: TextField(
+              controller: _messageController,
+              decoration: const InputDecoration(
+                hintText: 'Message (optional)...',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(12)),
+                ),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 100,
+            child: TextField(
+              controller: _priceController,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                hintText: 'Price',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(12)),
+                ),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Kolors.kPrimary,
+              foregroundColor: Colors.white,
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: _isSending ? null : () => _sendRound(clientCtrl, negoCtrl),
+            child: const Text("Send"),
+          ),
+        ],
+      ),
+    ],
+  ),
+);
                   },
                 )
               else

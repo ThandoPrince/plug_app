@@ -6,15 +6,28 @@ import 'package:flutter_application_1/global_util/services/models/order_service_
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
+class NegotiationPage {
+  final NegotiationModel negotiation;
+  final bool hasMoreRounds;
+  const NegotiationPage(this.negotiation, this.hasMoreRounds);
+}
+
 class NegotiationByIdApi {
   static final String baseUrl = dotenv.env['API_BASE_URL'] ?? '';
 
-  static Future<NegotiationModel?> fetchNegotiationById(
-    int negotiationId,
-  ) async {
+  /// Returns the latest [limit] rounds, or the [limit] rounds before
+  /// [beforeRoundId]. Null means the negotiation was not found.
+  static Future<NegotiationPage?> fetchNegotiationById(
+    int negotiationId, {
+    int? beforeRoundId,
+    int limit = 20,
+  }) async {
     final url = Uri.parse(
       '$baseUrl/bookings/service_orders/negotiation/$negotiationId',
-    );
+    ).replace(queryParameters: {
+      'limit': '$limit',
+      if (beforeRoundId != null) 'before': '$beforeRoundId',
+    });
 
     try {
       final response = await ApiClient.instance.request(
@@ -29,54 +42,28 @@ class NegotiationByIdApi {
             .timeout(const Duration(seconds: 12)),
       );
 
-      // =========================
-      // SUCCESS
-      // =========================
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-
         if (data is! Map<String, dynamic>) {
           throw Exception("Invalid negotiation response format");
         }
-
-        return NegotiationModel.fromJson(data);
+        // The http package lowercases header names.
+        final hasMore = response.headers['x-has-more-rounds'] == 'true';
+        return NegotiationPage(NegotiationModel.fromJson(data), hasMore);
       }
 
-      // =========================
-      // NOT FOUND (valid state)
-      // =========================
-      if (response.statusCode == 404) {
-        return null;
-      }
+      if (response.statusCode == 404) return null;
 
-      // =========================
-      // AUTH FAILURE
-      // =========================
       if (response.statusCode == 401 || response.statusCode == 403) {
         throw Exception("Unauthorized access: ${response.body}");
       }
-
-      // =========================
-      // CLIENT ERROR
-      // =========================
       if (response.statusCode >= 400 && response.statusCode < 500) {
-        throw Exception(
-          "Client error ${response.statusCode}: ${response.body}",
-        );
+        throw Exception("Client error ${response.statusCode}: ${response.body}");
       }
-
-      // =========================
-      // SERVER ERROR
-      // =========================
       if (response.statusCode >= 500) {
-        throw Exception(
-          "Server error ${response.statusCode}: ${response.body}",
-        );
+        throw Exception("Server error ${response.statusCode}: ${response.body}");
       }
-
-      throw Exception(
-        "Unexpected response: ${response.statusCode} ${response.body}",
-      );
+      throw Exception("Unexpected response: ${response.statusCode} ${response.body}");
     } on TimeoutException {
       throw Exception("Request timed out. Please try again.");
     } on FormatException {

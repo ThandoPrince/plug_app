@@ -11,7 +11,7 @@ class ShipmentConfirmApi {
 
   ShipmentConfirmApi({required this.baseUrl});
 
-  static const Duration _timeout = Duration(seconds: 15);
+  static const Duration _timeout = Duration(seconds: 60);
 
   // =========================
   // ERROR HANDLER

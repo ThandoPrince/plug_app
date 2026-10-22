@@ -9,7 +9,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 class CreateProfileApi {
   static final String baseUrl = dotenv.env['API_BASE_URL'] ?? '';
 
-  static const Duration _timeout = Duration(seconds: 15);
+  static const Duration _timeout = Duration(seconds: 60);
 
   // =========================
   // ERROR HANDLER

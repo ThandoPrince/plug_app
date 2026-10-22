@@ -41,44 +41,45 @@ class NegotiationCard extends StatelessWidget {
 
     final negotiationId = negotiation.negotiationId;
 
-    return Consumer<NegotiationBadgeStore>(
-      builder: (context, store, _) {
-        final isUnread = negotiationId != null &&
-            store.isUnread(negotiationId);
+   return Consumer<NegotiationBadgeStore>(
+  builder: (context, store, _) {
+    final unreadCount = negotiationId != null ? store.countFor(negotiationId) : 0;
 
-        return Stack(
-          children: [
-            Card(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              elevation: 3,
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 20,
-                      backgroundColor: Colors.grey.shade300,
-                      backgroundImage: profileUrl != null
-                          ? NetworkImage(profileUrl)
-                          : null,
-                      child: profileUrl == null
-                          ? Text(
-                              _getInitials(fullName),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Kolors.kDark,
-                              ),
-                            )
-                          : null,
-                    ),
-                    const SizedBox(width: 12),
+    return Stack(
+      children: [
+        Card(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 3,
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: Colors.grey.shade300,
+                  backgroundImage: profileUrl != null
+                      ? NetworkImage(profileUrl)
+                      : null,
+                  child: profileUrl == null
+                      ? Text(
+                          _getInitials(fullName),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Kolors.kDark,
+                          ),
+                        )
+                      : null,
+                ),
+                const SizedBox(width: 12),
 
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
                         children: [
                           Text(
                             fullName ?? "Unknown Provider",
@@ -87,58 +88,63 @@ class NegotiationCard extends StatelessWidget {
                               fontSize: 16,
                             ),
                           ),
-                          const SizedBox(height: 4),
-
-                          Text(
-                            "Status: ${negotiation.status ?? 'Pending'}",
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey,
+                          if (unreadCount > 0) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                unreadCount > 9 ? '9+' : '$unreadCount',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
-                          ),
-
-                          const SizedBox(height: 4),
-
-                          Text(
-                            "Proposed: R${negotiation.proposedPrice?.toStringAsFixed(2) ?? 'N/A'}",
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey,
-                            ),
-                          ),
+                          ],
                         ],
                       ),
-                    ),
+                      const SizedBox(height: 4),
 
-                    Text(
-                      date,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey,
+                      Text(
+                        "Status: ${negotiation.status ?? 'Pending'}",
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
 
-            // 🔴 BADGE (NEW)
-            if (isUnread)
-              Positioned(
-                right: 20,
-                top: 10,
-                child: Container(
-                  width: 10,
-                  height: 10,
-                  decoration: const BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.circle,
+                      const SizedBox(height: 4),
+
+                      Text(
+                        "Proposed: R${negotiation.proposedPrice?.toStringAsFixed(2) ?? 'N/A'}",
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-          ],
-        );
-      },
+
+                Text(
+                  date,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
+  },
+);
   }
 }

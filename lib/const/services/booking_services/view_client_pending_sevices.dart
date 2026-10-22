@@ -12,7 +12,7 @@ import 'package:http/http.dart' as http;
 class ClientPendingOrdersApi {
   static final String _baseUrl = dotenv.env['API_BASE_URL'] ?? '';
 
-  static const Duration _timeout = Duration(seconds: 15);
+  static const Duration _timeout = Duration(seconds: 60);
 
   /// Fetch pending orders for the authenticated client
   Future<List<OrderServiceModel>> fetchPendingOrdersByClientEmail() async {

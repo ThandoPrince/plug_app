@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/widgets/shimmers/household_members_skeleton.dart';
+import 'package:flutter_application_1/global_util/services/widgets/common_error_state.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_application_1/global_util/services/controler/household_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/super_user_deactivate_address_controller.dart';
@@ -143,111 +144,144 @@ class _HouseholdMembersViewState extends State<HouseholdMembersView> {
   }
 
   Widget _buildBody(HouseholdController ctrl) {
-    if (ctrl.isLoading) {
-      return const HouseholdMembersSkeleton();
-    }
+  // Skeleton only on a true first load, not on pull-to-refresh.
+  if (ctrl.isLoading && ctrl.members.isEmpty) {
+    return const HouseholdMembersSkeleton();
+  }
 
-    if (ctrl.error != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.error_outline, color: Colors.red.shade300, size: 40),
-              const SizedBox(height: 12),
-              Text(
-                ctrl.error!,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.white),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
+  if (ctrl.error != null && ctrl.members.isEmpty) {
+    return CommonErrorState(
+      onRefresh: () => ctrl.fetchHouseholdMembers(widget.clientAddressId),
+      title: "Unable to load members",
+      message: ctrl.error!,
+      icon: Icons.people_outline,
+    );
+  }
 
-    if (ctrl.members.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.people_outline, color: Colors.white.withOpacity(0.7), size: 48),
-            const SizedBox(height: 12),
-            Text(
-              "No household members found.",
-              style: TextStyle(color: Colors.white.withOpacity(0.85)),
-            ),
-          ],
-        ),
-      );
-    }
+  if (ctrl.members.isEmpty) {
+    return CommonErrorState(
+      onRefresh: () => ctrl.fetchHouseholdMembers(widget.clientAddressId),
+      title: "No Household Members",
+      message: "No household members found for this address.",
+      icon: Icons.people_outline,
+    );
+  }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: ctrl.members.length,
-      itemBuilder: (context, index) {
-        final member = ctrl.members[index];
-        final client = member.client;
-        final fullName = "${client.firstName ?? ''} ${client.lastName ?? ''}".trim();
-        final initials = (client.firstName?.isNotEmpty ?? false)
-            ? client.firstName![0].toUpperCase()
-            : "?";
-        final String? profilePic = client.profilePic;
-        final bool hasPhoto = profilePic != null && profilePic.isNotEmpty;
-        final heroTag = 'household_member_photo_${member.hashCode}_$index';
+  final showFooter = ctrl.hasMore || ctrl.isLoadingMore;
 
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.08),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                GestureDetector(
-                  onTap: hasPhoto
-                      ? () => _openFullScreenPhoto(context, profilePic, heroTag)
-                      : null,
-                  child: Hero(
-                    tag: heroTag,
-                    child: Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Kolors.kPrimary,
-                        border: Border.all(color: Kolors.kPrimary.withOpacity(0.15), width: 2),
+  return NotificationListener<ScrollNotification>(
+    onNotification: (n) {
+      if (n.metrics.axis == Axis.vertical &&
+          n.metrics.extentAfter < 300 &&
+          !ctrl.hasLoadMoreError) {
+        ctrl.loadMore();
+      }
+      return false;
+    },
+    child: RefreshIndicator(
+      color: Kolors.kPrimary,
+      onRefresh: () => ctrl.fetchHouseholdMembers(widget.clientAddressId),
+      child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
+        itemCount: ctrl.members.length + (showFooter ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index >= ctrl.members.length) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Center(
+                child: ctrl.hasLoadMoreError
+                    ? TextButton(
+                        onPressed: () => ctrl.loadMore(retry: true),
+                        child: const Text(
+                          "Couldn't load more. Tap to retry",
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                      )
+                    : const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       ),
-                      clipBehavior: Clip.antiAlias,
-                      child: hasPhoto
-                          ? Image.network(
-                              profilePic,
-                              fit: BoxFit.cover,
-                              loadingBuilder: (context, child, progress) {
-                                if (progress == null) return child;
-                                return const Center(
-                                  child: SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
+              ),
+            );
+          }
+
+          final member = ctrl.members[index];
+          final client = member.client;
+          final fullName = "${client.firstName ?? ''} ${client.lastName ?? ''}".trim();
+          final initials = (client.firstName?.isNotEmpty ?? false)
+              ? client.firstName![0].toUpperCase()
+              : "?";
+          final String? profilePic = client.profilePic;
+          final bool hasPhoto = profilePic != null && profilePic.isNotEmpty;
+          final heroTag = 'household_member_photo_${member.hashCode}_$index';
+    
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  GestureDetector(
+                    onTap: hasPhoto
+                        ? () => _openFullScreenPhoto(context, profilePic, heroTag)
+                        : null,
+                    child: Hero(
+                      tag: heroTag,
+                      child: Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Kolors.kPrimary,
+                          border: Border.all(color: Kolors.kPrimary.withOpacity(0.15), width: 2),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: hasPhoto
+                            ? Image.network(
+                                profilePic,
+                                fit: BoxFit.cover,
+                                loadingBuilder: (context, child, progress) {
+                                  if (progress == null) return child;
+                                  return const Center(
+                                    child: SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                errorBuilder: (context, error, stackTrace) => Center(
+                                  child: Text(
+                                    initials,
+                                    style: const TextStyle(
                                       color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 20,
                                     ),
                                   ),
-                                );
-                              },
-                              errorBuilder: (context, error, stackTrace) => Center(
+                                ),
+                              )
+                            : Center(
                                 child: Text(
                                   initials,
                                   style: const TextStyle(
@@ -257,101 +291,90 @@ class _HouseholdMembersViewState extends State<HouseholdMembersView> {
                                   ),
                                 ),
                               ),
-                            )
-                          : Center(
-                              child: Text(
-                                initials,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 20,
-                                ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          fullName.isEmpty ? "Unnamed member" : fullName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Container(
+                              width: 7,
+                              height: 7,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: member.isActive ? Colors.green : Colors.grey,
                               ),
                             ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        fullName.isEmpty ? "Unnamed member" : fullName,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                          color: Colors.black87,
+                            const SizedBox(width: 6),
+                            Text(
+                              member.isActive ? "Active" : "Inactive",
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: 12.5,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Container(
-                            width: 7,
-                            height: 7,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: member.isActive ? Colors.green : Colors.grey,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            member.isActive ? "Active" : "Inactive",
-                            style: TextStyle(
-                              color: Colors.grey.shade600,
-                              fontSize: 12.5,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (member.isOwner) _buildBadge("OWNER", Colors.green),
-                        if (member.houseAdministrator) ...[
-                          if (member.isOwner) const SizedBox(width: 4),
-                          _buildBadge("ADMIN", Colors.orange),
-                        ],
                       ],
                     ),
-                    // Only active members can be deactivated — no point
-                    // showing the menu for someone already inactive.
-                    if (member.isActive)
-                      PopupMenuButton<String>(
-                        padding: EdgeInsets.zero,
-                        icon: Icon(Icons.more_vert, color: Colors.grey.shade500, size: 20),
-                        onSelected: (value) {
-                          if (value == 'deactivate') {
-                            _confirmDeactivate(context, fullName, member.id);
-                          }
-                        },
-                        itemBuilder: (context) => [
-                          const PopupMenuItem(
-                            value: 'deactivate',
-                            child: Text(
-                              "Deactivate",
-                              style: TextStyle(color: Colors.red),
-                            ),
-                          ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (member.isOwner) _buildBadge("OWNER", Colors.green),
+                          if (member.houseAdministrator) ...[
+                            if (member.isOwner) const SizedBox(width: 4),
+                            _buildBadge("ADMIN", Colors.orange),
+                          ],
                         ],
                       ),
-                  ],
-                ),
-              ],
+                      if (member.isActive)
+                        PopupMenuButton<String>(
+                          padding: EdgeInsets.zero,
+                          icon: Icon(Icons.more_vert, color: Colors.grey.shade500, size: 20),
+                          onSelected: (value) {
+                            if (value == 'deactivate') {
+                              _confirmDeactivate(context, fullName, member.id);
+                            }
+                          },
+                          itemBuilder: (context) => [
+                            const PopupMenuItem(
+                              value: 'deactivate',
+                              child: Text(
+                                "Deactivate",
+                                style: TextStyle(color: Colors.red),
+                              ),
+                            ),
+                          ],
+                        ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        );
-      },
-    );
-  }
+          );
+        },
+      ),
+    ),
+  );
+}
 
   Widget _buildBadge(String text, Color color) {
     return Container(

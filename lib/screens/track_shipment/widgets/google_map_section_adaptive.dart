@@ -92,9 +92,9 @@ class _AdaptiveMapSectionState extends State<AdaptiveMapSection> {
 
         return AdaptiveMapWidget(
   googleMapController: _googleController,
-  fallbackMapController: _fallbackController,
+
   initialMarkers: ctrl.markers,
-  googleMapsApiKey: dotenv.env['GOOGLE_API_KEY'],
+
   initialPolylines: ctrl.polylines,
   onMapCreated: (controller) => widget.routeController.setMapController(controller),
   initialCameraPosition: CameraPosition(

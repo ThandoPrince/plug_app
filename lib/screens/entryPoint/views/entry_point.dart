@@ -1,21 +1,30 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:another_flushbar/flushbar_helper.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/widgets/custom_button.dart';
 import 'package:flutter_application_1/global_util/services/controler/address_client_ctrl.dart';
+import 'package:flutter_application_1/global_util/services/controler/badge_sync.dart';
+import 'package:flutter_application_1/global_util/services/controler/client_order_realtime_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/client_pending_orders_ctrl.dart';
 
 import 'package:flutter_application_1/global_util/services/controler/client_profile_by_email_ctrl.dart';
 import 'package:flutter_application_1/global_util/services/controler/get_client_shipment_ctrl.dart';
 import 'package:flutter_application_1/global_util/services/controler/google_map_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/logout_controller.dart';
+import 'package:flutter_application_1/global_util/services/controler/negotiation_badge_store_controller.dart';
+import 'package:flutter_application_1/global_util/services/controler/order_updates_badge_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/service_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/device_capability_controller.dart';
 
 import 'package:flutter_application_1/screens/completed_services/views/completed_services_screen.dart';
 import 'package:flutter_application_1/screens/entryPoint/controller/tab_lifecycle_controller.dart';
+import 'package:flutter_application_1/screens/entryPoint/widgets/entry_point_network_check.dart';
+import 'package:flutter_application_1/screens/entryPoint/widgets/entry_point_retry.dart';
+import 'package:flutter_application_1/screens/entryPoint/views/offline_home_screen.dart';
 import 'package:flutter_application_1/screens/home/views/google_home_page.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
@@ -40,11 +49,15 @@ class EntryPoint extends StatefulWidget {
   State<EntryPoint> createState() => _EntryPointState();
 }
 
-class _EntryPointState extends State<EntryPoint> {
+class _EntryPointState extends State<EntryPoint> with WidgetsBindingObserver {
   late final PageController _pageController;
   bool _isHmsPresent = false;
+    bool _noConnection = false;
   bool _checkingHardware = true;
+  late final TabIndexNotifier _tabNotifier;
   MapServiceType? _mapServiceType;
+    bool _isOffline = false;
+  bool _isRetrying = false;
 
   @override
   void initState() {
@@ -53,49 +66,114 @@ class _EntryPointState extends State<EntryPoint> {
     _pageController = PageController();
     _checkHardwarePlatform();
 
+    _tabNotifier = context.read<TabIndexNotifier>();
+    _tabNotifier.addListener(_onExternalTabChange);
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _prefetchAllTabData();
+      _goToPage(_tabNotifier.index);
     });
   }
 
-  Future<void> _prefetchAllTabData() async {
-    final clientId = AuthSessionController.instance.clientId;
-    if (clientId == null) return;
-
-    AuthSessionController.instance.setLoggedIn(true);
-
-    final profileCtrl = context.read<ClientProfileController>();
-    final mapCtrl = context.read<GoogleMapMarkerController>();
-    final serviceCtrl = context.read<ServiceController>();
-
-    final pendingOrdersCtrl = context.read<ClientPendingOrdersController>();
-    final shipmentCtrl = context.read<ShipmentController>();
-    final tabLifecycle = context.read<TabLifecycleController>();
-    final addressCtrl = context.read<AddressClientCtrl>();
-
-    // Fire all tabs' initial data requests in parallel.
-    await Future.wait([
-      profileCtrl.fetchClientByEmail(clientId),
-      serviceCtrl.fetchServices(),
-      mapCtrl.showDefaultAddress(),
-      pendingOrdersCtrl.fetchPendingOrders(),
-      shipmentCtrl.fetchShipmentsByClientEmail(),
-      addressCtrl.fetchAddresses(),
-    ]);
-
-    // Profile's own didChangeDependencies guard uses this — mark it loaded
-    // now so Profile doesn't fire a second, redundant fetch when opened.
-    tabLifecycle.markLoaded(3);
-
-    if (kDebugMode) {
-      print(
-        "AuthSessionController.isLoggedIn: "
-        "${AuthSessionController.instance.isLoggedIn}",
-      );
-    }
+  void _onExternalTabChange() {
+    _goToPage(_tabNotifier.index);
   }
 
-  /// Evaluates device runtime to detect Huawei Mobile Services availability
+Future<void> _prefetchAllTabData() async {
+  final clientId = AuthSessionController.instance.clientId;
+  if (clientId == null) return;
+
+    final connected = await hasNetworkConnection();
+  if (!connected) {
+    if (!mounted) return;
+    setState(() {
+      _noConnection = true;
+      _isOffline = false;
+      _isRetrying = false;
+    });
+    return; // don't even attempt the calls — there's nothing to retry
+  }
+
+  AuthSessionController.instance.setLoggedIn(true);
+
+  final numericUserId = clientId; // confirm this is the numeric user id, not email
+  final clientRealtime = context.read<ClientOrderRealtimeController>();
+  final badgeCtrl = context.read<OrderUpdatesBadgeController>();
+  final negotiationBadgeCtrl = context.read<NegotiationBadgeStore>();
+
+  clientRealtime.onNegotiationRoundReceived = (negotiationId, orderId, round) {
+  context.read<ClientPendingOrdersController>().refreshSilently();
+  if (round.id != null) {
+    negotiationBadgeCtrl.registerRound(
+      negotiationId: negotiationId,
+      roundId: round.id!,
+      senderType: round.senderType,
+      orderId: orderId,
+    );
+  }
+};
+
+  clientRealtime.onNegotiationStatusChanged = (negotiationId, orderId) {
+    if (kDebugMode) {
+      print('Status changed for negotiation $negotiationId, order $orderId — refreshing pending orders and shipments');
+    }
+    context.read<ClientPendingOrdersController>().refreshSilently();
+    context.read<ShipmentController>().refreshSilently();
+    if (orderId != null) badgeCtrl.increment(orderId);
+  };
+
+  clientRealtime.onShipmentStatusUpdated = (data) {
+    if (kDebugMode) {
+      print('Shipment status changed — refreshing shipments');
+    }
+    context.read<ShipmentController>().refreshSilently();
+  };
+
+  clientRealtime.connect(numericUserId);
+
+  final profileCtrl = context.read<ClientProfileController>();
+  final mapCtrl = context.read<GoogleMapMarkerController>();
+  final serviceCtrl = context.read<ServiceController>();
+
+  final pendingOrdersCtrl = context.read<ClientPendingOrdersController>();
+  final shipmentCtrl = context.read<ShipmentController>();
+  final tabLifecycle = context.read<TabLifecycleController>();
+  final addressCtrl = context.read<AddressClientCtrl>();
+
+try {
+  await Future.wait([
+    retryWithBackoff(() => profileCtrl.fetchClientByEmail(clientId), label: 'profile'),
+    retryWithBackoff(() => serviceCtrl.fetchServices(), label: 'services'),
+    retryWithBackoff(() => mapCtrl.showDefaultAddress(), label: 'defaultAddress'),
+    retryWithBackoff(() => pendingOrdersCtrl.fetchPendingOrders(), label: 'pendingOrders'),
+    retryWithBackoff(() => shipmentCtrl.fetchShipmentsByClientEmail(), label: 'shipments'),
+    retryWithBackoff(() => addressCtrl.fetchAddresses(), label: 'addresses'),
+  ]);
+
+  if (!mounted) return;
+
+  if (_isOffline) {
+    setState(() {
+      _isOffline = false;
+      _isRetrying = false;
+    });
+  }
+
+  unawaited(syncUnreadBadges(pendingOrdersCtrl, negotiationBadgeCtrl));
+
+  tabLifecycle.markLoaded(3);
+} catch (e) {
+  if (kDebugMode) {
+    print("EntryPoint prefetch failed after retries: $e");
+  }
+  if (!mounted) return;
+  setState(() {
+    _isOffline = true;
+    _isRetrying = false;
+  });
+}
+}
+
   Future<void> _checkHardwarePlatform() async {
     try {
       final deviceController = DeviceCapabilityController.instance;
@@ -111,12 +189,13 @@ class _EntryPointState extends State<EntryPoint> {
     }
   }
 
-  @override
+    @override
   void dispose() {
+    _tabNotifier.removeListener(_onExternalTabChange);
     _pageController.dispose();
-
     super.dispose();
   }
+
 
   void _goToPage(int index) {
     if (!_pageController.hasClients) return;
@@ -131,111 +210,104 @@ class _EntryPointState extends State<EntryPoint> {
     });
   }
 
-  void _confirmLogout() async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 30),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(24),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 28,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.2),
-                  ),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.logout_rounded,
-                      size: 48,
-                      color: Colors.redAccent,
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      "Logout",
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      "Are you sure you want to logout?",
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 28),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: GradientBtn(
-                            text: "Cancel",
-                            btnColor: Colors.grey.shade200,
-                            textColor: Colors.black,
-                            btnHieght: 50,
-                            btnWidth: double.infinity,
-                            radius: 14,
-                            onTap: () {
-                              Navigator.of(dialogContext).pop();
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Kolors.kPrimary,
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                            ),
-                            onPressed: () async {
-                              Navigator.of(dialogContext).pop();
 
-                              await _logout();
-
-                              if (!context.mounted) return;
-                            },
-                            child: const Text(
-                              "Logout",
-                              style: TextStyle(
-                                color: Kolors.kOffWhite,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+void _confirmLogout() {
+  showDialog(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20.r),
+      ),
+      icon: Container(
+        padding: EdgeInsets.all(12.w),
+        decoration: BoxDecoration(
+          color: Colors.red.shade50,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          Icons.logout_rounded,
+          color: Colors.red.shade600,
+          size: 26.sp,
+        ),
+      ),
+      title: const Text(
+        'Logout?',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      content: const Text(
+        'Are you sure you want to logout of your account?',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          height: 1.4,
+          color: Colors.black87,
+        ),
+      ),
+      actionsAlignment: MainAxisAlignment.spaceBetween,
+      actionsPadding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
+      actions: [
+        Expanded(
+          child: ElevatedButton(
+            onPressed: () => Navigator.pop(ctx),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Kolors.kPrimary,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10.r),
+              ),
+            ),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
-        );
-      },
-    );
-  }
+        ),
+        SizedBox(width: 8.w),
+        Expanded(
+          child: ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+
+              await _logout();
+
+              if (!context.mounted) return;
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade600,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10.r),
+              ),
+            ),
+            child: const Text(
+              'Logout',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+
 
   Future<void> _logout() async {
     final logoutController = LogoutController();
 
     try {
       Provider.of<TabIndexNotifier>(context, listen: false).reset();
+      context.read<ClientOrderRealtimeController>().disconnect();
 
       await logoutController.logout();
 
@@ -258,6 +330,11 @@ class _EntryPointState extends State<EntryPoint> {
     }
   }
 
+   @override
+  void didChangeAppLifecycleState(AppLifecycleState s) {
+    if (s == AppLifecycleState.resumed) _prefetchAllTabData(); // reconnects socket + refetches
+  }
+
   @override
   Widget build(BuildContext context) {
     final session = context.watch<AuthSessionController>();
@@ -269,7 +346,16 @@ class _EntryPointState extends State<EntryPoint> {
       );
     }
 
-    // Dynamic routing matrix selection based on device operating environment
+ if (_isOffline) {
+    return OfflineHomeScreen(
+      isRetrying: _isRetrying,
+      onRetry: () {
+        setState(() => _isRetrying = true);
+        _prefetchAllTabData();
+      },
+    );
+  }
+
     final List<Widget> pages = [
       const GoogleHomeMapPage(),
       const ClientPendingOrdersScreen(),
@@ -343,7 +429,7 @@ class _EntryPointState extends State<EntryPoint> {
                     Container(
                       decoration: const BoxDecoration(
                         gradient: LinearGradient(
-              colors: [Kolors.kPrimary, Kolors.kPrimary, Kolors.kWhite],
+              colors: [Kolors.kPrimary, Kolors.kPrimary],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -496,41 +582,48 @@ class _EntryPointState extends State<EntryPoint> {
   }
 
   /// Glass Bottom Navigation
-  Widget _buildBottomNav(TabIndexNotifier tabNotifier) {
-    return ClipRRect(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-        child: Container(
-          color: Colors.transparent,
-          child: SafeArea(
-            child: GNav(
-              rippleColor: Colors.grey[300]!,
-              hoverColor: Colors.grey[100]!,
-              gap: 4,
-              activeColor: Kolors.kBlue,
-              iconSize: 22,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              duration: const Duration(milliseconds: 350),
-              tabBackgroundColor: Kolors.kPrimary.withOpacity(0.1),
-              color: Kolors.kDark.withOpacity(0.6),
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              tabs: const [
-                GButton(icon: Ionicons.home_outline, text: 'Home'),
-                GButton(icon: Icons.pending_outlined, text: 'Pending'),
-                GButton(icon: Icons.calendar_month_outlined, text: 'Schedule'),
-                GButton(icon: Ionicons.person_outline, text: 'Profile'),
-              ],
-              selectedIndex: _pageController.hasClients
-      ? (_pageController.page?.round() ?? 0)
-      : tabNotifier.index,
-              onTabChange: (index) {
-        _goToPage(index);
-      },
-            ),
+ Widget _buildBottomNav(TabIndexNotifier tabNotifier) {
+  return ClipRRect(
+    borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+    child: BackdropFilter(
+      filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+      child: Container(
+        color: Colors.transparent,
+        child: SafeArea(
+          child: GNav(
+            rippleColor: Colors.grey[300]!,
+            hoverColor: Colors.grey[100]!,
+            gap: 4,
+            activeColor: Kolors.kBlue,
+            iconSize: 22,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            duration: const Duration(milliseconds: 350),
+            tabBackgroundColor: Kolors.kPrimary.withOpacity(0.1),
+            color: Kolors.kDark.withOpacity(0.6),
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            tabs: const [
+              GButton(icon: Ionicons.home_outline, text: 'Home'),
+              GButton(icon: Icons.pending_outlined, text: 'Pending'),
+              GButton(icon: Icons.calendar_month_outlined, text: 'Schedule'),
+              GButton(icon: Ionicons.person_outline, text: 'Profile'),
+            ],
+            // tabNotifier.index is the single source of truth — it's kept
+            // in sync with the PageView both ways (onPageChanged -> setIndex,
+            // and the external listener -> _goToPage), so there's no need
+            // to also read _pageController.page here. Doing so previously
+            // caused the nav highlight to go stale: jumpToPage moves the
+            // actual page content at the render layer without necessarily
+            // triggering a fresh notifyListeners() (setIndex short-circuits
+            // when the index is already correct), so this widget never
+            // rebuilt to pick up the new page.
+            selectedIndex: tabNotifier.index,
+            onTabChange: (index) {
+              _goToPage(index);
+            },
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

@@ -393,54 +393,6 @@ class _MultiProviderBookingBodyState extends State<MultiProviderBookingBody> {
                     ),
             ),
             const SizedBox(height: 12),
-
-            if (widget.defaultAddress != null)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionTitle("Delivery Address"),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF9FAFB),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: borderColor),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.location_on_rounded, color: Kolors.kPrimary, size: 20),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            widget.defaultAddress!.address.formattedAddress ??
-                                'Address not available',
-                            style: const TextStyle(fontSize: 14, color: Kolors.kDark, height: 1.3),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton.icon(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => LocationScreen()),
-                        );
-                      },
-                      icon: const Icon(Icons.edit_location_alt_rounded, size: 16),
-                      label: const Text("Change Address", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                      style: TextButton.styleFrom(
-                        foregroundColor: Kolors.kPrimary,
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
             
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -492,7 +444,7 @@ class _MultiProviderBookingBodyState extends State<MultiProviderBookingBody> {
                             keyboardType: const TextInputType.numberWithOptions(decimal: true),
                             style: const TextStyle(fontWeight: FontWeight.bold, color: Kolors.kDark),
                             decoration: _buildInputDecoration(
-                              label: "Propose your price (Optional)",
+                              label: "Propose your price",
                             ).copyWith(
                               prefixText: "R ",
                               prefixStyle: const TextStyle(fontWeight: FontWeight.bold, color: Kolors.kDark),

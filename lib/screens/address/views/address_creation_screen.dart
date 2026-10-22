@@ -132,8 +132,13 @@ class AddAddressScreen extends StatelessWidget {
           );
 
           if (p != null) {
-            await ctrl.setAddressFromPrediction(p, kGoogleApiKey);
-          }
+  try {
+    await ctrl.setAddressFromPrediction(p, kGoogleApiKey);
+  } catch (e) {
+    if (!context.mounted) return;
+    FlushbarService.error(context, "Couldn't load that address. Please try again.");
+  }
+}
         },
         decoration: InputDecoration(
           hintText: "Find your address...",

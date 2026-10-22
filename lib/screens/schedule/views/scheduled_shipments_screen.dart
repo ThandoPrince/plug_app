@@ -41,8 +41,8 @@ class _ScheduledShipmentsScreenState extends State<ScheduledShipmentsScreen>
 ];
 
   Future<void> _onRefresh() async {
-    await context.read<ShipmentController>().refresh();
-  }
+  await context.read<ShipmentController>().fetchShipmentsByClientEmail(forceRefresh: true);
+}
 
   void _onScroll(ScrollNotification notification) {
     if (notification is ScrollUpdateNotification) {
@@ -351,35 +351,37 @@ class _ScheduledShipmentsScreenState extends State<ScheduledShipmentsScreen>
   }
 
   Widget _buildEmptyState() {
-    return RefreshIndicator(
-      onRefresh: _onRefresh,
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        children: [
-          const SizedBox(height: 120),
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.calendar_month_rounded,
-                size: 100,
-                color: Colors.white.withOpacity(0.6),
+  return RefreshIndicator(
+    color: Kolors.kPrimary,       // Spinner/progress color
+    backgroundColor: Colors.white, // Background circle color
+    onRefresh: _onRefresh,
+    child: ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [
+        const SizedBox(height: 120),
+        Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.calendar_month_rounded,
+              size: 100,
+              color: Colors.white.withOpacity(0.6),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'No Orders Scheduled!',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
               ),
-              const SizedBox(height: 20),
-              const Text(
-                'No Orders Scheduled!',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+}
 }
 
 class _ActionTile extends StatelessWidget {

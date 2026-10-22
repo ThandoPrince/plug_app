@@ -340,7 +340,8 @@ class _RatingScreenState extends State<RatingScreen> {
                       );
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Kolors.kDark,
+                     backgroundColor: Kolors.kPrimary,
+          foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.r)),
                     ),
                     child: const Text("BACK TO HOME",

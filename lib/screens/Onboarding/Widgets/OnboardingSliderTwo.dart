@@ -1,3 +1,4 @@
+
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -22,14 +23,18 @@ class _OnboardingslidertwoState extends State<Onboardingslidertwo> {
   bool _autoPlay = true;
   Timer? _inactivityTimer;
 
-  void _stopAutoPlay() {
-    setState(() {
-      _autoPlay = false;
-    });
+  void _onUserInteraction() {
+    // User has touched/swiped the slider.
+    if (_autoPlay) {
+      setState(() {
+        _autoPlay = false;
+      });
+    }
 
+    // Reset the inactivity timer every time the user interacts.
     _inactivityTimer?.cancel();
 
-    // Restart autoplay after 30 seconds
+    // Resume autoplay after 30 seconds of no interaction.
     _inactivityTimer = Timer(const Duration(seconds: 30), () {
       if (mounted) {
         setState(() {
@@ -54,8 +59,10 @@ class _OnboardingslidertwoState extends State<Onboardingslidertwo> {
             height: ScreenUtil().screenHeight * 0.4,
             width: ScreenUtil().screenWidth * 0.5,
             child: GestureDetector(
-              onPanDown: (_) => _stopAutoPlay(),
-              onTap: _stopAutoPlay,
+              onTapDown: (_) => _onUserInteraction(),
+              onPanDown: (_) => _onUserInteraction(),
+              onHorizontalDragStart: (_) => _onUserInteraction(),
+              onVerticalDragStart: (_) => _onUserInteraction(),
               child: ImageSlideshow(
                 width: ScreenUtil().screenWidth,
                 height: ScreenUtil().screenHeight,
@@ -82,3 +89,4 @@ class _OnboardingslidertwoState extends State<Onboardingslidertwo> {
     );
   }
 }
+

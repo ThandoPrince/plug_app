@@ -30,6 +30,7 @@ class AppInitializer {
     await GetStorage.init();
 
     await AuthSessionController.instance.loadSession();
+    await NegotiationBadgeStore.global.load(); 
 
     // 1. detect platform first
     await _detectHuawei();
@@ -95,15 +96,18 @@ static String _resolveRoute() {
 }
 
 static void _handleNegotiationRound(AppEvent event) {
+
+  
   final negotiationId = event.negotiationId;
+  final roundId = event.roundId;
+  if (negotiationId == null || roundId == null) return; // can't dedupe without it
 
-  if (negotiationId == null) return;
-
-  if (kDebugMode) {
-    print("Negotiation event received in initializer: $negotiationId");
-  }
-
-  NegotiationBadgeStore.global.markUnread(negotiationId);
+  NegotiationBadgeStore.global.registerRound(
+    negotiationId: negotiationId,
+    roundId: roundId,
+    senderType: event.senderType,
+    orderId: event.orderId == 0 ? null : event.orderId,
+  );
 }
 
   // ---------------- INIT BLOCKS ----------------

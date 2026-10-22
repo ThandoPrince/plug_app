@@ -23,7 +23,7 @@ class _AuthCreationScreenState extends State<AuthCreationScreen> {
   bool _isPasswordVisible = false;
 
   Future<void> _openWebsite() async {
-    final uri = Uri.parse('https://plugwebsite-production.up.railway.app/');
+    final uri = Uri.parse('https://www.plugprovider.co.za/');
 
     try {
       final launched = await launchUrl(

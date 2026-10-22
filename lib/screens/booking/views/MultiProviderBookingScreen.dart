@@ -11,8 +11,7 @@ import 'package:flutter_application_1/global_util/services/models/service_provid
 import 'package:flutter_application_1/screens/booking/widgets/booking_success_overlay.dart' show BookingSuccessOverlay;
 import 'package:flutter_application_1/screens/booking/widgets/booking_utils.dart';
 import 'package:flutter_application_1/screens/booking/widgets/multiproviderbookingbody.dart';
-import 'package:flutter_application_1/screens/entryPoint/controller/bottom_tab_notifier.dart';
-import 'package:go_router/go_router.dart';
+
 import 'package:provider/provider.dart';
 
 class MultiProviderBookingScreen extends StatefulWidget {
@@ -174,31 +173,38 @@ class _MultiProviderBookingScreenState extends State<MultiProviderBookingScreen>
 
       if (!mounted) return;
 
-      if (success) {
-        await BookingSuccessOverlay.show(
-          context,
-          title: "Booking Submitted!",
-          message:
-              "Amazing work — your booking has been sent successfully. Providers can now review your request and respond.",
-          buttonText: "Continue",
-        );
+if (success) {
+  await BookingSuccessOverlay.show(
+    context,
+    title: "Booking Submitted!",
+    message:
+        "Amazing work — your booking has been sent successfully. Providers can now review your request and respond.",
+    buttonText: "Continue",
+  );
 
-        if (!mounted) return;
+  if (!mounted) return;
 
-        setState(() {
-          _bookingImages = [];
-          _selectedDate = null;
-          _selectedTime = null;
-        });
+  setState(() {
+    _bookingImages = [];
+    _selectedDate = null;
+    _selectedTime = null;
+  });
 
-        context.read<TabIndexNotifier>().reset();
-        context.push('/entryPoint');
-      } else {
-        FlushbarService.error(
-          context,
-          bookingController.errorMessage ?? "Failed to submit booking",
-        );
-      }
+  // The overlay's own button already switched tabs and called
+  // context.go('/entryPoint') — but since this booking screen was
+  // pushed imperatively (Navigator.push), it isn't part of go_router's
+  // declarative page stack, so go() alone doesn't remove it. Pop it
+  // explicitly so the user actually lands back on EntryPoint instead of
+  // seeing this screen still on top until they hit back.
+  if (Navigator.of(context).canPop()) {
+    Navigator.of(context).pop();
+  }
+}else {
+  FlushbarService.error(
+    context,
+    bookingController.errorMessage ?? "Failed to submit booking",
+  );
+}
     } finally {
       if (mounted) {
         setState(() {

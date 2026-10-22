@@ -12,7 +12,7 @@ import 'package:flutter_application_1/global_util/services/models/order_service_
 class SessionApi {
   static final String baseUrl = dotenv.env['API_BASE_URL'] ?? '';
 
-  static const Duration _timeout = Duration(seconds: 15);
+  static const Duration _timeout = Duration(seconds: 60);
 
   // =========================
   // ERROR HANDLER

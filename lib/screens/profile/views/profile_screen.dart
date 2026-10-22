@@ -10,9 +10,11 @@ import 'package:flutter_application_1/common/widgets/help_bottom_sheet.dart';
 import 'package:flutter_application_1/common/widgets/shimmers/profile_skeleton.dart';
 import 'package:flutter_application_1/global_util/services/controler/address_client_ctrl.dart';
 import 'package:flutter_application_1/global_util/services/controler/auth_session_controller.dart';
+import 'package:flutter_application_1/global_util/services/controler/client_order_realtime_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/client_profile_by_email_ctrl.dart';
 import 'package:flutter_application_1/global_util/services/controler/client_profile_update_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/logout_controller.dart';
+import 'package:flutter_application_1/global_util/services/widgets/common_error_state.dart';
 import 'package:flutter_application_1/screens/account_and_security/views/account_and_security_screen.dart';
 import 'package:flutter_application_1/screens/entryPoint/controller/bottom_tab_notifier.dart';
 import 'package:flutter_application_1/screens/entryPoint/controller/tab_lifecycle_controller.dart';
@@ -76,114 +78,105 @@ class _ProfileState extends State<Profile> with AutomaticKeepAliveClientMixin {
     super.dispose();
   }
 
-  void _confirmLogout() async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 30),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(24),
-            child: BackdropFilter(
-              // A single one-off blur behind a modal dialog is cheap —
-              // this isn't part of the scroll-view stacking problem.
-              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 28,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.2),
-                  ),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: Colors.redAccent.withOpacity(0.12),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.logout_rounded,
-                        size: 34,
-                        color: Colors.redAccent,
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    const Text(
-                      "Logout",
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      "Are you sure you want to logout?",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.grey.shade900,
-                        height: 1.4,
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: GradientBtn(
-                            text: "Cancel",
-                            btnColor: Colors.grey.shade200,
-                            textColor: Colors.black,
-                            btnHieght: 50,
-                            btnWidth: double.infinity,
-                            radius: 14,
-                            onTap: () => Navigator.of(dialogContext).pop(),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Kolors.kPrimary,
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                            ),
-                            onPressed: () async {
-                              Navigator.of(dialogContext).pop();
-                              await _logout();
-                              if (!context.mounted) return;
-                            },
-                            child: const Text(
-                              "Logout",
-                              style: TextStyle(
-                                color: Kolors.kOffWhite,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+Future<void> _onRefresh() async {
+  final clientId = AuthSessionController.instance.clientId;
+  if (clientId == null) return;
+
+  await context.read<ClientProfileController>().fetchClientByEmail(
+        clientId,
+        // forceRefresh: true, // uncomment if the controller supports/needs it
+      );
+}
+
+void _confirmLogout() {
+  showDialog(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20.r),
+      ),
+      icon: Container(
+        padding: EdgeInsets.all(12.w),
+        decoration: BoxDecoration(
+          color: Colors.red.shade50,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          Icons.logout_rounded,
+          color: Colors.red.shade600,
+          size: 26.sp,
+        ),
+      ),
+      title: const Text(
+        'Logout?',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      content: const Text(
+        'Are you sure you want to logout of your account?',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          height: 1.4,
+          color: Colors.black87,
+        ),
+      ),
+      actionsAlignment: MainAxisAlignment.spaceBetween,
+      actionsPadding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
+      actions: [
+        Expanded(
+          child: ElevatedButton(
+            onPressed: () => Navigator.pop(ctx),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Kolors.kPrimary,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10.r),
+              ),
+            ),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
-        );
-      },
-    );
-  }
+        ),
+        SizedBox(width: 8.w),
+        Expanded(
+          child: ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+
+              await _logout();
+
+              if (!context.mounted) return;
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade600,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10.r),
+              ),
+            ),
+            child: const Text(
+              'Logout',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 
   Future<void> _editDateOfBirth() async {
     final updateCtrl = context.read<ClientProfileUpdateController>();
@@ -230,6 +223,7 @@ class _ProfileState extends State<Profile> with AutomaticKeepAliveClientMixin {
 
     try {
       Provider.of<TabIndexNotifier>(context, listen: false).reset();
+      context.read<ClientOrderRealtimeController>().disconnect();
 
       await logoutController.logout();
 
@@ -370,60 +364,63 @@ class _ProfileState extends State<Profile> with AutomaticKeepAliveClientMixin {
   }
 
   @override
-  Widget build(BuildContext context) {
-    super.build(context);
+Widget build(BuildContext context) {
+  super.build(context);
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      // ---------------------------------------------------------------
-      // PERF: only ClientProfileController changes are watched directly
-      // here. AddressClientCtrl is read through a Selector below, scoped
-      // to just `isLoading`, so unrelated notifyListeners() calls on
-      // AddressClientCtrl (for state this screen doesn't render) no
-      // longer force this whole tree — including all the glass cards —
-      // to rebuild.
-      // ---------------------------------------------------------------
-      body: Consumer<ClientProfileController>(
-        builder: (context, profileCtrl, child) {
-          return Selector<AddressClientCtrl, bool>(
-            selector: (_, addressCtrl) => addressCtrl.isLoading,
-            builder: (context, isAddressLoading, _) {
-              if (profileCtrl.isLoading || isAddressLoading) {
-                return const ProfileSkeleton();
-              }
+  return Scaffold(
+    backgroundColor: Colors.transparent,
+    body: Consumer<ClientProfileController>(
+      builder: (context, profileCtrl, child) {
+        return Selector<AddressClientCtrl, bool>(
+          selector: (_, addressCtrl) => addressCtrl.isLoading,
+          builder: (context, isAddressLoading, _) {
+            if (profileCtrl.isLoading || isAddressLoading) {
+              return const ProfileSkeleton();
+            }
 
-              if (profileCtrl.errorMessage != null) {
-                return _buildStateCard(
-                  icon: Icons.cloud_off_outlined,
-                  title: "Unable to Load Profile",
-                  subtitle: profileCtrl.errorMessage!,
-                );
-              }
+            if (profileCtrl.errorMessage != null) {
+              return RefreshIndicator(
+                color: Kolors.kPrimary,
+                backgroundColor: Colors.white,
+                onRefresh: _onRefresh,
+                child: CommonErrorState(
+                  onRefresh: _onRefresh,
+                  title: "Unable to load profile",
+                  message: profileCtrl.errorMessage!,
+                  icon: Icons.person_off_outlined,
+                ),
+              );
+            }
 
-              final profile = profileCtrl.clientProfile;
+            final profile = profileCtrl.clientProfile;
 
-              if (profile == null) {
-                return _buildStateCard(
+            if (profile == null) {
+              return RefreshIndicator(
+                color: Kolors.kPrimary,
+                backgroundColor: Colors.white,
+                onRefresh: _onRefresh,
+                child: CommonErrorState(
+                  onRefresh: _onRefresh,
                   icon: Icons.person_off_outlined,
                   title: "Profile Not Found",
-                  subtitle: "We couldn't find your profile information.",
-                );
-              }
+                  message: "We couldn't find your profile information.",
+                ),
+              );
+            }
 
-              return SafeArea(
+            return SafeArea(
+              child: RefreshIndicator(
+                color: Kolors.kPrimary,
+                backgroundColor: Colors.white,
+                onRefresh: _onRefresh,
                 child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
+                  physics: const AlwaysScrollableScrollPhysics(),
                   padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
                   child: Column(
                     children: [
                       _buildProfileHeader(profile),
                       SizedBox(height: 25.h),
 
-                      // Only this card gets the frosted-glass blur — it
-                      // sits right under the header and benefits most
-                      // visually. Every other card below is a plain
-                      // translucent container (no BackdropFilter), which
-                      // is what actually fixes the scroll lag.
                       _buildGlassCard(
                         blur: true,
                         padding: EdgeInsets.symmetric(vertical: 20.h),
@@ -505,13 +502,14 @@ class _ProfileState extends State<Profile> with AutomaticKeepAliveClientMixin {
                     ],
                   ),
                 ),
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
+              ),
+            );
+          },
+        );
+      },
+    ),
+  );
+}
 
   ImageProvider _resolveImage(String? path) {
     // PERF: avoid re-parsing the URI / constructing a new NetworkImage
@@ -766,69 +764,6 @@ class _ProfileState extends State<Profile> with AutomaticKeepAliveClientMixin {
     );
   }
 
-  Widget _buildStateCard({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-  }) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: _buildGlassCard(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    color: Kolors.kDark.withOpacity(0.08),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(icon, size: 46, color: Kolors.kDark.withOpacity(.7)),
-                ),
-                const SizedBox(height: 18),
-                Text(
-                  title,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Kolors.kDark,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  subtitle,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: Kolors.kDark.withOpacity(.8),
-                    height: 1.4,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ---------------------------------------------------------------
-  // PERF: `blur` defaults to false. Previously every card (6 of them
-  // on this screen) got its own BackdropFilter + saveLayer + Gaussian
-  // blur pass, which is the main cost behind the reported lag —
-  // stacking that many expensive blur layers in a single scroll view
-  // forces the GPU to redo all six blurs on every scroll frame.
-  //
-  // Only the header stats card opts into `blur: true` now. Everywhere
-  // else gets the same translucent-container look for a fraction of
-  // the GPU cost, since there's no complex imagery behind these cards
-  // for a blur to meaningfully affect anyway (just the solid gradient
-  // background).
-  // ---------------------------------------------------------------
   Widget _buildGlassCard({
     required Widget child,
     EdgeInsetsGeometry? padding,

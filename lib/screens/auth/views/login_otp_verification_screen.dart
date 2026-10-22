@@ -34,7 +34,7 @@ class _LoginOtpVerificationScreenState
   }
 
   Future<void> _openWebsite() async {
-    final uri = Uri.parse('https://plugwebsite-production.up.railway.app/');
+    final uri = Uri.parse('https://www.plugprovider.co.za');
 
     try {
       final launched = await launchUrl(

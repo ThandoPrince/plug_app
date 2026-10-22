@@ -11,7 +11,7 @@ import 'package:flutter_application_1/const/services/registration/auth_login_api
 
 class ResetPasswordApi {
   static final String baseUrl = dotenv.env['API_BASE_URL'] ?? '';
-  static const Duration _timeout = Duration(seconds: 15);
+  static const Duration _timeout = Duration(seconds: 60);
 
   // =========================
   // STEP 1: request password reset OTP

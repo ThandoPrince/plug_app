@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
 import 'package:flutter_application_1/common/widgets/shimmers/client_ratings_skeleton.dart';
 import 'package:flutter_application_1/global_util/services/controler/completed_service_controller.dart';
+import 'package:flutter_application_1/global_util/services/widgets/refresh_indicator_widget.dart';
 import 'package:flutter_application_1/screens/completed_services/completed_services_details/views/completed_services_details_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -30,6 +31,17 @@ void initState() {
       controller.fetchRatings();
     }
   });
+}
+
+bool _onScroll(ScrollNotification n) {
+  // Only the vertical list, not the NestedScrollView header.
+  if (n.metrics.axis != Axis.vertical || n.depth != 0) return false;
+
+  if (n.metrics.extentAfter < 300) {
+    final c = context.read<ClientRatingsController>();
+    if (!c.hasLoadMoreError) c.loadMore();
+  }
+  return false;
 }
 
   ImageProvider _resolveImage(String? path) {
@@ -85,9 +97,9 @@ Widget build(BuildContext context) {
         ],
         body: Consumer<ClientRatingsController>(
           builder: (context, controller, child) {
-            if (controller.isLoading) {
-              return const ClientRatingsSkeleton();
-            }
+            if (controller.isLoading && controller.ratings.isEmpty) {
+  return const ClientRatingsSkeleton();
+}
 
             if (controller.ratings.isEmpty) {
               return ListView(
@@ -127,148 +139,176 @@ Widget build(BuildContext context) {
               );
             }
 
-            return RefreshIndicator(
-              onRefresh: () async {
-                await controller.refresh();
-              },
-              color: Colors.white,
-              backgroundColor: Kolors.kPrimary,
-              child: ListView.separated(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 20.h),
-                itemCount: controller.ratings.length,
-                separatorBuilder: (context, index) => SizedBox(height: 12.h),
-                itemBuilder: (_, index) {
-      final rating = controller.ratings[index];
-      final provider = rating.session?.shipment?.serviceOrdered
-          ?.providerForService?.provider;
+            final showFooter = controller.hasMore || controller.isLoadingMore;
 
-      final serviceName =
-          rating.session?.shipment?.serviceOrdered?.serviceRequired
-              ?.serviceName ??
-              "Service";
-
-              final orderId =
-          rating.session?.shipment?.serviceOrdered?.orderId ?? "UNKNOWN";
-
-
-      final status =
-          rating.session?.sessionStatus ?? "UNKNOWN";
-
-      int score = 0;
-      if (rating.score != null) {
-        if (rating.score is int) {
-          score = rating.score as int;
-        } else if (rating.score is String) {
-          score = int.tryParse(rating.score as String) ?? 0;
-        }
-      }
-
-      final providerImageUrl = _resolveImage(provider?.profileImageUrl);
-
-      return _buildGlassListItem(
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ClientRatingDetailsScreen(rating: rating),
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white24, width: 2),
-              ),
-              child: CircleAvatar(
-                radius: 28.r,
-                backgroundColor: Colors.white12,
-                backgroundImage: providerImageUrl,
-                child: provider?.profileImageUrl == null
-                    ? const Icon(Icons.person, color: Colors.white)
-                    : null,
-              ),
+return NotificationListener<ScrollNotification>(
+  onNotification: _onScroll,
+  child: GenericLoadingRefresh(
+    isLoading: false, // the RefreshIndicator shows its own spinner
+    onRefresh: () async {
+      await controller.refresh();
+    },
+    child: ListView.separated(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 20.h),
+      itemCount: controller.ratings.length + (showFooter ? 1 : 0),
+      separatorBuilder: (context, index) => SizedBox(height: 12.h),
+      itemBuilder: (_, index) {
+        if (index >= controller.ratings.length) {
+          return Padding(
+            padding: EdgeInsets.symmetric(vertical: 16.h),
+            child: Center(
+              child: controller.hasLoadMoreError
+                  ? TextButton(
+                      onPressed: () => controller.loadMore(retry: true),
+                      child: const Text(
+                        "Couldn't load more. Tap to retry",
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                    )
+                  : const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    ),
             ),
-            SizedBox(width: 12.w),
+          );
+        }
 
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        serviceName,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15.sp,
-                          color: Kolors.kDark,
+        final rating = controller.ratings[index];
+                    final provider = rating.session?.shipment?.serviceOrdered
+                        ?.providerForService?.provider;
+              
+                    final serviceName =
+                        rating.session?.shipment?.serviceOrdered?.serviceRequired
+                ?.serviceName ??
+                "Service";
+              
+                final orderId =
+                        rating.session?.shipment?.serviceOrdered?.orderId ?? "UNKNOWN";
+              
+              
+                    final status =
+                        rating.session?.sessionStatus ?? "UNKNOWN";
+              
+                    int score = 0;
+                    if (rating.score != null) {
+                      if (rating.score is int) {
+                        score = rating.score as int;
+                      } else if (rating.score is String) {
+                        score = int.tryParse(rating.score as String) ?? 0;
+                      }
+                    }
+              
+                    final providerImageUrl = _resolveImage(provider?.profileImageUrl);
+              
+                    return _buildGlassListItem(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+              builder: (_) => ClientRatingDetailsScreen(rating: rating),
                         ),
                       ),
-                      _buildStatusBadge(status),
-                    ],
+                      child: Row(
+                        children: [
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white24, width: 2),
+                ),
+                child: CircleAvatar(
+                  radius: 28.r,
+                  backgroundColor: Colors.white12,
+                  backgroundImage: providerImageUrl,
+                  child: provider?.profileImageUrl == null
+                      ? const Icon(Icons.person, color: Colors.white)
+                      : null,
+                ),
+              ),
+              SizedBox(width: 12.w),
+              
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          serviceName,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15.sp,
+                            color: Kolors.kDark,
+                          ),
+                        ),
+                        _buildStatusBadge(status),
+                      ],
+                    ),
+                    Text(
+                provider?.fullName ?? 'Unknown',
+                style: TextStyle(
+                  color: Colors.black38,
+                  fontSize: 13.sp,
+                ),
+              ),
+              
+              SizedBox(height: 3.h),
+              
+              Row(
+                children: [
+                  Icon(
+                    Icons.tag,
+                    size: 11.sp,
+                    color: Colors.black38,
                   ),
+                  SizedBox(width: 3.w),
                   Text(
-  provider?.fullName ?? 'Unknown',
-  style: TextStyle(
-    color: Colors.black38,
-    fontSize: 13.sp,
-  ),
-),
-
-SizedBox(height: 3.h),
-
-Row(
-  children: [
-    Icon(
-      Icons.tag,
-      size: 11.sp,
-      color: Colors.black38,
-    ),
-    SizedBox(width: 3.w),
-    Text(
-      orderId.toString(),
-      style: TextStyle(
-        color: Colors.black38,
-        fontSize: 11.sp,
-        fontWeight: FontWeight.w500,
-      ),
-    ),
-  ],
-),
-
-SizedBox(height: 4.h),
-
-Row(
-  children: List.generate(
-    5,
-    (i) => Icon(
-      Icons.star,
-      size: 12.sp,
-      color: i < score
-          ? Colors.orangeAccent
-          : Colors.white30,
-    ),
-  ),
-),
-      
+                    orderId.toString(),
+                    style: TextStyle(
+                      color: Colors.black38,
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ],
               ),
-            ),
-
-            SizedBox(width: 8.w),
-            Icon(
-              Icons.arrow_forward_ios,
-              size: 14.sp,
-              color: Colors.white38,
-            ),
-          ],
-        ),
-      );
-    },
-  ),
-);
+              
+              SizedBox(height: 4.h),
+              
+              Row(
+                children: List.generate(
+                  5,
+                  (i) => Icon(
+                    Icons.star,
+                    size: 12.sp,
+                    color: i < score
+                        ? Colors.orangeAccent
+                        : Colors.white30,
+                  ),
+                ),
+              ),
+                    
+                  ],
+                ),
+              ),
+              
+              SizedBox(width: 8.w),
+              Icon(
+                Icons.arrow_forward_ios,
+                size: 14.sp,
+                color: Colors.white38,
+              ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            );
           },
         ),
       ),

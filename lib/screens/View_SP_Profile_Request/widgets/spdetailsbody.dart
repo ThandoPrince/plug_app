@@ -1,21 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
 import 'package:flutter_application_1/common/utils/url_utils.dart';
+
 import 'package:flutter_application_1/global_util/services/controler/sp_by_email_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/sp_rating_controller.dart';
+import 'package:flutter_application_1/screens/View_SP_Profile_Request/widgets/qualifications_flow.dart';
 import 'package:flutter_application_1/screens/profile/widgets/full_screen_image_viewer.dart';
+
 import 'package:provider/provider.dart';
 
 class SPDetailsBody extends StatelessWidget {
   final String id;
+  final int providerServiceId;
 
-  const SPDetailsBody({super.key, required this.id});
+  const SPDetailsBody({super.key, required this.id, required this.providerServiceId,});
 
-  // NOTE: no initState/fetch here anymore. The parent screen
-  // (ServiceProviderDetailsScreen) already fetches this provider and
-  // hands the SAME controller instance down via ChangeNotifierProvider.value.
-  // Fetching again here caused the controller to re-enter its loading
-  // state right after finishing, which is what produced the flicker.
+  int? get _providerServiceId => providerServiceId ?? int.tryParse(id);
+
+ 
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +26,7 @@ class SPDetailsBody extends StatelessWidget {
         final provider = controller.provider;
 
         if (provider == null) {
-          return const SizedBox.shrink(); // parent's skeleton covers this case
+          return const SizedBox.shrink();
         }
 
         final imageUrl = getFullImageUrl(provider.profileImage);
@@ -151,6 +153,25 @@ class SPDetailsBody extends StatelessWidget {
                               height: 1.5,
                             ),
                           ),
+                          if (_providerServiceId != null) ...[
+                            const SizedBox(height: 20),
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton.icon(
+                                onPressed: () => openProviderQualifications(context,id :_providerServiceId!, providerServiceId: int.parse(id)),
+                                icon: const Icon(Icons.description_outlined, size: 18),
+                                label: const Text("View Qualifications"),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: Kolors.kPrimary,
+                                  side: const BorderSide(color: Kolors.kPrimary),
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),

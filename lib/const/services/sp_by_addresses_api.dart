@@ -14,7 +14,7 @@ import 'package:http/http.dart' as http;
 class ServiceProvidersByAddressApi {
   static final String baseUrl = dotenv.env['API_BASE_URL'] ?? '';
 
-  static const Duration _timeout = Duration(seconds: 15);
+  static const Duration _timeout = Duration(seconds: 60);
 
   // =========================
   // RETRY EXECUTOR

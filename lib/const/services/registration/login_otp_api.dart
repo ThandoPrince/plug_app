@@ -8,19 +8,11 @@ import 'package:flutter_application_1/global_util/services/models/client_models/
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
-// Mirrors ClientOtpApi (registration OTP), but this is STEP 2 of login:
-// exchanges {verificationToken + otp} for the real session tokens.
-//
-// ASSUMPTION: your backend route for this (the one you said you already
-// created) accepts the verification token as a Bearer header and returns
-// the same shape as the old direct-login response:
-// { "data": { "id": ..., "access_token": "...", "refresh_token": "...", "email": "..." } }
-// so it's parsed with the existing ClientLoginResponse model. Adjust the
-// path below to match your actual backend route.
+
 class LoginOtpApi {
   static final String baseUrl = dotenv.env['API_BASE_URL'] ?? '';
 
-  static const Duration _timeout = Duration(seconds: 20);
+  static const Duration _timeout = Duration(seconds: 60);
 
   // =========================
   // VERIFY LOGIN OTP (STEP 2)

@@ -7,6 +7,7 @@ import 'package:flutter_application_1/global_util/services/controler/negotiation
 import 'package:flutter_application_1/global_util/services/controler/negotiation_by_OrderID_Ctrl.dart';
 import 'package:flutter_application_1/global_util/services/widgets/app_notification_helper.dart';
 import 'package:flutter_application_1/screens/negotiations/widgets/negotiation_card.dart';
+import 'package:flutter_application_1/screens/negotiations/widgets/negotiation_controller_cache.dart';
 import 'package:flutter_application_1/screens/negotiations/widgets/negotiation_detail_sheet.dart';
 import 'package:provider/provider.dart';
 
@@ -54,10 +55,14 @@ void dispose() {
     negotiationCtrl.fetchAllNegotiations(widget.orderId);
   }
 
-  Future<void> _refreshNegotiations() async => _loadNegotiations();
+  Future<void> _refreshNegotiations() async {
+  final negotiationCtrl =
+      Provider.of<NegotationByOrderIDController>(context, listen: false);
+  await negotiationCtrl.fetchAllNegotiations(widget.orderId, force: true);
+}
 
   Future<void> _showNegotiationDetail(int negotiationId) async {
-     context.read<NegotiationBadgeStore>().clear(negotiationId);
+  context.read<NegotiationBadgeStore>().clear(negotiationId);
   final result = await showModalBottomSheet<Map<String, dynamic>>(
     context: context,
     isScrollControlled: true,
@@ -72,9 +77,7 @@ void dispose() {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(24),
-        ),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: FractionallySizedBox(
         heightFactor: 0.85,
@@ -86,21 +89,28 @@ void dispose() {
     ),
   );
 
-  
+  if (!mounted) return;
 
-  if (!mounted || result == null) return;
+  // Force-refresh just this negotiation's cached controller — a new round
+  // may have arrived via the realtime socket while the sheet was open, and
+  // we want the cache to hold the confirmed server state (with real ids)
+  // rather than whatever partial state applyIncomingRound left it in.
+  await NegotiationControllerCache.instance
+      .controllerFor(negotiationId)
+      .fetchNegotiationById(negotiationId, force: true);
+
+  if (result == null) return;
 
   if (result["success"] == true) {
-  await _refreshNegotiations();
+    await context
+        .read<NegotationByOrderIDController>()
+        .fetchAllNegotiations(widget.orderId, force: true);
     if (!mounted) return;
 
     FlushbarService.success(
       context,
       result["message"] ?? "Negotiation removed successfully",
     );
-
-    // Refresh negotiations if needed
-  
   } else if (result["success"] == false) {
     FlushbarService.error(
       context,

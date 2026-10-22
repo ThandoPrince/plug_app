@@ -3,6 +3,7 @@ enum RoundLocalStatus { confirmed, sending, failed }
 class NegotiationRound {
   final int? id;
   final int? negotiationId;
+  final String? orderId;
   final String? senderType; // "client" or "provider"
   final double? offeredPrice;
   final String? message;
@@ -16,6 +17,7 @@ class NegotiationRound {
   NegotiationRound({
     this.id,
     this.negotiationId,
+    this.orderId,
     this.senderType,
     this.offeredPrice,
     this.message,
@@ -29,13 +31,16 @@ class NegotiationRound {
     double? parseDouble(dynamic value) {
       if (value == null) return null;
       if (value is num) return value.toDouble();
-      if (value is String && value.isNotEmpty) return double.tryParse(value);
+      if (value is String && value.isNotEmpty) {
+        return double.tryParse(value);
+      }
       return null;
     }
 
     return NegotiationRound(
       id: json['id'] as int?,
       negotiationId: json['negotiation'] as int?,
+      orderId: json['order_id']?.toString(),
       senderType: json['sender_type']?.toString(),
       offeredPrice: parseDouble(json['offered_price']),
       message: json['message']?.toString(),
@@ -53,6 +58,7 @@ class NegotiationRound {
   NegotiationRound copyWith({
     int? id,
     int? negotiationId,
+    String? orderId,
     String? senderType,
     double? offeredPrice,
     String? message,
@@ -64,6 +70,7 @@ class NegotiationRound {
     return NegotiationRound(
       id: id ?? this.id,
       negotiationId: negotiationId ?? this.negotiationId,
+      orderId: orderId ?? this.orderId,
       senderType: senderType ?? this.senderType,
       offeredPrice: offeredPrice ?? this.offeredPrice,
       message: message ?? this.message,

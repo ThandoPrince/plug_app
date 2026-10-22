@@ -34,6 +34,16 @@ class NegotiationRealtimeController extends ChangeNotifier {
     );
   }
 
+  /// Tears down the socket without calling notifyListeners(). Use this
+  /// when disconnecting from a widget's dispose() — the tree is locked
+  /// during unmount, and notifyListeners() there throws
+  /// "setState() or markNeedsBuild() called when widget tree was locked."
+  void disconnectSilently() {
+    _socket.disconnect();
+    _connected = false;
+    _activeId = null;
+  }
+
   void disconnect() {
     _socket.disconnect();
     _connected = false;

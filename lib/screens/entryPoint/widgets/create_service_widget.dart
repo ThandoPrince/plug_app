@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:another_flushbar/flushbar.dart';
 import 'package:flutter_application_1/global_util/services/controler/google_map_controller.dart';
-import 'package:flutter_application_1/screens/splash/spash_screen.dart';
+
 import 'package:provider/provider.dart';
 
 import 'package:flutter_application_1/common/utils/kcolors.dart';
@@ -9,7 +9,7 @@ import 'package:flutter_application_1/common/widgets/flushbar_service.dart';
 import 'package:flutter_application_1/const/services/cost_of_servicebyemail_api.dart';
 // Imports for both map controllers
 
-import 'package:flutter_application_1/global_util/services/controler/home_here_map_controller.dart'; 
+
 import 'package:flutter_application_1/global_util/services/controler/sp_by_addesses_controller.dart';
 import 'package:flutter_application_1/screens/booking/views/MultiProviderBookingScreen.dart';
 

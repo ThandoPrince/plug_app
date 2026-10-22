@@ -7,14 +7,16 @@ import 'package:flutter_application_1/global_util/services/controler/sp_by_email
 import 'package:flutter_application_1/global_util/services/controler/sp_rating_controller.dart';
 import 'package:flutter_application_1/global_util/services/models/service_provider_model.dart';
 
-import 'package:flutter_application_1/screens/View_SP_Profile_Request/widgets/spdetailsbody.dart';
+
 import 'package:flutter_application_1/screens/profile/widgets/full_screen_image_viewer.dart';
 import 'package:flutter_application_1/screens/sp_profile/widgets%20copy/cost_of_service.dart';
+import 'package:flutter_application_1/screens/sp_profile/widgets%20copy/sp_profile_details_body.dart';
 import 'package:provider/provider.dart';
 
 class ServiceProviderScreen extends StatefulWidget {
   final int id;
   final int serviceId;
+  
 
   const ServiceProviderScreen({
     super.key,
@@ -119,7 +121,7 @@ class _ServiceProviderScreenScreenState extends State<ServiceProviderScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      SPDetailsBody(id: widget.id.toString()),
+                      SPProfileDetailsBody(id: widget.id.toString(), providerServiceId: widget.serviceId),
                       const SizedBox(height: 10),
                       Consumer<CostOfServiceController>(
                         builder: (context, controller, _) {
@@ -160,6 +162,7 @@ class _ServiceProviderScreenScreenState extends State<ServiceProviderScreen> {
                           return CostAOfService(
                             costs: controller.costs,
                             serviceId: widget.serviceId,
+                            providerId: widget.id,
                           );
                         },
                       ),

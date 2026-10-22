@@ -1,18 +1,18 @@
 class ProviderQualificationModel {
-  final int? id;
-  final int? providerService;
-  final String? documentType;
+  final int id;
+  final int providerService;
+  final String documentType;
   final String? title;
   final String? issuingBody;
-  final String? issueDate;
-  final String? expiryDate;
+  final DateTime? issueDate;
+  final DateTime? expiryDate;
   final String? documentUrl;
-  final String? uploadedAt;
+  final DateTime? uploadedAt;
 
   ProviderQualificationModel({
-    this.id,
-    this.providerService,
-    this.documentType,
+    required this.id,
+    required this.providerService,
+    required this.documentType,
     this.title,
     this.issuingBody,
     this.issueDate,
@@ -21,31 +21,46 @@ class ProviderQualificationModel {
     this.uploadedAt,
   });
 
-  factory ProviderQualificationModel.fromJson(
-    Map<String, dynamic>? json,
-  ) {
-    if (json == null) return ProviderQualificationModel();
-
+  factory ProviderQualificationModel.fromJson(Map<String, dynamic> json) {
     return ProviderQualificationModel(
-      id: json["id"],
-      providerService: json["provider_service"],
-      documentType: json["document_type"],
-      title: json["title"],
-      issuingBody: json["issuing_body"],
-      issueDate: json["issue_date"],
-      expiryDate: json["expiry_date"],
-      documentUrl: json["document_url"],
-      uploadedAt: json["uploaded_at"],
+      id: json['id'] as int,
+      providerService: json['provider_service'] as int,
+      documentType: json['document_type']?.toString() ?? '',
+      title: json['title']?.toString(),
+      issuingBody: json['issuing_body']?.toString(),
+      issueDate: json['issue_date'] != null
+          ? DateTime.tryParse(json['issue_date'].toString())
+          : null,
+      expiryDate: json['expiry_date'] != null
+          ? DateTime.tryParse(json['expiry_date'].toString())
+          : null,
+      documentUrl: json['document_url']?.toString(),
+      uploadedAt: json['uploaded_at'] != null
+          ? DateTime.tryParse(json['uploaded_at'].toString())
+          : null,
     );
   }
 
-  static List<ProviderQualificationModel> listFromJson(
-    List<dynamic>? data,
-  ) {
-    if (data == null) return [];
+  // ---------------------------------------------------------------
+  // Extension helpers — mirrors the backend's allowed_extensions set:
+  // {.pdf, .jpg, .jpeg, .png, .doc, .docx}
+  // ---------------------------------------------------------------
 
-    return data
-        .map((e) => ProviderQualificationModel.fromJson(e))
-        .toList();
+  String? get _extension {
+    final url = documentUrl;
+    if (url == null || url.isEmpty) return null;
+
+    final withoutQuery = url.split('?').first;
+    final dotIndex = withoutQuery.lastIndexOf('.');
+    if (dotIndex == -1) return null;
+
+    return withoutQuery.substring(dotIndex).toLowerCase();
   }
+
+  bool get isImage => const {'.jpg', '.jpeg', '.png'}.contains(_extension);
+  bool get isPdf => _extension == '.pdf';
+  bool get isDoc => const {'.doc', '.docx'}.contains(_extension);
+
+  bool get isExpired =>
+      expiryDate != null && expiryDate!.isBefore(DateTime.now());
 }

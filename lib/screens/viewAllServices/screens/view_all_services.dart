@@ -37,14 +37,14 @@ void initState() {
   );
 }
   @override
-  void dispose() {
-    _controller.dispose();
-    _searchController.clear(); // clear input
-    if (mounted) {
-      context.read<ServiceController>().filterServices('');
-    }
-    super.dispose();
+void dispose() {
+  _controller.dispose();
+  _searchController.clear();
+  if (mounted) {
+    context.read<ServiceController>().clearSearch();
   }
+  super.dispose();
+}
 
   void _toggleSearch() {
     setState(() {
@@ -59,79 +59,82 @@ void initState() {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final serviceController = Provider.of<ServiceController>(context);
+Widget build(BuildContext context) {
+  final serviceController = Provider.of<ServiceController>(context);
 
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Kolors.kPrimary,
-        elevation: 0,
-        centerTitle: false,
-        leading: const CustomBackButton(),
-        title: ReusableText(
-          text: AppText.kServices,
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            color: Kolors.kOffWhite,
-            onPressed: _toggleSearch,
-          )
-        ],
+  return Scaffold(
+    appBar: AppBar(
+      backgroundColor: Kolors.kPrimary,
+      elevation: 0,
+      centerTitle: false,
+      leading: const CustomBackButton(),
+      title: ReusableText(
+        text: AppText.kServices,
+        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
       ),
-      body: Container(
-         decoration: const BoxDecoration(
-    gradient: LinearGradient(
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.search),
+          color: Kolors.kOffWhite,
+          onPressed: _toggleSearch,
+        )
+      ],
+    ),
+    body: Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
           colors: [Kolors.kPrimary, Kolors.kPrimary, Kolors.kWhite],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-  ),
-        child: Column(
-          children: [
-            // Search box with animated expand/collapse height
-            SizeTransition(
-              sizeFactor: _controller,
-              axisAlignment: -1.0, // Expand/collapse from top
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Material(
-                  elevation: 4,
-                  borderRadius: BorderRadius.circular(12),
-                  color: Colors.white,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: TextField(
-                      controller: _searchController,
-                      onChanged: serviceController.filterServices,
-                      decoration: InputDecoration(
-                        hintText: 'Search services...',
-                        border: InputBorder.none,
-                        icon: const Icon(Icons.search),
-                        suffixIcon: IconButton(
-                          icon: const Icon(Icons.close),
-                          onPressed: () {
-                            FocusScope.of(context).unfocus();  // hide keyboard
-                            _searchController.clear();          // clear input
-                            serviceController.filterServices(''); // clear filter
-                          },
-                        ),
+      ),
+      child: Column(
+        children: [
+          SizeTransition(
+            sizeFactor: _controller,
+            axisAlignment: -1.0,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Material(
+                elevation: 4,
+                borderRadius: BorderRadius.circular(12),
+                color: Colors.white,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: serviceController.filterServices,
+                    decoration: InputDecoration(
+                      hintText: 'Search services...',
+                      border: InputBorder.none,
+                      icon: const Icon(Icons.search),
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () {
+                          FocusScope.of(context).unfocus();
+                          _searchController.clear();
+                          serviceController.filterServices('');
+                        },
                       ),
-                      autofocus: false,
                     ),
+                    autofocus: false,
                   ),
                 ),
               ),
             ),
-        
-            // Expanded services list below search box
-            const Expanded(
-              child: ServicesListWidget(),
+          ),
+
+          Expanded(
+            child: RefreshIndicator(
+              color: Kolors.kPrimary,
+              backgroundColor: Colors.white,
+              onRefresh: () => serviceController.refresh(),
+              child: const ServicesListWidget(),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 }

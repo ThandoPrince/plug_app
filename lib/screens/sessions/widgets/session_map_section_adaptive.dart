@@ -186,10 +186,10 @@ class _AdaptiveSessionMapSectionState extends State<AdaptiveSessionMapSection> {
 
     return AdaptiveMapWidget(
       googleMapController: _googleController,
-      fallbackMapController: _fallbackController,
+
       initialMarkers: _buildInitialMarkers(),
       initialCircles: _buildInitialCircles(),
-      googleMapsApiKey: dotenv.env['GOOGLE_API_KEY'],
+
       initialCameraPosition: CameraPosition(
         target: _center!,
         zoom: 18,

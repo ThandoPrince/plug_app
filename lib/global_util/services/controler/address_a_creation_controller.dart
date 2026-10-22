@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/const/services/registration/a_address_creation_helper.dart';
 import 'package:flutter_google_places_hoc081098/google_maps_webservice_places.dart';
+import 'package:google_api_headers/google_api_headers.dart';
 
 class AddressACreationController with ChangeNotifier {
   bool isLoading = false;
@@ -42,12 +43,17 @@ class AddressACreationController with ChangeNotifier {
     notifyListeners();
   }
 
-  @override
+ @override
 void dispose() {
   unitNumberController.dispose();
+  accessNotesController.dispose();
+  addressController.dispose();
   streetNumberController.dispose();
   routeController.dispose();
   cityController.dispose();
+  stateController.dispose();
+  countryController.dispose();
+  postalCodeController.dispose();
   latitudeController.dispose();
   longitudeController.dispose();
   super.dispose();
@@ -58,12 +64,14 @@ void dispose() {
   // =============================
   Future<void> setAddressFromPrediction(
       Prediction prediction, String apiKey) async {
-    final places = GoogleMapsPlaces(apiKey: apiKey);
-    final detail = await places.getDetailsByPlaceId(prediction.placeId!);
+    final headers = await const GoogleApiHeaders().getHeaders();
+final places = GoogleMapsPlaces(apiKey: apiKey, apiHeaders: headers);
+final detail = await places.getDetailsByPlaceId(prediction.placeId!);
 
-    if (detail.status != "OK") {
-      throw Exception(detail.errorMessage);
-    }
+if (detail.status != "OK") {
+  debugPrint('[places] status=${detail.status} msg=${detail.errorMessage}');
+  throw Exception(detail.errorMessage ?? detail.status);
+}
 
     final result = detail.result;
 

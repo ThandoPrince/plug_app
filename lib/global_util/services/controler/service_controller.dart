@@ -44,28 +44,33 @@ class ServiceController with ChangeNotifier {
   }
 
   Future<void> refresh() async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
+  _isLoading = true;
+  _error = null;
+  notifyListeners();
 
-    try {
-      final fetched = await ServiceApi.fetchServices();
+  try {
+    final fetched = await ServiceApi.fetchServices();
 
-      _allServices = fetched;
+    _allServices = fetched;
 
-      // Restore the existing search filter after refresh.
-      if (_searchQuery.trim().isEmpty) {
-        _services = List.from(_allServices);
-      } else {
-        _applySearchFilter();
-      }
-    } catch (e) {
-      _error = e.toString();
+    if (_searchQuery.trim().isEmpty) {
+      _services = List.from(_allServices);
+    } else {
+      _applySearchFilter();
     }
-
-    _isLoading = false;
-    notifyListeners();
+  } catch (e) {
+    _error = _stripExceptionPrefix(e);
   }
+
+  _isLoading = false;
+  notifyListeners();
+}
+
+String _stripExceptionPrefix(Object e) {
+  final raw = e.toString();
+  const prefix = 'Exception: ';
+  return raw.startsWith(prefix) ? raw.substring(prefix.length) : raw;
+}
 
   void filterServices(String query) {
     _searchQuery = query;

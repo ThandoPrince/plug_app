@@ -865,7 +865,7 @@ packages:
     source: hosted
     version: "16.3.0"
   google_api_headers:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: google_api_headers
       sha256: ad29096698eae9e10880fc09c519735091766eaf41ec5facdbc139003634900b

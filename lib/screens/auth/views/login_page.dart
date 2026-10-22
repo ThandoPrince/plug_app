@@ -71,7 +71,7 @@ class _AuthLoginScreenState extends State<AuthLoginScreen> {
 
 
   Future<void> _openWebsite() async {
-  final uri = Uri.parse('https://plugwebsite-production.up.railway.app/');
+  final uri = Uri.parse('https://www.plugprovider.co.za');
 
   try {
     final launched = await launchUrl(

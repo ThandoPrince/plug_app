@@ -9,24 +9,32 @@ class AppEvent {
   final AppEventType type;
   final int? orderId;
   final int? negotiationId;
+  final int? roundId;
+  final String? senderType;
   final Map<String, dynamic> payload;
 
   AppEvent._({
     required this.type,
     this.orderId,
     this.negotiationId,
+    this.roundId,
+    this.senderType,
     required this.payload,
   });
 
   factory AppEvent.negotiationRoundCreated({
     required int orderId,
     required int negotiationId,
+    int? roundId,
+    String? senderType,
     required Map<String, dynamic> payload,
   }) {
     return AppEvent._(
       type: AppEventType.negotiationRoundCreated,
       orderId: orderId,
       negotiationId: negotiationId,
+      roundId: roundId,
+      senderType: senderType,
       payload: payload,
     );
   }
@@ -50,16 +58,26 @@ class AppEventRouter {
 
 class NegotiationEventHandler {
   static void onRoundCreated(Map<String, dynamic> data) {
-    final negotiationId = int.parse(data['negotiation_id'].toString());
+    final negotiationId = int.tryParse('${data['negotiation_id']}');
+    final orderId = int.tryParse('${data['order_id']}');
+    if (negotiationId == null) return;
 
-    if (NavigationService.isOnNegotiationScreen(
-      int.parse(data['order_id'].toString()),
-    )) {
+    final round = data['round'] is Map ? Map<String, dynamic>.from(data['round']) : null;
+    final roundId = int.tryParse('${round?['id'] ?? data['round_id']}');
+    final senderType = (round?['sender_type'] ?? data['sender_type'])?.toString();
+
+    if (orderId != null && NavigationService.isOnNegotiationScreen(orderId)) {
       NavigationService.notifyActiveNegotiation(negotiationId);
-      return;
+      // fall through: the store ignores rounds for the open sheet anyway
     }
 
-    NegotiationBadgeStore.global.markUnread(negotiationId);
+    AppEventRouter.handle(AppEvent.negotiationRoundCreated(
+      orderId: orderId ?? 0,
+      negotiationId: negotiationId,
+      roundId: roundId,
+      senderType: senderType,
+      payload: data,
+    ));
   }
 }
 
