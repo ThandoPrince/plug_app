@@ -62,7 +62,7 @@ class CommonErrorState extends StatelessWidget {
               Text(
                 subtitle,
                 style: const TextStyle(
-                  color: Colors.white70,
+                  color: Colors.grey,
                   fontSize: 14,
                 ),
                 textAlign: TextAlign.center,

@@ -1,3 +1,4 @@
+
 import 'package:another_flushbar/flushbar.dart';
 import 'package:flutter/material.dart';
 
@@ -17,12 +18,17 @@ class FlushbarService {
     required FlushbarPosition position,
     Duration duration = const Duration(seconds: 3),
   }) {
+    if (!context.mounted) return;
+
+    final mediaQuery = MediaQuery.maybeOf(context);
+    if (mediaQuery == null) return;
+
     dismiss();
 
-    final bottomInset = MediaQuery.of(context).viewPadding.bottom;
+    final bottomInset = mediaQuery.viewPadding.bottom;
     const navBarHeight = kBottomNavigationBarHeight;
 
-    _currentFlushbar = Flushbar(
+    _currentFlushbar = Flushbar<dynamic>(
       message: message,
       duration: duration,
       icon: Icon(icon, color: Colors.white),
@@ -30,15 +36,17 @@ class FlushbarService {
       borderRadius: BorderRadius.circular(12),
       animationDuration: const Duration(milliseconds: 300),
       flushbarPosition: position,
-
-      /// ✅ Auto-adjust for BottomNavigationBar
       margin: position == FlushbarPosition.BOTTOM
-          ? EdgeInsets.fromLTRB(16, 0, 16, navBarHeight + bottomInset + 12)
+          ? EdgeInsets.fromLTRB(
+              16,
+              0,
+              16,
+              navBarHeight + bottomInset + 12,
+            )
           : const EdgeInsets.all(16),
     )..show(context);
   }
 
-  /// ✅ SUCCESS
   static void success(
     BuildContext context,
     String message, {
@@ -55,7 +63,6 @@ class FlushbarService {
     );
   }
 
-  /// ⚠️ WARNING
   static void warning(
     BuildContext context,
     String message, {
@@ -72,7 +79,6 @@ class FlushbarService {
     );
   }
 
-  /// ℹ️ INFO
   static void info(
     BuildContext context,
     String message, {
@@ -89,7 +95,6 @@ class FlushbarService {
     );
   }
 
-  /// ❌ ERROR
   static void error(
     BuildContext context,
     String message, {

@@ -3,7 +3,7 @@ import 'package:flutter_application_1/common/utils/kcolors.dart';
 import 'package:flutter_application_1/common/widgets/shimmers/services_list_skeleton.dart';
 import 'package:flutter_application_1/global_util/services/controler/service_controller.dart';
 import 'package:flutter_application_1/global_util/services/widgets/common_error_state.dart';
-
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -15,7 +15,11 @@ class ServicesListWidget extends StatelessWidget {
     return Consumer<ServiceController>(
       builder: (context, controller, _) {
         if (controller.isLoading) {
-          return const ServicesListSkeleton();
+          return ListView(
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+            physics: const NeverScrollableScrollPhysics(),
+            children: const [ServicesListSkeleton()],
+          );
         }
 
         if (controller.error != null) {
@@ -46,53 +50,72 @@ class ServicesListWidget extends StatelessWidget {
           ),
           child: ListView.builder(
             physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
             itemCount: controller.services.length,
             itemBuilder: (context, index) {
               final service = controller.services[index];
 
               return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: EdgeInsets.symmetric(vertical: 6.h),
                 child: Container(
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Kolors.kOffWhite, Kolors.kOffWhite],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+                    color: Kolors.kOffWhite,
+                    borderRadius: BorderRadius.circular(16.r),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.8),
+                      width: 1.5,
                     ),
-                    borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black12,
-                        blurRadius: 4,
-                        offset: const Offset(2, 2),
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
                       ),
                     ],
                   ),
-                  child: ListTile(
-                    title: Text(
-                      service.serviceName,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Kolors.kDark,
+                  child: Material(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(16.r),
+                    clipBehavior: Clip.antiAlias,
+                    child: ListTile(
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 16.w,
+                        vertical: 8.h,
                       ),
-                    ),
-                    subtitle: Text(
-                      'Active: ${service.activeProviderCount ?? 0}',
-                      style: const TextStyle(
-                        fontStyle: FontStyle.italic,
-                        color: Kolors.kDark,
+                      title: Text(
+                        service.serviceName,
+                        style: TextStyle(
+                          fontSize: 15.sp,
+                          fontWeight: FontWeight.bold,
+                          color: Kolors.kDark,
+                        ),
                       ),
+                      subtitle: Padding(
+                        padding: EdgeInsets.only(top: 4.h),
+                        child: Text(
+                          'Active Providers: ${service.activeProviderCount ?? 0}',
+                          style: TextStyle(
+                            fontSize: 12.5.sp,
+                            color: Kolors.kDark.withOpacity(0.6),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      trailing: Icon(
+                        Icons.chevron_right_rounded,
+                        size: 20.sp,
+                        color: Kolors.kDark.withOpacity(0.4),
+                      ),
+                      onTap: () {
+                        context.pushNamed(
+                          'viewSPByService',
+                          queryParameters: {
+                            'serviceId': service.serviceId.toString(),
+                            'serviceName': service.serviceName,
+                          },
+                        );
+                      },
                     ),
-                    trailing: const Icon(Icons.chevron_right, color: Kolors.kDark),
-                    onTap: () {
-                      context.pushNamed(
-                        'viewSPByService',
-                        queryParameters: {
-                          'serviceId': service.serviceId.toString(),
-                          'serviceName': service.serviceName,
-                        },
-                      );
-                    },
                   ),
                 ),
               );

@@ -6,6 +6,7 @@ import 'package:flutter_application_1/global_util/services/controler/change_pass
 import 'package:flutter_application_1/global_util/services/controler/client_order_realtime_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/client_otp_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/client_otp_login_controller.dart';
+import 'package:flutter_application_1/global_util/services/controler/client_payment_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/client_profile_update_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/completed_service_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/cost_of_service_byemail_controller.dart';
@@ -76,6 +77,7 @@ List<SingleChildWidget> appProviders = [
   ChangeNotifierProvider<NegotiationBadgeStore>.value(
   value: NegotiationBadgeStore.global,
 ),
+
   ChangeNotifierProvider(create: (_) => TabIndexNotifier()),
   ChangeNotifierProvider(create: (_) => LogoutController()),
   ChangeNotifierProvider(create: (_) => TabLifecycleController()),
@@ -93,6 +95,7 @@ List<SingleChildWidget> appProviders = [
   ChangeNotifierProvider(create: (_) => ServiceProviderByEmailController()),
   ChangeNotifierProvider(create: (_) => AddressController()),
   ChangeNotifierProvider(create: (_) => ClientOrderRealtimeController()),
+    ChangeNotifierProvider(create: (_) => ClientPaymentController()),
   ChangeNotifierProvider(
   create: (_) => NegotiationRealtimeController(),
 ),

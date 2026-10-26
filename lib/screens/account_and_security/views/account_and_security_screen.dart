@@ -142,8 +142,8 @@ class AccountSecurityScreen extends StatelessWidget {
           subtitle: 'Manage how you sign in and how we can reach you.',
         ),
         const _SectionLabel('Contact'),
-        GlassCard(
-          padding: EdgeInsets.zero,
+        _SettingsCard(
+          
           child: Column(
             children: [
               _SettingTile(
@@ -163,8 +163,7 @@ class AccountSecurityScreen extends StatelessWidget {
         ),
         SizedBox(height: 20.h),
         const _SectionLabel('Security'),
-        GlassCard(
-          padding: EdgeInsets.zero,
+        _SettingsCard(
           child: _SettingTile(
             icon: Icons.lock_outline_rounded,
             title: 'Change password',
@@ -276,6 +275,30 @@ class _SettingTile extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _SettingsCard extends StatelessWidget {
+  final Widget child;
+  const _SettingsCard({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: Kolors.kOffWhite,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 4,
+            offset: Offset(2, 2),
+          ),
+        ],
+      ),
+      child: child,
     );
   }
 }

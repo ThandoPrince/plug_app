@@ -15,8 +15,9 @@ class ShipmentScheduleCard extends StatefulWidget {
   final ShipmentController shipmentController;
 
   final Shipment shipment;
-  
-  const ShipmentScheduleCard({super.key, required this.shipment, required this.shipmentController});
+
+  const ShipmentScheduleCard(
+      {super.key, required this.shipment, required this.shipmentController});
 
   @override
   State<ShipmentScheduleCard> createState() => _ShipmentScheduleCardState();
@@ -64,12 +65,13 @@ class _ShipmentScheduleCardState extends State<ShipmentScheduleCard> {
                           fontWeight: FontWeight.w900,
                           color: Colors.blueGrey.shade900,
                           letterSpacing: -0.5,
-                           // optional visual cue
+                          // optional visual cue
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        order?.serviceRequired?.serviceName ?? 'General Service',
+                        order?.serviceRequired?.serviceName ??
+                            'General Service',
                         style: TextStyle(
                           fontSize: 14,
                           color: Colors.blueGrey.shade400,
@@ -90,36 +92,36 @@ class _ShipmentScheduleCardState extends State<ShipmentScheduleCard> {
 
             // Details
             // Details
-_buildDetailRow(
-  Icons.tag,
-  orderId?.toString() ?? 'N/A',
-  'Order ID',
-),
+            _buildDetailRow(
+              Icons.tag,
+              orderId?.toString() ?? 'N/A',
+              'Order ID',
+            ),
 
-const SizedBox(height: 12),
+            const SizedBox(height: 12),
 
-_buildDetailRow(
-  Icons.event_note_rounded,
-  widget.shipment.formattedDate,
-  'Scheduled Date',
-),
+            _buildDetailRow(
+              Icons.event_note_rounded,
+              widget.shipment.formattedDate,
+              'Scheduled Date',
+            ),
 
-const SizedBox(height: 12),
+            const SizedBox(height: 12),
 
-_buildDetailRow(
-  Icons.access_time_filled_rounded,
-  widget.shipment.formattedTime,
-  'Arrival Time',
-),
+            _buildDetailRow(
+              Icons.access_time_filled_rounded,
+              widget.shipment.formattedTime,
+              'Arrival Time',
+            ),
 
-if (order?.providerForService != null) ...[
-  const SizedBox(height: 12),
-  _buildDetailRow(
-    Icons.person_pin_rounded,
-    _cleanProviderName(order!.providerForService.toString()),
-    'Service Provider',
-  ),
-],
+            if (order?.providerForService != null) ...[
+              const SizedBox(height: 12),
+              _buildDetailRow(
+                Icons.person_pin_rounded,
+                _cleanProviderName(order!.providerForService.toString()),
+                'Service Provider',
+              ),
+            ],
 
             const SizedBox(height: 24),
 
@@ -138,64 +140,88 @@ if (order?.providerForService != null) ...[
                   ),
                 ),
                 onPressed: () async {
-  final orderStatus = widget.shipment.serviceOrdered?.status ?? '';
-  final shipmentStatus = widget.shipment.shipmentStatus.toLowerCase();
-  final session =
-    widget.shipmentController.sessionForShipment(
-      widget.shipment.shipmentId,
-    );
-final routeController = GoogleShipmentRouteController(
-  shipment: widget.shipment,
-  shipmentController: widget.shipmentController,
-);
-  /// 🚀 1. IN TRANSIT or ARRIVED → TRACK ROUTE
-  if (shipmentStatus == 'in_transit' || shipmentStatus == 'arrived' || shipmentStatus == 'rescheduled' || shipmentStatus == 'pending' ) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ChangeNotifierProvider(
-          create: (_) => GoogleShipmentRouteController(shipment: widget.shipment, shipmentController: widget.shipmentController),
-          child: TrackServiceScreen(shipment: widget.shipment, googleShipmentRouteController: routeController,),
-        ),
-      ),
-    );
-    return;
-  }
+                  final orderStatus =
+                      widget.shipment.serviceOrdered?.status ?? '';
+                  final shipmentStatus =
+                      widget.shipment.shipmentStatus.toLowerCase();
+                  final session = widget.shipmentController.sessionForShipment(
+                    widget.shipment.shipmentId,
+                  );
+                  final routeController = GoogleShipmentRouteController(
+                    shipment: widget.shipment,
+                    shipmentController: widget.shipmentController,
+                  );
 
+                  /// 🚀 1. IN TRANSIT or ARRIVED → TRACK ROUTE
+                  if (shipmentStatus == 'in_transit' ||
+                      shipmentStatus == 'arrived' ||
+                      shipmentStatus == 'rescheduled' ||
+                      shipmentStatus == 'pending') {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ChangeNotifierProvider(
+                          create: (_) => GoogleShipmentRouteController(
+                              shipment: widget.shipment,
+                              shipmentController: widget.shipmentController),
+                          child: TrackServiceScreen(
+                            shipment: widget.shipment,
+                            googleShipmentRouteController: routeController,
+                          ),
+                        ),
+                      ),
+                    );
+                    return;
+                  }
 
-  if (orderStatus == 'awaiting_confirmation') {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) =>
-            ChangeNotifierProvider(
-              create: (_) => GoogleShipmentRouteController(shipment: widget.shipment, shipmentController: widget.shipmentController),
-              child: ClientQrCheckinScreen(shipmentId: widget.shipment.shipmentId, googleShipmentRouteController: routeController,)),
-      ),
-    );
-    return;
-  }
+                  if (orderStatus == 'awaiting_confirmation') {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ChangeNotifierProvider(
+                            create: (_) => GoogleShipmentRouteController(
+                                shipment: widget.shipment,
+                                shipmentController: widget.shipmentController),
+                            child: ClientQrCheckinScreen(
+                              shipmentId: widget.shipment.shipmentId,
+                              googleShipmentRouteController: routeController,
+                            )),
+                      ),
+                    );
+                    return;
+                  }
 
- 
+                  final sessionController =
+                      context.read<SessionByShipmentController>();
 
+                  await sessionController.fetchSession(
+                    widget.shipment.shipmentId.toString(),
+                  );
 
-  final sessionController = context.read<SessionByShipmentController>();
+                  if (!context.mounted) return;
 
-await sessionController.fetchSession(
-  widget.shipment.shipmentId.toString(),
-);
+                  final activeSession = sessionController.session;
 
-if (!context.mounted) return;
+                  if (activeSession != null &&
+                      activeSession.sessionStatus == 'in_session') {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => SessionScreen(
+                          session: activeSession,
+                          googleShipmentRouteController: routeController,
+                        ),
+                      ),
+                    );
+                    return;
+                  }
 
-final activeSession = sessionController.session;
-
-if (activeSession != null &&
-    activeSession.sessionStatus == 'in_session') {
+                  if (session?.sessionStatus == 'awaiting_payment') {
   Navigator.push(
     context,
     MaterialPageRoute(
-      builder: (_) => SessionScreen(
-        session: activeSession,
+      builder: (_) => ClientQrCheckinScreen(
+        shipmentId: widget.shipment.shipmentId,
         googleShipmentRouteController: routeController,
       ),
     ),
@@ -203,19 +229,16 @@ if (activeSession != null &&
   return;
 }
 
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (_) =>
-       
-         TrackServiceScreen(shipment: widget.shipment, googleShipmentRouteController: routeController,),
-      
-    ),
-  );
-},
-
-
-
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => TrackServiceScreen(
+                        shipment: widget.shipment,
+                        googleShipmentRouteController: routeController,
+                      ),
+                    ),
+                  );
+                },
                 child: const Text(
                   'TRACK SERVICE',
                   style: TextStyle(
@@ -233,65 +256,65 @@ if (activeSession != null &&
   }
 
   Widget _buildDetailRow(
-  IconData icon,
-  String text,
-  String label, {
-  VoidCallback? onTap,
-}) {
-  final rowContent = Row(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: Kolors.kPrimary.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(10),
+    IconData icon,
+    String text,
+    String label, {
+    VoidCallback? onTap,
+  }) {
+    final rowContent = Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Kolors.kPrimary.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, size: 20, color: Kolors.kDark),
         ),
-        child: Icon(icon, size: 20, color: Kolors.kDark),
-      ),
-      const SizedBox(width: 14),
-      Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.blueGrey.shade300,
-                fontWeight: FontWeight.bold,
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.blueGrey.shade300,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-            Text(
-              text,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 15,
-                color: Colors.blueGrey.shade700,
-                fontWeight: FontWeight.w600,
+              Text(
+                text,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 15,
+                  color: Colors.blueGrey.shade700,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
+        ),
+      ],
+    );
+
+    if (onTap == null) return rowContent;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: rowContent,
         ),
       ),
-    ],
-  );
-
-  if (onTap == null) return rowContent;
-
-  return Material(
-    color: Colors.transparent,
-    child: InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: rowContent,
-      ),
-    ),
-  );
-}
+    );
+  }
 }
 
 class StatusChip extends StatelessWidget {
@@ -314,11 +337,11 @@ class StatusChip extends StatelessWidget {
         color = Colors.blue;
       case 'in_session':
         color = Colors.purple;
-        case 'rescheduled':
+      case 'rescheduled':
         color = Colors.amber;
-        case 'delivered':
+      case 'delivered':
         color = Colors.blueGrey;
-      
+
         break;
       default:
         color = Kolors.kPrimary;

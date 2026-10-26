@@ -5,6 +5,7 @@ import 'package:flutter/animation.dart' show Curves;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/const/services/booking_services/shipment_route_socket_service.dart';
+import 'package:flutter_application_1/global_util/services/controler/client_order_realtime_controller.dart';
 
 import 'package:flutter_application_1/global_util/services/controler/get_client_shipment_ctrl.dart';
 import 'package:flutter_application_1/global_util/services/models/order_service_models/session_location_ping_model.dart';
@@ -203,6 +204,7 @@ class _SmoothPositionAnimator {
 class GoogleShipmentRouteController extends ChangeNotifier {
   final Shipment shipment;
   final ShipmentController shipmentController;
+  final ClientOrderRealtimeController? realtime;
 
   bool isInsideGeofence = true;
   double? distanceFromSiteMeters;
@@ -213,10 +215,13 @@ class GoogleShipmentRouteController extends ChangeNotifier {
 
   GoogleShipmentRouteController({
     required this.shipment,
+    this.realtime,
     required this.shipmentController,
   }) : shipmentStatus = shipment.shipmentStatus;
 
   final ShipmentRouteSocketService _socket = ShipmentRouteSocketService();
+
+
 
   bool _connected = false;
   bool get connected => _connected;
@@ -335,6 +340,10 @@ void _markInitialized() {
   if (_disposed) return;
 
   await _flyTo(position);
+}
+
+void applyStatusUpdate(Map data) {
+  _updateShipmentStatus(data['status'] ?? data['shipment_status']);
 }
 
   // -----------------------------
@@ -522,19 +531,18 @@ void _markInitialized() {
         await _handleRoutePayload(event["data"]);
         break;
 
-      case "shipment_status_update":
-        final newStatus = event["status"];
+      case 'shipment_status_update':
+case 'shipment_status_updated':
+  final data = event['data'];
 
-        if (newStatus != null && shipmentStatus != newStatus) {
-          shipmentStatus = newStatus;
-          notifyListeners();
-        }
-
-        if (shipmentStatus == "arrived") {
-          shipmentController.fetchShipmentsByClientEmail(forceRefresh: true);
-        }
-
-        break;
+  _updateShipmentStatus(
+    data is Map
+        ? data['status'] ??
+            data['shipment_status'] ??
+            event['status']
+        : event['status'],
+  );
+  break;
 
       case "session_created":
         await shipmentController.onSessionCreated(
@@ -584,6 +592,28 @@ void _markInitialized() {
     }
   }
 
+  void _updateShipmentStatus(dynamic value) {
+  if (value == null || _disposed) return;
+
+  final newStatus = value.toString().trim().toLowerCase();
+
+  if (newStatus.isEmpty || shipmentStatus == newStatus) return;
+
+  shipmentStatus = newStatus;
+
+  if (kDebugMode) {
+    debugPrint('Shipment status updated: $newStatus');
+  }
+
+  notifyListeners();
+
+  if (newStatus == 'arrived') {
+    shipmentController.fetchShipmentsByClientEmail(
+      forceRefresh: true,
+    );
+  }
+}
+
   Future<void> _handleRoutePayload(dynamic json) async {
     try {
       if (json is! Map) {
@@ -611,6 +641,7 @@ void _markInitialized() {
         Map<String, dynamic>.from(json as Map),
       );
       activeRoute = route;
+      
 
       final points =
           route.decodedPolyline.map((p) => LatLng(p.lat, p.lng)).toList();
@@ -680,6 +711,13 @@ void _markInitialized() {
       // marker while an animation is in progress).
       _updateTrimmedPolyline(_visualProviderPosition ?? providerFix);
       _updateProviderPosition(providerFix);
+      _updateTrimmedPolyline(_visualProviderPosition ?? providerFix);
+_updateProviderPosition(providerFix);
+
+const preTransit = {'pending', 'rescheduled', 'not_in_transit'};
+if (preTransit.contains(shipmentStatus.trim().toLowerCase())) {
+  _updateShipmentStatus('in_transit');
+}
 
       if (kDebugMode) {
         print("========== ROUTE UPDATE ==========");
@@ -898,6 +936,8 @@ void _markInitialized() {
       anchor: const Offset(0.5, 0.5),
     );
   }
+
+  
 
   // -----------------------------
   // POLYLINE (trimmed to what's ahead of the provider)

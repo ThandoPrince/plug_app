@@ -76,9 +76,16 @@ class ClientOrderRealtimeController extends ChangeNotifier {
         onShipmentRouteUpdated?.call(data);
         break;
 
-      case 'shipment_status_updated':
-        onShipmentStatusUpdated?.call(data);
-        break;
+      case 'shipment_status_update':
+case 'shipment_status_updated':
+  if (data is Map) {
+    final map = Map<String, dynamic>.from(data);
+    onShipmentStatusUpdated?.call(map);
+    for (final l in List.of(_shipmentStatusListeners)) {
+      l(map);
+    }
+  }
+  break;
 
       default:
         if (kDebugMode) {
@@ -86,6 +93,15 @@ class ClientOrderRealtimeController extends ChangeNotifier {
         }
     }
   }
+
+
+  final Set<void Function(Map<String, dynamic> data)> _shipmentStatusListeners = {};
+
+void addShipmentStatusListener(void Function(Map<String, dynamic> data) l) =>
+    _shipmentStatusListeners.add(l);
+
+void removeShipmentStatusListener(void Function(Map<String, dynamic> data) l) =>
+    _shipmentStatusListeners.remove(l);
 
 Map<String, dynamic> _unwrapNotification(Map<String, dynamic> event) {
   final data = event['data'];

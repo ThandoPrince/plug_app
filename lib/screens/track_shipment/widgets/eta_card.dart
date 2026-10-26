@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/common/utils/kcolors.dart';
 import 'package:flutter_application_1/global_util/services/controler/google_shipment_route_controller.dart';
-import 'package:flutter_application_1/global_util/services/controler/shipment_route_controller.dart';
 import 'package:flutter_application_1/global_util/services/models/order_service_models/shipment_model.dart';
 import 'card_decoration.dart';
 
@@ -15,7 +14,10 @@ class EtaCard extends StatelessWidget {
     required this.shipment,
   });
 
-  String _normalizeStatus(String status) => status.toLowerCase().trim();
+  String _normalizeStatus(String status) => status
+    .trim()
+    .toLowerCase()
+    .replaceAll(RegExp(r'[\s-]+'), '_');
 
   ShipmentStatusUI getShipmentStatusUI(String status) {
     switch (_normalizeStatus(status)) {

@@ -258,29 +258,36 @@ class _AuthCreationScreenState extends State<AuthCreationScreen> {
                                   btnWidth: double.infinity,
                                 ),
                           SizedBox(height: 16.h),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              ReusableText(
-                                text: "Already part of the community? ",
-                                style: TextStyle(
-                                  fontSize: 14.sp,
-                                  color: Colors.black54,
-                                ),
-                              ),
-                              TextButton(
-                                onPressed: () => context.go("/login"),
-                                child: Text(
-                                  "Login",
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 14.sp,
-                                    color: Kolors.kBlue,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
+                         Row(
+  mainAxisAlignment: MainAxisAlignment.center,
+  children: [
+    Flexible(
+      child: ReusableText(
+        text: "Already part of the community? ",
+        style: TextStyle(
+          fontSize: 14.sp,
+          color: Colors.black54,
+        ),
+      ),
+    ),
+    TextButton(
+      onPressed: () => context.go("/login"),
+      style: TextButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        minimumSize: Size.zero,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      child: Text(
+        "Login",
+        style: TextStyle(
+          fontWeight: FontWeight.w800,
+          fontSize: 14.sp,
+          color: Kolors.kBlue,
+        ),
+      ),
+    ),
+  ],
+),
                         ],
                       ),
                     ),

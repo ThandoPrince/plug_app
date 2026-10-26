@@ -215,6 +215,7 @@ void _confirmLogout() {
   showDialog(
     context: context,
     builder: (ctx) => AlertDialog(
+      backgroundColor: Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20.r),
       ),
@@ -230,70 +231,78 @@ void _confirmLogout() {
           size: 26.sp,
         ),
       ),
-      title: const Text(
+      title: Text(
         'Logout?',
         textAlign: TextAlign.center,
         style: TextStyle(
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.bold,
+          fontSize: 20.sp,
+          color: Kolors.kDark,
         ),
       ),
-      content: const Text(
+      content: Text(
         'Are you sure you want to logout of your account?',
         textAlign: TextAlign.center,
         style: TextStyle(
           height: 1.4,
-          color: Colors.black87,
+          fontSize: 14.sp,
+          color: Kolors.kDark.withOpacity(0.7),
         ),
       ),
-      actionsAlignment: MainAxisAlignment.spaceBetween,
       actionsPadding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
       actions: [
-        Expanded(
-          child: ElevatedButton(
-            onPressed: () => Navigator.pop(ctx),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Kolors.kPrimary,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10.r),
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(ctx),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.grey.shade200,
+                  foregroundColor: Kolors.kDark,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                  padding: EdgeInsets.symmetric(vertical: 12.h),
+                ),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(
+                    color: Kolors.kDark,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14.sp,
+                  ),
+                ),
               ),
             ),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
+            SizedBox(width: 10.w),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () async {
+                  Navigator.pop(ctx);
+                  await _logout();
+                  if (!context.mounted) return;
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red.shade600,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                  padding: EdgeInsets.symmetric(vertical: 12.h),
+                ),
+                child: Text(
+                  'Logout',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14.sp,
+                  ),
+                ),
               ),
             ),
-          ),
-        ),
-        SizedBox(width: 8.w),
-        Expanded(
-          child: ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(ctx);
-
-              await _logout();
-
-              if (!context.mounted) return;
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade600,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10.r),
-              ),
-            ),
-            child: const Text(
-              'Logout',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
+          ],
         ),
       ],
     ),

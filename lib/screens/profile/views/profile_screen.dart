@@ -41,11 +41,6 @@ class _ProfileState extends State<Profile> with AutomaticKeepAliveClientMixin {
   final ImagePicker _picker = ImagePicker();
   late final ClientProfileUpdateController _updateCtrl;
 
-  // ---------------------------------------------------------------
-  // PERF: cache the resolved ImageProvider so we don't re-parse the
-  // URI / construct a new NetworkImage on every rebuild triggered by
-  // unrelated controller notifications (e.g. AddressClientCtrl).
-  // ---------------------------------------------------------------
   ImageProvider? _cachedProfileImage;
   String? _cachedProfilePicPath;
 
@@ -78,20 +73,18 @@ class _ProfileState extends State<Profile> with AutomaticKeepAliveClientMixin {
     super.dispose();
   }
 
-Future<void> _onRefresh() async {
-  final clientId = AuthSessionController.instance.clientId;
-  if (clientId == null) return;
+  Future<void> _onRefresh() async {
+    final clientId = AuthSessionController.instance.clientId;
+    if (clientId == null) return;
 
-  await context.read<ClientProfileController>().fetchClientByEmail(
-        clientId,
-        // forceRefresh: true, // uncomment if the controller supports/needs it
-      );
-}
+    await context.read<ClientProfileController>().fetchClientByEmail(clientId);
+  }
 
 void _confirmLogout() {
   showDialog(
     context: context,
     builder: (ctx) => AlertDialog(
+      backgroundColor: Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20.r),
       ),
@@ -107,76 +100,83 @@ void _confirmLogout() {
           size: 26.sp,
         ),
       ),
-      title: const Text(
+      title: Text(
         'Logout?',
         textAlign: TextAlign.center,
         style: TextStyle(
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.bold,
+          fontSize: 20.sp,
+          color: Kolors.kDark,
         ),
       ),
-      content: const Text(
+      content: Text(
         'Are you sure you want to logout of your account?',
         textAlign: TextAlign.center,
         style: TextStyle(
           height: 1.4,
-          color: Colors.black87,
+          fontSize: 14.sp,
+          color: Kolors.kDark.withOpacity(0.7),
         ),
       ),
-      actionsAlignment: MainAxisAlignment.spaceBetween,
       actionsPadding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
       actions: [
-        Expanded(
-          child: ElevatedButton(
-            onPressed: () => Navigator.pop(ctx),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Kolors.kPrimary,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10.r),
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(ctx),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.grey.shade200,
+                  foregroundColor: Kolors.kDark,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                  padding: EdgeInsets.symmetric(vertical: 12.h),
+                ),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(
+                    color: Kolors.kDark,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14.sp,
+                  ),
+                ),
               ),
             ),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
+            SizedBox(width: 10.w),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () async {
+                  Navigator.pop(ctx);
+                  await _logout();
+                  if (!context.mounted) return;
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red.shade600,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                  padding: EdgeInsets.symmetric(vertical: 12.h),
+                ),
+                child: Text(
+                  'Logout',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14.sp,
+                  ),
+                ),
               ),
             ),
-          ),
-        ),
-        SizedBox(width: 8.w),
-        Expanded(
-          child: ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(ctx);
-
-              await _logout();
-
-              if (!context.mounted) return;
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade600,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10.r),
-              ),
-            ),
-            child: const Text(
-              'Logout',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
+          ],
         ),
       ],
     ),
   );
 }
-
 
   Future<void> _editDateOfBirth() async {
     final updateCtrl = context.read<ClientProfileUpdateController>();
@@ -201,7 +201,6 @@ void _confirmLogout() {
     if (picked == null) return;
 
     final formattedDate = picked.toIso8601String().split('T').first;
-
     final success = await updateCtrl.updateProfile(dateOfBirth: formattedDate);
 
     if (!mounted) return;
@@ -211,7 +210,6 @@ void _confirmLogout() {
       if (clientId != null) {
         await context.read<ClientProfileController>().fetchClientByEmail(clientId);
       }
-
       FlushbarService.success(context, updateCtrl.message ?? "Date of birth updated");
     } else {
       FlushbarService.error(context, updateCtrl.errorMessage ?? "Failed to update DOB");
@@ -250,7 +248,6 @@ void _confirmLogout() {
     if (image == null) return;
 
     final file = File(image.path);
-
     final success = await _updateCtrl.updateProfile(profilePicture: file);
 
     if (!mounted) return;
@@ -286,10 +283,11 @@ void _confirmLogout() {
           title: Text(
             "Edit $fieldName",
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold, color: Kolors.kDark),
           ),
           content: TextField(
             controller: controller,
+            style: TextStyle(fontSize: 14.sp, color: Kolors.kDark),
             decoration: InputDecoration(
               hintText: "Enter $fieldName",
               focusedBorder: const UnderlineInputBorder(
@@ -303,8 +301,8 @@ void _confirmLogout() {
                 GradientBtn(
                   text: "Cancel",
                   btnColor: Colors.grey.shade300,
-                  textColor: Colors.black,
-                  btnHieght: 50.h,
+                  textColor: Kolors.kDark,
+                  btnHieght: 45.h,
                   btnWidth: double.infinity,
                   radius: 12,
                   onTap: () => Navigator.of(dialogContext).pop(),
@@ -315,14 +313,13 @@ void _confirmLogout() {
                     return GradientBtn(
                       text: updateCtrl.isLoading ? "Saving..." : "Save Changes",
                       btnColor: Kolors.kPrimary,
-                      btnHieght: 50.h,
+                      btnHieght: 45.h,
                       btnWidth: double.infinity,
                       radius: 12,
                       onTap: updateCtrl.isLoading
                           ? null
                           : () async {
                               final text = controller.text.trim();
-
                               String? firstName;
                               String? lastName;
 
@@ -346,7 +343,6 @@ void _confirmLogout() {
                                 if (clientId != null) {
                                   await context.read<ClientProfileController>().fetchClientByEmail(clientId);
                                 }
-
                                 FlushbarService.success(context, updateCtrl.message ?? "Profile updated");
                               } else {
                                 FlushbarService.error(context, updateCtrl.errorMessage ?? "Update failed");
@@ -364,156 +360,157 @@ void _confirmLogout() {
   }
 
   @override
-Widget build(BuildContext context) {
-  super.build(context);
+  Widget build(BuildContext context) {
+    super.build(context);
 
-  return Scaffold(
-    backgroundColor: Colors.transparent,
-    body: Consumer<ClientProfileController>(
-      builder: (context, profileCtrl, child) {
-        return Selector<AddressClientCtrl, bool>(
-          selector: (_, addressCtrl) => addressCtrl.isLoading,
-          builder: (context, isAddressLoading, _) {
-            if (profileCtrl.isLoading || isAddressLoading) {
-              return const ProfileSkeleton();
-            }
-
-            if (profileCtrl.errorMessage != null) {
-              return RefreshIndicator(
-                color: Kolors.kPrimary,
-                backgroundColor: Colors.white,
-                onRefresh: _onRefresh,
-                child: CommonErrorState(
-                  onRefresh: _onRefresh,
-                  title: "Unable to load profile",
-                  message: profileCtrl.errorMessage!,
-                  icon: Icons.person_off_outlined,
-                ),
-              );
-            }
-
-            final profile = profileCtrl.clientProfile;
-
-            if (profile == null) {
-              return RefreshIndicator(
-                color: Kolors.kPrimary,
-                backgroundColor: Colors.white,
-                onRefresh: _onRefresh,
-                child: CommonErrorState(
-                  onRefresh: _onRefresh,
-                  icon: Icons.person_off_outlined,
-                  title: "Profile Not Found",
-                  message: "We couldn't find your profile information.",
-                ),
-              );
-            }
-
-            return SafeArea(
-              child: RefreshIndicator(
-                color: Kolors.kPrimary,
-                backgroundColor: Colors.white,
-                onRefresh: _onRefresh,
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: Consumer<ClientProfileController>(
+        builder: (context, profileCtrl, child) {
+          return Selector<AddressClientCtrl, bool>(
+            selector: (_, addressCtrl) => addressCtrl.isLoading,
+            builder: (context, isAddressLoading, _) {
+              if (profileCtrl.isLoading || isAddressLoading) {
+                return ListView(
                   padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
-                  child: Column(
-                    children: [
-                      _buildProfileHeader(profile),
-                      SizedBox(height: 25.h),
+                  physics: const NeverScrollableScrollPhysics(),
+                  children: const [ProfileSkeleton()],
+                );
+              }
 
-                      _buildGlassCard(
-                        blur: true,
-                        padding: EdgeInsets.symmetric(vertical: 20.h),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            _buildStatItem('Points', '0'),
-                            _buildVerticalDivider(),
-                            _buildStatItem(
-                              'Rating',
-                              (profile.rating?.toString().isNotEmpty ?? false)
-                                  ? profile.rating.toString()
-                                  : '0.0',
-                            ),
-                          ],
+              if (profileCtrl.errorMessage != null) {
+                return RefreshIndicator(
+                  color: Kolors.kPrimary,
+                  backgroundColor: Colors.white,
+                  onRefresh: _onRefresh,
+                  child: CommonErrorState(
+                    onRefresh: _onRefresh,
+                    title: "Unable to load profile",
+                    message: profileCtrl.errorMessage!,
+                    icon: Icons.person_off_outlined,
+                  ),
+                );
+              }
+
+              final profile = profileCtrl.clientProfile;
+
+              if (profile == null) {
+                return RefreshIndicator(
+                  color: Kolors.kPrimary,
+                  backgroundColor: Colors.white,
+                  onRefresh: _onRefresh,
+                  child: CommonErrorState(
+                    onRefresh: _onRefresh,
+                    icon: Icons.person_off_outlined,
+                    title: "Profile Not Found",
+                    message: "We couldn't find your profile information.",
+                  ),
+                );
+              }
+
+              return SafeArea(
+                child: RefreshIndicator(
+                  color: Kolors.kPrimary,
+                  backgroundColor: Colors.white,
+                  onRefresh: _onRefresh,
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+                    child: Column(
+                      children: [
+                        _buildProfileHeader(profile),
+                        SizedBox(height: 25.h),
+
+                        _buildCard(
+                          padding: EdgeInsets.symmetric(vertical: 18.h),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              _buildStatItem('Points', '0'),
+                              _buildVerticalDivider(),
+                              _buildStatItem(
+                                'Rating',
+                                (profile.rating?.toString().isNotEmpty ?? false)
+                                    ? profile.rating.toString()
+                                    : '0.0',
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
 
-                      SizedBox(height: 14.h),
+                        SizedBox(height: 14.h),
 
-                      _buildGlassCard(
-                        child: Column(
-                          children: [
-                            _buildEditableRow(
-                              Icons.person_outline,
-                              'Name',
-                              '${profile.firstName ?? ''} ${profile.lastName ?? ''}'.trim(),
-                            ),
-                            _buildDivider(),
-                            _buildEditableRow(
-                              Icons.cake_outlined,
-                              'Date of Birth',
-                              profile.dateOfBirth?.toIso8601String().split('T').first ?? '',
-                            ),
-                          ],
+                        _buildCard(
+                          child: Column(
+                            children: [
+                              _buildEditableRow(
+                                Icons.person_outline,
+                                'Name',
+                                '${profile.firstName ?? ''} ${profile.lastName ?? ''}'.trim(),
+                              ),
+                              _buildDivider(),
+                              _buildEditableRow(
+                                Icons.cake_outlined,
+                                'Date of Birth',
+                                profile.dateOfBirth?.toIso8601String().split('T').first ?? '',
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
 
-                      SizedBox(height: 14.h),
+                        SizedBox(height: 14.h),
 
-                      _buildActionTile(
-                        icon: Ionicons.shield_checkmark_outline,
-                        title: "Account & Security",
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => AccountSecurityScreen(profile: profile),
-                            ),
-                          );
-                        },
-                      ),
+                        _buildActionTile(
+                          icon: Ionicons.shield_checkmark_outline,
+                          title: "Account & Security",
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => AccountSecurityScreen(profile: profile),
+                              ),
+                            );
+                          },
+                        ),
 
-                      _buildActionTile(
-                        icon: Ionicons.location_outline,
-                        title: "View My Addresses",
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => LocationScreen()),
-                          );
-                        },
-                      ),
+                        _buildActionTile(
+                          icon: Ionicons.location_outline,
+                          title: "View My Addresses",
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => LocationScreen()),
+                            );
+                          },
+                        ),
 
-                      _buildActionTile(
-                        icon: Ionicons.help_buoy_outline,
-                        title: "Help & Support",
-                        onTap: () => showHelpCenterBottomSheet(context),
-                      ),
+                        _buildActionTile(
+                          icon: Ionicons.help_buoy_outline,
+                          title: "Help & Support",
+                          onTap: () => showHelpCenterBottomSheet(context),
+                        ),
 
-                      _buildActionTile(
-                        icon: Ionicons.log_out_outline,
-                        title: "Logout",
-                        isDestructive: true,
-                        onTap: _confirmLogout,
-                      ),
+                        _buildActionTile(
+                          icon: Ionicons.log_out_outline,
+                          title: "Logout",
+                          isDestructive: true,
+                          onTap: _confirmLogout,
+                        ),
 
-                      SizedBox(height: 20.h),
-                    ],
+                        SizedBox(height: 20.h),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            );
-          },
-        );
-      },
-    ),
-  );
-}
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
 
   ImageProvider _resolveImage(String? path) {
-    // PERF: avoid re-parsing the URI / constructing a new NetworkImage
-    // on every rebuild when the underlying path hasn't actually changed.
     if (_cachedProfilePicPath == path && _cachedProfileImage != null) {
       return _cachedProfileImage!;
     }
@@ -547,14 +544,14 @@ Widget build(BuildContext context) {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.6),
-                  width: 4,
+                  color: Colors.white.withOpacity(0.8),
+                  width: 4.w,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.15),
-                    blurRadius: 16,
-                    offset: const Offset(0, 6),
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
@@ -568,7 +565,7 @@ Widget build(BuildContext context) {
                   );
                 },
                 child: CircleAvatar(
-                  radius: 60.r,
+                  radius: 56.r,
                   backgroundColor: Colors.grey.shade200,
                   backgroundImage: profileImage,
                 ),
@@ -583,11 +580,11 @@ Widget build(BuildContext context) {
                   shape: BoxShape.circle,
                 ),
                 child: CircleAvatar(
-                  radius: 18.r,
+                  radius: 16.r,
                   backgroundColor: Kolors.kPrimary,
                   child: Icon(
                     Icons.camera_alt,
-                    size: 18.sp,
+                    size: 16.sp,
                     color: Colors.white,
                   ),
                 ),
@@ -610,7 +607,7 @@ Widget build(BuildContext context) {
           profile.clientProfile?.emailAddress ?? '',
           style: TextStyle(
             fontSize: 13.sp,
-            color: Kolors.kDark.withOpacity(0.65),
+            color: Kolors.kDark.withOpacity(0.6),
           ),
         ),
       ],
@@ -623,43 +620,40 @@ Widget build(BuildContext context) {
     required VoidCallback onTap,
     bool isDestructive = false,
   }) {
-    final Color accent = isDestructive ? Colors.red : Kolors.kPrimary;
+    final Color accent = isDestructive ? Colors.red.shade600 : Kolors.kPrimary;
 
-    // No blur here — these tiles are the majority of the previous
-    // BackdropFilter stack and the main source of scroll lag. A plain
-    // translucent container reads almost identically against the solid
-    // gradient background but costs a small fraction of the GPU time.
-    return _buildGlassCard(
+    return _buildCard(
       padding: EdgeInsets.zero,
       child: ListTile(
         contentPadding: EdgeInsets.symmetric(
-          horizontal: 12.w,
-          vertical: 4.h,
+          horizontal: 14.w,
+          vertical: 2.h,
         ),
         onTap: onTap,
         leading: Container(
-          padding: EdgeInsets.all(9.w),
+          padding: EdgeInsets.all(8.w),
           decoration: BoxDecoration(
-            color: accent.withOpacity(0.12),
+            color: accent.withOpacity(0.1),
             shape: BoxShape.circle,
           ),
           child: Icon(
             icon,
-            size: 19.sp,
-            color: isDestructive ? Colors.red : Kolors.kDark.withOpacity(0.8),
+            size: 18.sp,
+            color: isDestructive ? Colors.red.shade600 : Kolors.kDark.withOpacity(0.8),
           ),
         ),
         title: Text(
           title,
           style: TextStyle(
-            fontSize: 15.sp,
+            fontSize: 14.5.sp,
             fontWeight: FontWeight.w600,
-            color: isDestructive ? Colors.red : Kolors.kDark.withOpacity(0.9),
+            color: isDestructive ? Colors.red.shade600 : Kolors.kDark.withOpacity(0.9),
           ),
         ),
         trailing: Icon(
           Icons.chevron_right_rounded,
-          color: isDestructive ? Colors.red.withOpacity(0.5) : Kolors.kDark.withOpacity(0.4),
+          size: 18.sp,
+          color: isDestructive ? Colors.red.shade300 : Kolors.kDark.withOpacity(0.4),
         ),
       ),
     );
@@ -675,7 +669,7 @@ Widget build(BuildContext context) {
         }
       },
       child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 10.h),
+        padding: EdgeInsets.symmetric(vertical: 8.h),
         child: Row(
           children: [
             Container(
@@ -694,18 +688,18 @@ Widget build(BuildContext context) {
                   Text(
                     title,
                     style: TextStyle(
-                      fontSize: 11.5.sp,
-                      color: Kolors.kDark.withOpacity(0.6),
+                      fontSize: 11.sp,
+                      color: Kolors.kDark.withOpacity(0.55),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  SizedBox(height: 3.h),
+                  SizedBox(height: 2.h),
                   Text(
                     value.isEmpty ? "Not set" : value,
                     style: TextStyle(
-                      fontSize: 15.sp,
+                      fontSize: 14.5.sp,
                       fontWeight: FontWeight.w600,
-                      color: value.isEmpty ? Kolors.kDark.withOpacity(0.4) : Kolors.kDark,
+                      color: value.isEmpty ? Kolors.kDark.withOpacity(0.35) : Kolors.kDark,
                     ),
                     overflow: TextOverflow.ellipsis,
                     maxLines: 2,
@@ -714,11 +708,11 @@ Widget build(BuildContext context) {
               ),
             ),
             SizedBox(width: 8.w),
-            Icon(
-              Icons.edit_rounded,
-              size: 17.sp,
-              color: Kolors.kDark.withOpacity(0.4),
-            ),
+            // Icon(
+            //   Icons.edit_rounded,
+            //   size: 15.sp,
+            //   color: Kolors.kDark.withOpacity(0.3),
+            // ),
           ],
         ),
       ),
@@ -731,17 +725,17 @@ Widget build(BuildContext context) {
         Text(
           value,
           style: TextStyle(
-            fontSize: 21.sp,
+            fontSize: 20.sp,
             fontWeight: FontWeight.bold,
             color: Kolors.kDark,
           ),
         ),
-        SizedBox(height: 4.h),
+        SizedBox(height: 2.h),
         Text(
           label,
           style: TextStyle(
             fontSize: 12.sp,
-            color: Kolors.kDark.withOpacity(0.6),
+            color: Kolors.kDark.withOpacity(0.55),
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -751,7 +745,7 @@ Widget build(BuildContext context) {
 
   Widget _buildVerticalDivider() {
     return Container(
-      height: 32.h,
+      height: 28.h,
       width: 1,
       color: Kolors.kDark.withOpacity(0.1),
     );
@@ -764,37 +758,26 @@ Widget build(BuildContext context) {
     );
   }
 
-  Widget _buildGlassCard({
+  Widget _buildCard({
     required Widget child,
     EdgeInsetsGeometry? padding,
-    bool blur = false,
   }) {
-    final content = Container(
+    return Container(
       margin: EdgeInsets.symmetric(vertical: 6.h),
-      padding: padding ?? EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+      padding: padding ?? EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.14),
-        borderRadius: BorderRadius.circular(24.r),
-        border: Border.all(color: Colors.white.withOpacity(0.18)),
+        color: Kolors.kOffWhite,
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: Colors.white.withOpacity(0.8), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 14,
-            offset: const Offset(0, 6),
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: child,
-    );
-
-    if (!blur) return content;
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(24.r),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-        child: content,
-      ),
     );
   }
 }

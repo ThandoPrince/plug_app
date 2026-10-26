@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/global_util/services/controler/client_payment_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/confirm_session_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/get_client_shipment_ctrl.dart';
 import 'package:flutter_application_1/global_util/services/controler/google_shipment_route_controller.dart';
+import 'package:flutter_application_1/global_util/services/controler/session_by_shipment_ctrl.dart';
 import 'package:flutter_application_1/global_util/services/models/order_service_models/session_model.dart';
 import 'package:flutter_application_1/screens/session_confirmation/widget/client_qr_checkin_content.dart';
 import 'package:flutter_application_1/screens/sessions/views/session_screen.dart';
@@ -16,7 +18,7 @@ class ClientQrCheckinScreen extends StatefulWidget {
   const ClientQrCheckinScreen({
     super.key,
     required this.shipmentId,
-    required this.googleShipmentRouteController
+    required this.googleShipmentRouteController,
   });
 
   @override
@@ -28,171 +30,129 @@ class _ClientQrCheckinScreenState extends State<ClientQrCheckinScreen> {
 
   bool _isNavigating = false;
 
+  // Owned by this screen (not provided globally) for two reasons:
+  //  1. its polling timer stops as soon as the screen closes, and
+  //  2. this State can listen to it and decide when to move on.
+  late final ClientPaymentController _payCtrl;
+
   @override
-void initState() {
-  super.initState();
+  void initState() {
+    super.initState();
 
-  widget.googleShipmentRouteController.startRealtime(widget.shipmentId);
-}
+    _payCtrl = ClientPaymentController()..addListener(_onPaymentChanged);
 
-  Future<void> _handleSession(SessionModel session) async {
+    widget.googleShipmentRouteController.startRealtime(widget.shipmentId);
+  }
+
+  @override
+  void dispose() {
+    _payCtrl.removeListener(_onPaymentChanged);
+    _payCtrl.dispose();
+    super.dispose();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Navigation rule: the ONLY thing that opens the live session screen is the
+  // server saying the session is `in_session`. A session that exists but is
+  // still `awaiting_payment` keeps the client here, where Pay now lives.
+  // That can be reported by either source below; whichever is first wins.
+  // ---------------------------------------------------------------------------
+
+  /// Source 1: the payment poll / select-method / verify responses.
+  void _onPaymentChanged() {
     if (!mounted || _isNavigating) return;
+    if (_payCtrl.payment?.sessionStatus != 'in_session') return;
 
-    _isNavigating = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _openLiveSession());
+  }
 
-    if (_selectedPaymentType == PaymentType.cash) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => SessionScreen(session: session, googleShipmentRouteController: widget.googleShipmentRouteController,),
-        ),
-      );
-      return;
-    }
+  SessionModel? _liveSessionFromShipmentCtrl() {
+    final s = context
+        .read<ShipmentController>()
+        .sessionForShipment(widget.shipmentId);
+    return s?.sessionStatus == 'in_session' ? s : null;
+  }
 
-    final completed = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(
-        fullscreenDialog: true,
-        builder: (_) => const PaymentProcessingOverlayScreen(),
-      ),
-    );
-
-    if (!mounted) return;
-
-    if (completed == true) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => SessionScreen(session: session, googleShipmentRouteController: widget.googleShipmentRouteController,),
-        ),
-      );
-    } else {
-      _isNavigating = false;
+  Future<SessionModel?> _fetchLiveSession() async {
+    try {
+      final ctrl = context.read<SessionByShipmentController>();
+      await ctrl.fetchSession(widget.shipmentId.toString());
+      final s = ctrl.session;
+      return s?.sessionStatus == 'in_session' ? s : null;
+    } catch (_) {
+      return null;
     }
   }
 
+  Future<void> _openLiveSession() async {
+    if (!mounted || _isNavigating) return;
+    _isNavigating = true;
+
+    // The server just said the session is live, but our copy of it may be a moment behind.
+    SessionModel? session;
+    for (var attempt = 0; attempt < 4 && mounted; attempt++) {
+      session = _liveSessionFromShipmentCtrl() ?? await _fetchLiveSession();
+      if (session != null) break;
+      await Future.delayed(const Duration(seconds: 2));
+    }
+
+    if (!mounted) return;
+
+    if (session == null) {
+      // Couldn't load it. Allow the next status update to try again.
+      _isNavigating = false;
+      return;
+    }
+
+    final liveSession = session;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SessionScreen(
+          session: liveSession,
+          googleShipmentRouteController: widget.googleShipmentRouteController,
+        ),
+      ),
+    );
+  }
+
+  /// The server has already saved the choice by the time this runs (see _onSelectMethod
+  /// in the content widget), so this only updates what the screen shows.
   void _onPaymentTypeChanged(PaymentType type) {
     setState(() {
       _selectedPaymentType = type;
     });
-
-    final shipmentController = context.read<ShipmentController>();
-
-    final session = shipmentController.sessionForShipment(widget.shipmentId);
-
-    if (session != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _handleSession(session);
-      });
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Selector<ShipmentController, SessionModel?>(
+    // Source 2: the session as the shipment controller sees it (socket-driven).
+    // Selecting the status string means the screen reacts even if the session
+    // object is updated in place.
+    return Selector<ShipmentController, String?>(
       selector: (_, controller) =>
-          controller.sessionForShipment(widget.shipmentId),
-      builder: (context, session, child) {
-        if (session != null) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _handleSession(session);
-          });
+          controller.sessionForShipment(widget.shipmentId)?.sessionStatus,
+      builder: (context, sessionStatus, child) {
+        if (sessionStatus == 'in_session') {
+          WidgetsBinding.instance.addPostFrameCallback((_) => _openLiveSession());
         }
 
-        return ChangeNotifierProvider(
-          create: (_) =>
-              ClientCheckinController()..loadCheckinToken(widget.shipmentId),
+        return MultiProvider(
+          providers: [
+            ChangeNotifierProvider(
+              create: (_) =>
+                  ClientCheckinController()..loadCheckinToken(widget.shipmentId),
+            ),
+            ChangeNotifierProvider<ClientPaymentController>.value(
+              value: _payCtrl,
+            ),
+          ],
           child: ClientQrCheckinContent(
             selectedPaymentType: _selectedPaymentType,
             onPaymentTypeChanged: _onPaymentTypeChanged,
           ),
         );
       },
-    );
-  }
-}
-
-class PaymentProcessingOverlayScreen extends StatefulWidget {
-  const PaymentProcessingOverlayScreen({super.key});
-
-  @override
-  State<PaymentProcessingOverlayScreen> createState() =>
-      _PaymentProcessingOverlayScreenState();
-}
-
-class _PaymentProcessingOverlayScreenState
-    extends State<PaymentProcessingOverlayScreen> {
-  @override
-  void initState() {
-    super.initState();
-    
-    
-    _simulateProcessing();
-  }
-
-  Future<void> _simulateProcessing() async {
-    await Future.delayed(const Duration(seconds: 3));
-
-    if (!mounted) return;
-
-    Navigator.pop(context, true);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black54,
-      body: Center(
-        child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 28),
-          padding: const EdgeInsets.symmetric(
-            horizontal: 24,
-            vertical: 28,
-          ),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: const [
-              BoxShadow(
-                blurRadius: 20,
-                color: Colors.black12,
-                offset: Offset(0, 10),
-              ),
-            ],
-          ),
-          child: const Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(
-                width: 54,
-                height: 54,
-                child: CircularProgressIndicator(
-                  strokeWidth: 4,
-                ),
-              ),
-              SizedBox(height: 20),
-              Text(
-                "Processing Payment",
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              SizedBox(height: 10),
-              Text(
-                "Please wait while we confirm the card payment.",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.black54,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

@@ -413,24 +413,53 @@ class _MultiProviderBookingBodyState extends State<MultiProviderBookingBody> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (averagePrice != null)
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              "Indicative Price",
-                              style: TextStyle(color: Kolors.kDark.withOpacity(0.6), fontSize: 14),
-                            ),
-                            Text(
-                              "R ${averagePrice!.toStringAsFixed(2)}",
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 18,
-                                color: Kolors.kPrimary,
-                              ),
-                            ),
-                          ],
-                        ),
+                     if (averagePrice != null)
+  Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+      Row(
+        children: [
+          Text(
+            "Indicative Price",
+            style: TextStyle(
+              color: Kolors.kDark.withOpacity(0.6),
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Tooltip(
+            message:
+                "This is the average price of the selected providers.\n\nTo lower the indicative price, remove the provider with the highest cost of service.",
+            triggerMode: TooltipTriggerMode.tap, // important for mobile
+            preferBelow: false,
+            decoration: BoxDecoration(
+              color: Kolors.kDark.withOpacity(0.9),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            textStyle: const TextStyle(
+              color: Colors.white,
+              fontSize: 13,
+              height: 1.4,
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Icon(
+              Icons.help_outline_rounded,
+              size: 18,
+              color: Kolors.kPrimary.withOpacity(0.8),
+            ),
+          ),
+        ],
+      ),
+      Text(
+        "R ${averagePrice!.toStringAsFixed(2)}",
+        style: const TextStyle(
+          fontWeight: FontWeight.w800,
+          fontSize: 18,
+          color: Kolors.kPrimary,
+        ),
+      ),
+    ],
+  ),
                       
                         const Padding(
                           padding: EdgeInsets.symmetric(vertical: 8.0),

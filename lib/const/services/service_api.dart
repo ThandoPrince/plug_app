@@ -54,23 +54,30 @@ class ServiceApi {
   // =========================
   // FETCH SERVICES
   // =========================
-  static Future<List<ServiceModel>> fetchServices() async {
-    final url = Uri.parse('$baseUrl/services/');
+  static Future<List<ServiceModel>> fetchServices({String? search}) async {
+final queryParameters = <String, String>{};
+  if (search != null && search.trim().isNotEmpty) {
+    queryParameters['search'] = search.trim();
+  }
+
+    final url = Uri.parse('$baseUrl/services/').replace(
+    queryParameters: queryParameters.isEmpty ? null : queryParameters,
+  );
 
     try {
-      final response = await _withRetry(() async {
-        return await ApiClient.instance.request((token) async {
-          return await http
-              .get(
-                url,
-                headers: {
-                  "Content-Type": "application/json",
-                  if (token != null) "Authorization": "Bearer $token",
-                },
-              )
-              .timeout(_timeout);
-        }).timeout(_timeout);
-      });
+    final response = await _withRetry(() async {
+      return await ApiClient.instance.request((token) async {
+        return await http
+            .get(
+              url,
+              headers: {
+                "Content-Type": "application/json",
+                if (token != null) "Authorization": "Bearer $token",
+              },
+            )
+            .timeout(_timeout);
+      }).timeout(_timeout);
+    });
 
       if (kDebugMode) {
         print("========== SERVICES ==========");

@@ -60,7 +60,7 @@ class ClientRatingDetailsScreen extends StatelessWidget {
             child: Column(
               children: [
                 // 1. Provider Info Card
-                _buildGlassCard(
+                _buildCard(
                   child: Column(
                     children: [
                       CircleAvatar(
@@ -108,7 +108,7 @@ class ClientRatingDetailsScreen extends StatelessWidget {
                 SizedBox(height: 15.h),
 
                 // 2. Professional Time Card (No Coordinates)
-                _buildGlassCard(
+                _buildCard(
                   title: "Service Times",
                   child: Column(
                     children: [
@@ -130,7 +130,7 @@ class ClientRatingDetailsScreen extends StatelessWidget {
                 SizedBox(height: 15.h),
 
                 // 3. Review Section
-                _buildGlassCard(
+                _buildCard(
                   title: "Your Feedback",
                   child: Text(
                     rating.review?.isEmpty ?? true
@@ -206,41 +206,42 @@ class ClientRatingDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildGlassCard({required Widget child, String? title}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (title != null)
-          Padding(
-            padding: EdgeInsets.only(left: 8.w, bottom: 8.h),
-            child: Text(
-              title.toUpperCase(),
-              style: TextStyle(
-                  color: Kolors.kDark,
-                  fontSize: 11.sp,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.1),
-            ),
-          ),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(24.r),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-            child: Container(
-              width: double.infinity,
-              padding: EdgeInsets.all(20.w),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(24.r),
-                border: Border.all(color: Colors.white.withOpacity(0.2)),
-              ),
-              child: child,
+  Widget _buildCard({required Widget child, String? title}) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      if (title != null)
+        Padding(
+          padding: EdgeInsets.only(left: 8.w, bottom: 8.h),
+          child: Text(
+            title.toUpperCase(),
+            style: TextStyle(
+              color: Kolors.kDark,
+              fontSize: 11.sp,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.1,
             ),
           ),
         ),
-      ],
-    );
-  }
+      Container(
+        width: double.infinity,
+        padding: EdgeInsets.all(20.w),
+        decoration: BoxDecoration(
+          color: Kolors.kOffWhite,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 4,
+              offset: Offset(2, 2),
+            ),
+          ],
+        ),
+        child: child,
+      ),
+    ],
+  );
+}
 
   Widget _buildMiniStat(String label, String value) {
     return Column(

@@ -4,6 +4,7 @@ import 'package:flutter_application_1/common/utils/kcolors.dart';
 import 'package:flutter_application_1/common/widgets/custom_button.dart';
 import 'package:flutter_application_1/common/widgets/flushbar_service.dart';
 import 'package:flutter_application_1/common/widgets/shimmers/track_service_skeleton.dart';
+import 'package:flutter_application_1/global_util/services/controler/client_order_realtime_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/google_shipment_route_controller.dart';
 import 'package:flutter_application_1/global_util/services/controler/shipment_confirm_controller.dart';
 import 'package:flutter_application_1/screens/schedule/widgets/shipment_action_dialogs.dart';
@@ -39,8 +40,11 @@ class TrackServiceView extends StatefulWidget {
 class _TrackServiceViewState extends State<TrackServiceView> {
   late GoogleMapControllerImpl _googleMapController;
   late FallbackMapControllerImpl _fallbackMapController;
+  late ClientOrderRealtimeController _realtime;
   bool _controllersInitialized = false;
 
+
+Function(Map<String, dynamic>)? _previousStatusHandler;
   @override
   void initState() {
     super.initState();
@@ -48,6 +52,16 @@ class _TrackServiceViewState extends State<TrackServiceView> {
     _googleMapController = GoogleMapControllerImpl();
     _fallbackMapController = FallbackMapControllerImpl();
     _controllersInitialized = true;
+    _realtime = context.read<ClientOrderRealtimeController>();
+_previousStatusHandler = _realtime.onShipmentStatusUpdated;
+
+_realtime.onShipmentStatusUpdated = (data) {
+  _previousStatusHandler?.call(data); // keep any existing behaviour
+  final id = int.tryParse(data['shipment_id']?.toString() ?? '');
+  if (id == widget.shipment.shipmentId) {
+    widget.googleShipmentRouteController.applyStatusUpdate(data);
+  }
+};
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       widget.googleShipmentRouteController.startRealtime(
@@ -59,6 +73,7 @@ class _TrackServiceViewState extends State<TrackServiceView> {
   @override
   void dispose() {
     _googleMapController.dispose();
+    _realtime.onShipmentStatusUpdated = _previousStatusHandler;
     _fallbackMapController.dispose();
     super.dispose();
   }
@@ -346,7 +361,7 @@ class _TrackServiceViewState extends State<TrackServiceView> {
                           ),
 
                           /// Confirm (UNCHANGED)
-                          if (routeCtrl.shipmentStatus == "arrived") ...[
+                          if (routeCtrl.shipmentStatus.trim().toLowerCase() == "arrived") ...[
                             const SizedBox(height: 24),
                             ConfirmServiceButton(
                               onConfirm: () => confirmService(

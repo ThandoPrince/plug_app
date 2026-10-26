@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-
 import 'package:flutter_application_1/global_util/services/controler/client_pending_orders_ctrl.dart';
 import 'package:flutter_application_1/global_util/services/controler/negotiation_badge_store_controller.dart';
-
 import 'package:flutter_application_1/global_util/services/models/order_service_models/order_service_model.dart';
 import 'package:flutter_application_1/global_util/services/widgets/refresh_indicator_widget.dart';
 import 'package:flutter_application_1/screens/client_pending_orders_details/views/client_pending_orders_details_screen.dart';
@@ -11,6 +9,7 @@ import 'package:flutter_application_1/screens/client_pending_orders_details/widg
 import 'package:flutter_application_1/screens/client_pending_orders_details/widgets/action_tile.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:flutter_application_1/common/utils/kcolors.dart';
 
@@ -53,17 +52,21 @@ class ClientPendingOrdersBody extends StatelessWidget {
       );
     } else if (controller.errorMessage != null) {
       content = _buildStateView(
+        context: context,
         icon: Icons.cloud_off_outlined,
         title: "Failed to load orders",
         subtitle: controller.errorMessage!,
         onRefresh: () => controller.fetchPendingOrders(forceRefresh: true),
+        showActionButton: false,
       );
     } else if (filteredOrders.isEmpty) {
       content = _buildStateView(
+        context: context,
         icon: Icons.assignment_turned_in_outlined,
         title: "No Pending Orders",
-        subtitle: "You have no outstanding requests right now ",
+        subtitle: "You have no outstanding requests right now",
         onRefresh: () => controller.fetchPendingOrders(forceRefresh: true),
+        showActionButton: true,
       );
     } else {
       content = GenericLoadingRefresh(
@@ -93,53 +96,88 @@ class ClientPendingOrdersBody extends StatelessWidget {
     );
   }
 
-Widget _buildStateView({
-  required IconData icon,
-  required String title,
-  required String subtitle,
-  required Future<void> Function() onRefresh,
-}) {
-  return RefreshIndicator(
-    color: Kolors.kPrimary,
-    backgroundColor: Colors.white,
-    onRefresh: onRefresh, // was: () async {}
-    child: ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      children: [
-        const SizedBox(height: 120),
-        Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 100,
-              color: Colors.white.withOpacity(0.6),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              title,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
+  Widget _buildStateView({
+    required BuildContext context,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Future<void> Function() onRefresh,
+    required bool showActionButton,
+  }) {
+    return RefreshIndicator(
+      color: Kolors.kPrimary,
+      backgroundColor: Colors.white,
+      onRefresh: onRefresh,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      icon,
+                      size: 90,
+                      color: Colors.white.withOpacity(0.6),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 12),
+                    // Subtitle text made bigger as requested
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.85),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    if (showActionButton) ...[
+                      const SizedBox(height: 24),
+                      TextButton.icon(
+                        onPressed: () => context.push("/viewAllServices"),
+                        icon: const Icon(Icons.explore_outlined, color: Colors.white, size: 20),
+                        label: const Text(
+                          "Explore Services",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        style: TextButton.styleFrom(
+                          backgroundColor: Colors.white.withOpacity(0.15),
+                          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                            side: BorderSide(color: Colors.white.withOpacity(0.3)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ),
-              textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 10),
-            Text(
-              subtitle,
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 14,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ],
-    ),
-  );
-}
+          );
+        },
+      ),
+    );
+  }
+
   // ───────────────────────────── LONG-PRESS ACTIONS ─────────────────────────────
 
   void _showOrderActions(BuildContext context, OrderServiceModel order) {
@@ -147,7 +185,6 @@ Widget _buildStateView({
       context: context,
       title: "Order Actions",
       tiles: [
-        
         ActionTile(
           icon: Icons.cancel,
           label: "Cancel Order",
@@ -173,31 +210,26 @@ Widget _buildStateView({
     Color statusColor;
     IconData statusIcon;
 
-final unreadCount = order.orderId != null
-    ? context.watch<NegotiationBadgeStore>().countForOrder(order.orderId!)
-    : 0;
+    final unreadCount = order.orderId != null
+        ? context.watch<NegotiationBadgeStore>().countForOrder(order.orderId!)
+        : 0;
 
     if (status.contains('pending')) {
-  // Waiting for action / response
-  statusColor = Colors.orange.shade700;
-  statusIcon = Icons.access_time_rounded;
-} else if (status.contains('in-negotiation')) {
-  // Active negotiation
-  statusColor = Colors.blue.shade700;
-  statusIcon = Icons.forum_outlined;
-} else if (status.contains('rescheduled')) {
-  // Appointment/request moved to another time
-  statusColor = Colors.purple.shade700;
-  statusIcon = Icons.event_repeat_rounded;
-} else if (status.contains('declined') || status.contains('rejected')) {
-  // Rejected / declined
-  statusColor = Colors.red.shade700;
-  statusIcon = Icons.cancel_outlined;
-} else {
-  // Unknown / other status
-  statusColor = Colors.grey.shade600;
-  statusIcon = Icons.info_outline;
-}
+      statusColor = Colors.orange.shade700;
+      statusIcon = Icons.access_time_rounded;
+    } else if (status.contains('in-negotiation')) {
+      statusColor = Colors.blue.shade700;
+      statusIcon = Icons.forum_outlined;
+    } else if (status.contains('rescheduled')) {
+      statusColor = Colors.purple.shade700;
+      statusIcon = Icons.event_repeat_rounded;
+    } else if (status.contains('declined') || status.contains('rejected')) {
+      statusColor = Colors.red.shade700;
+      statusIcon = Icons.cancel_outlined;
+    } else {
+      statusColor = Colors.grey.shade600;
+      statusIcon = Icons.info_outline;
+    }
 
     final serviceName =
         order.serviceRequired?.serviceName ?? "Service Not Specified";
@@ -237,96 +269,89 @@ final unreadCount = order.orderId != null
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                // Title and Status Row
-               // Title and Status Row
-Row(
-  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  crossAxisAlignment: CrossAxisAlignment.start,
-  children: [
-    Expanded(
-      child: Text(
-        order.title?.toUpperCase() ?? "NEW SERVICE REQUEST",
-        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w900,
-              color: Theme.of(context).colorScheme.onSurface,
-            ),
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-      ),
-    ),
-
-    const SizedBox(width: 12),
-
-    // Status + unread badge
-    Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 10,
-            vertical: 5,
-          ),
-          decoration: BoxDecoration(
-            color: statusColor.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: statusColor.withOpacity(0.3),
-              width: 1,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                statusIcon,
-                size: 14,
-                color: statusColor,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                order.status?.toUpperCase() ?? "UNKNOWN",
-                style: TextStyle(
-                  color: statusColor,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        order.title?.toUpperCase() ?? "NEW SERVICE REQUEST",
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w900,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: statusColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: statusColor.withOpacity(0.3),
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                statusIcon,
+                                size: 14,
+                                color: statusColor,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                order.status?.toUpperCase() ?? "UNKNOWN",
+                                style: TextStyle(
+                                  color: statusColor,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (unreadCount > 0)
+                          Positioned(
+                            top: -7,
+                            right: -7,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 5,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: Theme.of(context).cardColor,
+                                  width: 2,
+                                ),
+                              ),
+                              child: Text(
+                                unreadCount > 9 ? '9+' : '$unreadCount',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
                 ),
-              ),
-            ],
-          ),
-        ),
-
-        // Unread badge attached to status
-        if (unreadCount > 0)
-          Positioned(
-            top: -7,
-            right: -7,
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 5,
-                vertical: 2,
-              ),
-              decoration: BoxDecoration(
-                color: Colors.red,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: Theme.of(context).cardColor,
-                  width: 2,
-                ),
-              ),
-              child: Text(
-                unreadCount > 9 ? '9+' : '$unreadCount',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-      ],
-    ),
-  ],
-),
                 const Divider(height: 16, thickness: 0.5),
                 _buildInfoRow(
                   context,
